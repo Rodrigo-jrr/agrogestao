@@ -16,17 +16,21 @@ export function SalesPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [sales, setSales] = useState<Sale[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [customerError, setCustomerError] = useState<string | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
 
   const [customerId, setCustomerId] = useState('')
   const [saleDate, setSaleDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [items, setItems] = useState<ItemRow[]>([{ productId: '', quantity: '', unitPrice: '' }])
 
-  const [newCustomerName, setNewCustomerName] = useState('')
+  const [editingCustomerId, setEditingCustomerId] = useState<number | null>(null)
+  const [customerName, setCustomerName] = useState('')
 
   function loadAll() {
-    salesApi.listCustomers().then(setCustomers).catch(() => {})
-    inventoryApi.listProducts().then(setProducts).catch(() => {})
-    salesApi.list().then(setSales).catch(() => {})
+    setListError(null)
+    salesApi.listCustomers().then(setCustomers).catch((err) => setListError(apiErrorMessage(err)))
+    inventoryApi.listProducts().then(setProducts).catch((err) => setListError(apiErrorMessage(err)))
+    salesApi.list().then(setSales).catch((err) => setListError(apiErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -37,12 +41,44 @@ export function SalesPage() {
     setItems((current) => current.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
   }
 
-  async function handleCreateCustomer(event: FormEvent) {
+  function startEditCustomer(customer: Customer) {
+    setEditingCustomerId(customer.id)
+    setCustomerName(customer.name)
+    setCustomerError(null)
+  }
+
+  function cancelEditCustomer() {
+    setEditingCustomerId(null)
+    setCustomerName('')
+    setCustomerError(null)
+  }
+
+  async function handleSubmitCustomer(event: FormEvent) {
     event.preventDefault()
-    if (!newCustomerName.trim()) return
-    await salesApi.createCustomer({ name: newCustomerName })
-    setNewCustomerName('')
-    loadAll()
+    if (!customerName.trim()) return
+    setCustomerError(null)
+    try {
+      if (editingCustomerId) {
+        await salesApi.updateCustomer(editingCustomerId, { name: customerName })
+      } else {
+        await salesApi.createCustomer({ name: customerName })
+      }
+      cancelEditCustomer()
+      loadAll()
+    } catch (err) {
+      setCustomerError(apiErrorMessage(err))
+    }
+  }
+
+  async function handleDeleteCustomer(id: number) {
+    if (!window.confirm('Excluir este cliente?')) return
+    try {
+      await salesApi.removeCustomer(id)
+      if (editingCustomerId === id) cancelEditCustomer()
+      loadAll()
+    } catch (err) {
+      setCustomerError(apiErrorMessage(err))
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -66,20 +102,55 @@ export function SalesPage() {
   return (
     <div className="space-y-4">
       <h1 className="font-serif text-2xl font-semibold text-terra">Vendas</h1>
+      {listError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-4">
-          <form onSubmit={handleCreateCustomer} className="space-y-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-terra">Novo cliente</h2>
+          <form
+            onSubmit={handleSubmitCustomer}
+            className="space-y-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm"
+          >
+            <h2 className="text-sm font-semibold text-terra">
+              {editingCustomerId ? 'Editar cliente' : 'Novo cliente'}
+            </h2>
+            {customerError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{customerError}</p>}
             <input
               placeholder="Nome do cliente"
-              value={newCustomerName}
-              onChange={(e) => setNewCustomerName(e.target.value)}
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
               className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
             />
-            <button className="w-full rounded-md border border-rust px-3 py-2 text-sm font-medium text-rust hover:bg-rust/10">
-              Adicionar cliente
-            </button>
+            <div className="flex gap-2">
+              <button className="flex-1 rounded-md border border-rust px-3 py-2 text-sm font-medium text-rust hover:bg-rust/10">
+                {editingCustomerId ? 'Salvar' : 'Adicionar cliente'}
+              </button>
+              {editingCustomerId && (
+                <button
+                  type="button"
+                  onClick={cancelEditCustomer}
+                  className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+            {customers.length > 0 && (
+              <ul className="mt-2 divide-y divide-terra/5 text-sm">
+                {customers.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between py-1.5">
+                    <span>{c.name}</span>
+                    <span className="whitespace-nowrap">
+                      <button onClick={() => startEditCustomer(c)} className="text-rust hover:underline">
+                        Editar
+                      </button>
+                      <button onClick={() => handleDeleteCustomer(c.id)} className="ml-3 text-rust hover:underline">
+                        Excluir
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </form>
 
           <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
@@ -172,6 +243,13 @@ export function SalesPage() {
                   </td>
                 </tr>
               ))}
+              {sales.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-terra/40">
+                    Nenhuma venda registrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -2,6 +2,7 @@ package com.agrogestao.inventory.dto;
 
 import com.agrogestao.inventory.MovementType;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.Getter;
@@ -18,6 +19,7 @@ public class InventoryMovementRequest {
     private MovementType type;
 
     @NotNull
+    @PositiveOrZero
     private BigDecimal quantity;
 
     private BigDecimal unitCost;

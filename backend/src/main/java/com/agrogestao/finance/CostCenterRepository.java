@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CostCenterRepository extends JpaRepository<CostCenter, Long> {
 
     List<CostCenter> findByPropertyId(Long propertyId);
+
+    boolean existsByIdAndPropertyId(Long id, Long propertyId);
 }

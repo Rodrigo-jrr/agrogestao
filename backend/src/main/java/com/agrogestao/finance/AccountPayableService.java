@@ -1,9 +1,11 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
 import com.agrogestao.properties.TenantContext;
+import com.agrogestao.purchases.SupplierRepository;
 import java.util.List;
 import org.springframework.stereotype.Service;
 
@@ -11,10 +13,15 @@ import org.springframework.stereotype.Service;
 public class AccountPayableService {
 
     private final AccountPayableRepository accountPayableRepository;
+    private final SupplierRepository supplierRepository;
     private final TenantContext tenantContext;
 
-    public AccountPayableService(AccountPayableRepository accountPayableRepository, TenantContext tenantContext) {
+    public AccountPayableService(
+            AccountPayableRepository accountPayableRepository,
+            SupplierRepository supplierRepository,
+            TenantContext tenantContext) {
         this.accountPayableRepository = accountPayableRepository;
+        this.supplierRepository = supplierRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -24,8 +31,11 @@ public class AccountPayableService {
     }
 
     public AccountPayableResponse create(AccountPayableRequest request) {
+        tenantContext.requireWriteAccess();
+        Long propertyId = tenantContext.requirePropertyId();
+        validateSupplier(propertyId, request.getSupplierId());
         AccountPayable payable = new AccountPayable();
-        payable.setPropertyId(tenantContext.requirePropertyId());
+        payable.setPropertyId(propertyId);
         payable.setDescription(request.getDescription());
         payable.setAmount(request.getAmount());
         payable.setDueDate(request.getDueDate());
@@ -33,10 +43,40 @@ public class AccountPayableService {
         return toResponse(accountPayableRepository.save(payable));
     }
 
+    public AccountPayableResponse update(Long id, AccountPayableRequest request) {
+        tenantContext.requireWriteAccess();
+        validateSupplier(tenantContext.requirePropertyId(), request.getSupplierId());
+        AccountPayable payable = findOwned(id);
+        payable.setDescription(request.getDescription());
+        payable.setAmount(request.getAmount());
+        payable.setDueDate(request.getDueDate());
+        payable.setSupplierId(request.getSupplierId());
+        return toResponse(accountPayableRepository.save(payable));
+    }
+
+    public void delete(Long id) {
+        tenantContext.requireManageAccess();
+        accountPayableRepository.delete(findOwned(id));
+    }
+
     public AccountPayableResponse markPaid(Long id) {
+        tenantContext.requireWriteAccess();
         AccountPayable payable = findOwned(id);
         payable.setPaid(true);
         return toResponse(accountPayableRepository.save(payable));
+    }
+
+    public AccountPayableResponse unmarkPaid(Long id) {
+        tenantContext.requireWriteAccess();
+        AccountPayable payable = findOwned(id);
+        payable.setPaid(false);
+        return toResponse(accountPayableRepository.save(payable));
+    }
+
+    private void validateSupplier(Long propertyId, Long supplierId) {
+        if (supplierId != null && !supplierRepository.existsByIdAndPropertyId(supplierId, propertyId)) {
+            throw new BusinessException("Fornecedor inválido para esta propriedade");
+        }
     }
 
     private AccountPayable findOwned(Long id) {

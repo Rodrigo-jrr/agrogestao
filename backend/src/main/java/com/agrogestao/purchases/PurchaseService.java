@@ -1,9 +1,11 @@
 package com.agrogestao.purchases;
 
+import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.finance.FinancialTransactionService;
 import com.agrogestao.finance.TransactionType;
 import com.agrogestao.inventory.InventoryMovementService;
 import com.agrogestao.inventory.MovementType;
+import com.agrogestao.inventory.ProductRepository;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.dto.PurchaseRequest;
 import com.agrogestao.purchases.dto.PurchaseResponse;
@@ -17,6 +19,8 @@ public class PurchaseService {
 
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
+    private final SupplierRepository supplierRepository;
+    private final ProductRepository productRepository;
     private final InventoryMovementService inventoryMovementService;
     private final FinancialTransactionService financialTransactionService;
     private final TenantContext tenantContext;
@@ -24,11 +28,15 @@ public class PurchaseService {
     public PurchaseService(
             PurchaseRepository purchaseRepository,
             PurchaseItemRepository purchaseItemRepository,
+            SupplierRepository supplierRepository,
+            ProductRepository productRepository,
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             TenantContext tenantContext) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
+        this.supplierRepository = supplierRepository;
+        this.productRepository = productRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.financialTransactionService = financialTransactionService;
         this.tenantContext = tenantContext;
@@ -41,7 +49,17 @@ public class PurchaseService {
 
     @Transactional
     public PurchaseResponse create(PurchaseRequest request) {
+        tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
+
+        if (!supplierRepository.existsByIdAndPropertyId(request.getSupplierId(), propertyId)) {
+            throw new BusinessException("Fornecedor inválido para esta propriedade");
+        }
+        request.getItems().forEach(item -> {
+            if (!productRepository.existsByIdAndPropertyId(item.getProductId(), propertyId)) {
+                throw new BusinessException("Produto inválido para esta propriedade");
+            }
+        });
 
         BigDecimal total = request.getItems().stream()
                 .map(item -> item.getUnitPrice().multiply(item.getQuantity()))

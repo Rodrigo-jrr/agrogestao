@@ -16,17 +16,21 @@ export function PurchasesPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [purchases, setPurchases] = useState<Purchase[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [supplierError, setSupplierError] = useState<string | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
 
   const [supplierId, setSupplierId] = useState('')
   const [purchaseDate, setPurchaseDate] = useState(() => new Date().toISOString().slice(0, 10))
   const [items, setItems] = useState<ItemRow[]>([{ productId: '', quantity: '', unitPrice: '' }])
 
-  const [newSupplierName, setNewSupplierName] = useState('')
+  const [editingSupplierId, setEditingSupplierId] = useState<number | null>(null)
+  const [supplierName, setSupplierName] = useState('')
 
   function loadAll() {
-    purchasesApi.listSuppliers().then(setSuppliers).catch(() => {})
-    inventoryApi.listProducts().then(setProducts).catch(() => {})
-    purchasesApi.list().then(setPurchases).catch(() => {})
+    setListError(null)
+    purchasesApi.listSuppliers().then(setSuppliers).catch((err) => setListError(apiErrorMessage(err)))
+    inventoryApi.listProducts().then(setProducts).catch((err) => setListError(apiErrorMessage(err)))
+    purchasesApi.list().then(setPurchases).catch((err) => setListError(apiErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -37,12 +41,44 @@ export function PurchasesPage() {
     setItems((current) => current.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
   }
 
-  async function handleCreateSupplier(event: FormEvent) {
+  function startEditSupplier(supplier: Supplier) {
+    setEditingSupplierId(supplier.id)
+    setSupplierName(supplier.name)
+    setSupplierError(null)
+  }
+
+  function cancelEditSupplier() {
+    setEditingSupplierId(null)
+    setSupplierName('')
+    setSupplierError(null)
+  }
+
+  async function handleSubmitSupplier(event: FormEvent) {
     event.preventDefault()
-    if (!newSupplierName.trim()) return
-    await purchasesApi.createSupplier({ name: newSupplierName })
-    setNewSupplierName('')
-    loadAll()
+    if (!supplierName.trim()) return
+    setSupplierError(null)
+    try {
+      if (editingSupplierId) {
+        await purchasesApi.updateSupplier(editingSupplierId, { name: supplierName })
+      } else {
+        await purchasesApi.createSupplier({ name: supplierName })
+      }
+      cancelEditSupplier()
+      loadAll()
+    } catch (err) {
+      setSupplierError(apiErrorMessage(err))
+    }
+  }
+
+  async function handleDeleteSupplier(id: number) {
+    if (!window.confirm('Excluir este fornecedor?')) return
+    try {
+      await purchasesApi.removeSupplier(id)
+      if (editingSupplierId === id) cancelEditSupplier()
+      loadAll()
+    } catch (err) {
+      setSupplierError(apiErrorMessage(err))
+    }
   }
 
   async function handleSubmit(event: FormEvent) {
@@ -66,20 +102,55 @@ export function PurchasesPage() {
   return (
     <div className="space-y-4">
       <h1 className="font-serif text-2xl font-semibold text-terra">Compras</h1>
+      {listError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <div className="space-y-4">
-          <form onSubmit={handleCreateSupplier} className="space-y-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-terra">Novo fornecedor</h2>
+          <form
+            onSubmit={handleSubmitSupplier}
+            className="space-y-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm"
+          >
+            <h2 className="text-sm font-semibold text-terra">
+              {editingSupplierId ? 'Editar fornecedor' : 'Novo fornecedor'}
+            </h2>
+            {supplierError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{supplierError}</p>}
             <input
               placeholder="Nome do fornecedor"
-              value={newSupplierName}
-              onChange={(e) => setNewSupplierName(e.target.value)}
+              value={supplierName}
+              onChange={(e) => setSupplierName(e.target.value)}
               className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
             />
-            <button className="w-full rounded-md border border-rust px-3 py-2 text-sm font-medium text-rust hover:bg-rust/10">
-              Adicionar fornecedor
-            </button>
+            <div className="flex gap-2">
+              <button className="flex-1 rounded-md border border-rust px-3 py-2 text-sm font-medium text-rust hover:bg-rust/10">
+                {editingSupplierId ? 'Salvar' : 'Adicionar fornecedor'}
+              </button>
+              {editingSupplierId && (
+                <button
+                  type="button"
+                  onClick={cancelEditSupplier}
+                  className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+            {suppliers.length > 0 && (
+              <ul className="mt-2 divide-y divide-terra/5 text-sm">
+                {suppliers.map((s) => (
+                  <li key={s.id} className="flex items-center justify-between py-1.5">
+                    <span>{s.name}</span>
+                    <span className="whitespace-nowrap">
+                      <button onClick={() => startEditSupplier(s)} className="text-rust hover:underline">
+                        Editar
+                      </button>
+                      <button onClick={() => handleDeleteSupplier(s.id)} className="ml-3 text-rust hover:underline">
+                        Excluir
+                      </button>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </form>
 
           <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
@@ -172,6 +243,13 @@ export function PurchasesPage() {
                   </td>
                 </tr>
               ))}
+              {purchases.length === 0 && (
+                <tr>
+                  <td colSpan={3} className="py-4 text-center text-terra/40">
+                    Nenhuma compra registrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

@@ -1,5 +1,6 @@
 package com.agrogestao.sales;
 
+import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.dto.CustomerRequest;
 import com.agrogestao.sales.dto.CustomerResponse;
@@ -23,6 +24,7 @@ public class CustomerService {
     }
 
     public CustomerResponse create(CustomerRequest request) {
+        tenantContext.requireWriteAccess();
         Customer customer = new Customer();
         customer.setPropertyId(tenantContext.requirePropertyId());
         customer.setName(request.getName());
@@ -30,6 +32,31 @@ public class CustomerService {
         customer.setPhone(request.getPhone());
         customer.setEmail(request.getEmail());
         return toResponse(customerRepository.save(customer));
+    }
+
+    public CustomerResponse update(Long id, CustomerRequest request) {
+        tenantContext.requireWriteAccess();
+        Customer customer = findOwned(id);
+        customer.setName(request.getName());
+        customer.setDocument(request.getDocument());
+        customer.setPhone(request.getPhone());
+        customer.setEmail(request.getEmail());
+        return toResponse(customerRepository.save(customer));
+    }
+
+    public void delete(Long id) {
+        tenantContext.requireManageAccess();
+        customerRepository.delete(findOwned(id));
+    }
+
+    private Customer findOwned(Long id) {
+        Long propertyId = tenantContext.requirePropertyId();
+        Customer customer = customerRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cliente não encontrado"));
+        if (!customer.getPropertyId().equals(propertyId)) {
+            throw new ResourceNotFoundException("Cliente não encontrado");
+        }
+        return customer;
     }
 
     private CustomerResponse toResponse(Customer customer) {

@@ -1,5 +1,6 @@
 package com.agrogestao.inventory;
 
+import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.inventory.dto.ProductRequest;
 import com.agrogestao.inventory.dto.ProductResponse;
 import com.agrogestao.properties.TenantContext;
@@ -31,6 +32,7 @@ public class ProductService {
     }
 
     public ProductResponse create(ProductRequest request) {
+        tenantContext.requireWriteAccess();
         Product product = new Product();
         product.setPropertyId(tenantContext.requirePropertyId());
         product.setName(request.getName());
@@ -39,6 +41,32 @@ public class ProductService {
         product.setMinStock(request.getMinStock());
         productRepository.save(product);
         return toResponse(product, product.getPropertyId());
+    }
+
+    public ProductResponse update(Long id, ProductRequest request) {
+        tenantContext.requireWriteAccess();
+        Product product = findOwned(id);
+        product.setName(request.getName());
+        product.setCategory(request.getCategory());
+        product.setUnit(request.getUnit());
+        product.setMinStock(request.getMinStock());
+        productRepository.save(product);
+        return toResponse(product, product.getPropertyId());
+    }
+
+    public void delete(Long id) {
+        tenantContext.requireManageAccess();
+        productRepository.delete(findOwned(id));
+    }
+
+    private Product findOwned(Long id) {
+        Long propertyId = tenantContext.requirePropertyId();
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Produto não encontrado"));
+        if (!product.getPropertyId().equals(propertyId)) {
+            throw new ResourceNotFoundException("Produto não encontrado");
+        }
+        return product;
     }
 
     public List<ProductResponse> listLowStock() {

@@ -49,18 +49,8 @@ export function LoginPage() {
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-3 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className="mb-6 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
         />
-
-        <div className="mb-6 flex items-center justify-between text-sm">
-          <label className="flex items-center gap-2 text-terra/70">
-            <input type="checkbox" className="rounded border-terra/30 text-rust focus:ring-rust" />
-            Lembrar-me
-          </label>
-          <a href="#" className="font-medium text-rust hover:underline">
-            Esqueci minha senha
-          </a>
-        </div>
 
         <button
           type="submit"

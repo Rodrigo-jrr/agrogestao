@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { dashboardApi } from '../api/endpoints'
+import { apiErrorMessage } from '../api/client'
 import type { DashboardSummary } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 
@@ -16,18 +17,40 @@ export function DashboardPage() {
   const { currentProperty } = useProperty()
   const [summary, setSummary] = useState<DashboardSummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  useEffect(() => {
+  function load() {
     if (!currentProperty) return
     setLoading(true)
+    setError(null)
     dashboardApi
       .summary()
       .then(setSummary)
+      .catch((err) => setError(apiErrorMessage(err)))
       .finally(() => setLoading(false))
+  }
+
+  useEffect(() => {
+    load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProperty])
 
-  if (loading || !summary) {
+  if (loading) {
     return <div className="text-terra/50">Carregando resumo da propriedade...</div>
+  }
+
+  if (error || !summary) {
+    return (
+      <div className="rounded-2xl border border-terra/10 bg-white p-5 shadow-sm">
+        <p className="mb-3 text-sm text-rust">{error ?? 'Não foi possível carregar o resumo da propriedade.'}</p>
+        <button
+          onClick={load}
+          className="rounded-md border border-terra/15 px-3 py-1.5 text-sm text-terra hover:bg-terra/5"
+        >
+          Tentar novamente
+        </button>
+      </div>
+    )
   }
 
   return (

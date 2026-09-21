@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from './Logo'
+import { NewPropertyModal } from './NewPropertyModal'
 
 const coreNav = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -18,8 +19,9 @@ const comingSoonNav = ['Pecuária', 'Agricultura']
 
 export function Layout() {
   const { user, logout } = useAuth()
-  const { properties, currentProperty, selectProperty } = useProperty()
+  const { properties, currentProperty, selectProperty, refresh } = useProperty()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [showNewProperty, setShowNewProperty] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-terreiro font-sans">
@@ -71,13 +73,20 @@ export function Layout() {
           <select
             className="rounded-md border border-terra/15 bg-white px-2 py-1.5 text-sm text-terra focus:border-rust focus:outline-none"
             value={currentProperty?.id ?? ''}
-            onChange={(e) => selectProperty(Number(e.target.value))}
+            onChange={(e) => {
+              if (e.target.value === 'new') {
+                setShowNewProperty(true)
+                return
+              }
+              selectProperty(Number(e.target.value))
+            }}
           >
             {properties.map((property) => (
               <option key={property.id} value={property.id}>
                 {property.name}
               </option>
             ))}
+            <option value="new">+ Nova propriedade</option>
           </select>
 
           <div className="flex items-center gap-3 text-sm text-terra/70">
@@ -95,6 +104,18 @@ export function Layout() {
           <Outlet />
         </main>
       </div>
+
+      {showNewProperty && currentProperty && (
+        <NewPropertyModal
+          organizationId={currentProperty.organizationId}
+          onClose={() => setShowNewProperty(false)}
+          onCreated={async (propertyId) => {
+            localStorage.setItem('agro.propertyId', String(propertyId))
+            await refresh()
+            setShowNewProperty(false)
+          }}
+        />
+      )}
     </div>
   )
 }

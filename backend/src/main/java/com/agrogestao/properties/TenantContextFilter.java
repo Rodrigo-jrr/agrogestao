@@ -34,11 +34,12 @@ public class TenantContextFilter extends OncePerRequestFilter {
                 && authentication.getPrincipal() instanceof Long userId) {
             try {
                 Long propertyId = Long.parseLong(propertyIdHeader);
-                boolean isMember = propertyMemberRepository.existsByPropertyIdAndUserId(propertyId, userId);
-                if (isMember) {
-                    tenantContext.setPropertyId(propertyId);
-                    tenantContext.setResolved(true);
-                }
+                propertyMemberRepository.findByPropertyIdAndUserId(propertyId, userId)
+                        .ifPresent(member -> {
+                            tenantContext.setPropertyId(propertyId);
+                            tenantContext.setRole(member.getRole());
+                            tenantContext.setResolved(true);
+                        });
             } catch (NumberFormatException ignored) {
                 // header inválido, TenantContext permanece não resolvido
             }

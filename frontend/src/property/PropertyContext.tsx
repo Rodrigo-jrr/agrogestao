@@ -1,5 +1,6 @@
 import { createContext, useContext, useCallback, useEffect, useState, type ReactNode } from 'react'
 import { propertiesApi } from '../api/endpoints'
+import { apiErrorMessage } from '../api/client'
 import type { PropertySummary } from '../api/types'
 import { useAuth } from '../auth/AuthContext'
 
@@ -7,6 +8,7 @@ interface PropertyContextValue {
   properties: PropertySummary[]
   currentProperty: PropertySummary | null
   loading: boolean
+  error: string | null
   selectProperty: (id: number) => void
   refresh: () => Promise<void>
 }
@@ -18,6 +20,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   const [properties, setProperties] = useState<PropertySummary[]>([])
   const [currentProperty, setCurrentProperty] = useState<PropertySummary | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const applyCurrent = useCallback((list: PropertySummary[]) => {
     const storedId = localStorage.getItem('agro.propertyId')
@@ -38,10 +41,13 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
       return
     }
     setLoading(true)
+    setError(null)
     try {
       const list = await propertiesApi.listMine()
       setProperties(list)
       applyCurrent(list)
+    } catch (err) {
+      setError(apiErrorMessage(err))
     } finally {
       setLoading(false)
     }
@@ -60,7 +66,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <PropertyContext.Provider value={{ properties, currentProperty, loading, selectProperty, refresh }}>
+    <PropertyContext.Provider value={{ properties, currentProperty, loading, error, selectProperty, refresh }}>
       {children}
     </PropertyContext.Provider>
   )

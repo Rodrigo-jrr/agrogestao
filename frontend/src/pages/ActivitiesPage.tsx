@@ -8,30 +8,63 @@ export function ActivitiesPage() {
   const { currentProperty } = useProperty()
   const [activities, setActivities] = useState<Activity[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
 
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [type, setType] = useState('')
   const [areaHa, setAreaHa] = useState('')
 
   function loadActivities() {
-    activitiesApi.list().then(setActivities).catch(() => {})
+    setListError(null)
+    activitiesApi.list().then(setActivities).catch((err) => setListError(apiErrorMessage(err)))
   }
 
   useEffect(() => {
     if (currentProperty) loadActivities()
   }, [currentProperty])
 
+  function startEdit(activity: Activity) {
+    setEditingId(activity.id)
+    setName(activity.name)
+    setType(activity.type)
+    setAreaHa(activity.areaHa != null ? String(activity.areaHa) : '')
+    setError(null)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setName('')
+    setType('')
+    setAreaHa('')
+    setError(null)
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
     try {
-      await activitiesApi.create({ name, type, areaHa: areaHa ? Number(areaHa) : undefined })
-      setName('')
-      setType('')
-      setAreaHa('')
+      const payload = { name, type, areaHa: areaHa ? Number(areaHa) : undefined }
+      if (editingId) {
+        await activitiesApi.update(editingId, payload)
+      } else {
+        await activitiesApi.create(payload)
+      }
+      cancelEdit()
       loadActivities()
     } catch (err) {
       setError(apiErrorMessage(err))
+    }
+  }
+
+  async function handleDelete(id: number) {
+    if (!window.confirm('Excluir esta atividade?')) return
+    try {
+      await activitiesApi.remove(id)
+      if (editingId === id) cancelEdit()
+      loadActivities()
+    } catch (err) {
+      setListError(apiErrorMessage(err))
     }
   }
 
@@ -41,7 +74,7 @@ export function ActivitiesPage() {
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-          <h2 className="text-sm font-semibold text-terra">Nova atividade</h2>
+          <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar atividade' : 'Nova atividade'}</h2>
           {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
           <input
             required
@@ -65,19 +98,32 @@ export function ActivitiesPage() {
             onChange={(e) => setAreaHa(e.target.value)}
             className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
           />
-          <button className="w-full rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            Adicionar
-          </button>
+          <div className="flex gap-2">
+            <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
+              {editingId ? 'Salvar' : 'Adicionar'}
+            </button>
+            {editingId && (
+              <button
+                type="button"
+                onClick={cancelEdit}
+                className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
         </form>
 
-        <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
+        <div className="rounded-2xl border border-terra/10 bg-white p-4 shadow-sm md:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-terra">Atividades cadastradas</h2>
+          {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-terra/50">
                 <th className="pb-2">Nome</th>
                 <th className="pb-2">Tipo</th>
                 <th className="pb-2 text-right">Área (ha)</th>
+                <th className="pb-2" />
               </tr>
             </thead>
             <tbody>
@@ -86,8 +132,23 @@ export function ActivitiesPage() {
                   <td className="py-2">{a.name}</td>
                   <td className="py-2 text-terra/50">{a.type}</td>
                   <td className="py-2 text-right">{a.areaHa ?? '-'}</td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    <button onClick={() => startEdit(a)} className="text-rust hover:underline">
+                      Editar
+                    </button>
+                    <button onClick={() => handleDelete(a.id)} className="ml-3 text-rust hover:underline">
+                      Excluir
+                    </button>
+                  </td>
                 </tr>
               ))}
+              {activities.length === 0 && !listError && (
+                <tr>
+                  <td colSpan={4} className="py-4 text-center text-terra/40">
+                    Nenhuma atividade cadastrada.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

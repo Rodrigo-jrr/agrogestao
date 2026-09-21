@@ -1,5 +1,7 @@
 package com.agrogestao.production;
 
+import com.agrogestao.activities.ActivityRepository;
+import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.production.dto.ProductionRecordRequest;
 import com.agrogestao.production.dto.ProductionRecordResponse;
 import com.agrogestao.properties.TenantContext;
@@ -10,11 +12,15 @@ import org.springframework.stereotype.Service;
 public class ProductionRecordService {
 
     private final ProductionRecordRepository productionRecordRepository;
+    private final ActivityRepository activityRepository;
     private final TenantContext tenantContext;
 
     public ProductionRecordService(
-            ProductionRecordRepository productionRecordRepository, TenantContext tenantContext) {
+            ProductionRecordRepository productionRecordRepository,
+            ActivityRepository activityRepository,
+            TenantContext tenantContext) {
         this.productionRecordRepository = productionRecordRepository;
+        this.activityRepository = activityRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -25,8 +31,14 @@ public class ProductionRecordService {
     }
 
     public ProductionRecordResponse create(ProductionRecordRequest request) {
+        tenantContext.requireWriteAccess();
+        Long propertyId = tenantContext.requirePropertyId();
+        if (request.getActivityId() != null
+                && !activityRepository.existsByIdAndPropertyId(request.getActivityId(), propertyId)) {
+            throw new BusinessException("Atividade inválida para esta propriedade");
+        }
         ProductionRecord record = new ProductionRecord();
-        record.setPropertyId(tenantContext.requirePropertyId());
+        record.setPropertyId(propertyId);
         record.setProductName(request.getProductName());
         record.setQuantity(request.getQuantity());
         record.setUnit(request.getUnit());

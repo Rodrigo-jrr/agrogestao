@@ -15,14 +15,17 @@ public class InventoryMovementService {
 
     private final InventoryMovementRepository inventoryMovementRepository;
     private final InventoryItemRepository inventoryItemRepository;
+    private final ProductRepository productRepository;
     private final TenantContext tenantContext;
 
     public InventoryMovementService(
             InventoryMovementRepository inventoryMovementRepository,
             InventoryItemRepository inventoryItemRepository,
+            ProductRepository productRepository,
             TenantContext tenantContext) {
         this.inventoryMovementRepository = inventoryMovementRepository;
         this.inventoryItemRepository = inventoryItemRepository;
+        this.productRepository = productRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -33,7 +36,11 @@ public class InventoryMovementService {
     }
 
     public InventoryMovementResponse create(InventoryMovementRequest request) {
+        tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
+        if (!productRepository.existsByIdAndPropertyId(request.getProductId(), propertyId)) {
+            throw new BusinessException("Produto inválido para esta propriedade");
+        }
         InventoryMovement movement = registerMovement(propertyId, request.getProductId(), request.getType(),
                 request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
         return toResponse(movement);

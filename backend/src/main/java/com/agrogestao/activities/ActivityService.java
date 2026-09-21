@@ -26,6 +26,7 @@ public class ActivityService {
     }
 
     public ActivityResponse create(ActivityRequest request) {
+        tenantContext.requireWriteAccess();
         Activity activity = new Activity();
         activity.setPropertyId(tenantContext.requirePropertyId());
         applyRequest(activity, request);
@@ -33,12 +34,14 @@ public class ActivityService {
     }
 
     public ActivityResponse update(Long id, ActivityRequest request) {
+        tenantContext.requireWriteAccess();
         Activity activity = findOwned(id);
         applyRequest(activity, request);
         return toResponse(activityRepository.save(activity));
     }
 
     public void delete(Long id) {
+        tenantContext.requireManageAccess();
         activityRepository.delete(findOwned(id));
     }
 

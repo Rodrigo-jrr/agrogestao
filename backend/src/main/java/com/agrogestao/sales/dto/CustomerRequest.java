@@ -1,5 +1,6 @@
 package com.agrogestao.sales.dto;
 
+import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,5 +16,6 @@ public class CustomerRequest {
 
     private String phone;
 
+    @Email
     private String email;
 }

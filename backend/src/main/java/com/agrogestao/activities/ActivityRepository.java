@@ -6,4 +6,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ActivityRepository extends JpaRepository<Activity, Long> {
 
     List<Activity> findByPropertyId(Long propertyId);
+
+    boolean existsByIdAndPropertyId(Long id, Long propertyId);
 }

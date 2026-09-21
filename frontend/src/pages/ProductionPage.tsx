@@ -8,6 +8,7 @@ export function ProductionPage() {
   const { currentProperty } = useProperty()
   const [records, setRecords] = useState<ProductionRecord[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [listError, setListError] = useState<string | null>(null)
 
   const [productName, setProductName] = useState('')
   const [quantity, setQuantity] = useState('')
@@ -15,7 +16,8 @@ export function ProductionPage() {
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
 
   function loadRecords() {
-    productionApi.list().then(setRecords).catch(() => {})
+    setListError(null)
+    productionApi.list().then(setRecords).catch((err) => setListError(apiErrorMessage(err)))
   }
 
   useEffect(() => {
@@ -82,6 +84,7 @@ export function ProductionPage() {
 
         <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-terra">Histórico</h2>
+          {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-terra/50">

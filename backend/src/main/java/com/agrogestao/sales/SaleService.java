@@ -1,9 +1,11 @@
 package com.agrogestao.sales;
 
+import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.finance.FinancialTransactionService;
 import com.agrogestao.finance.TransactionType;
 import com.agrogestao.inventory.InventoryMovementService;
 import com.agrogestao.inventory.MovementType;
+import com.agrogestao.inventory.ProductRepository;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.dto.SaleRequest;
 import com.agrogestao.sales.dto.SaleResponse;
@@ -17,6 +19,8 @@ public class SaleService {
 
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
+    private final CustomerRepository customerRepository;
+    private final ProductRepository productRepository;
     private final InventoryMovementService inventoryMovementService;
     private final FinancialTransactionService financialTransactionService;
     private final TenantContext tenantContext;
@@ -24,11 +28,15 @@ public class SaleService {
     public SaleService(
             SaleRepository saleRepository,
             SaleItemRepository saleItemRepository,
+            CustomerRepository customerRepository,
+            ProductRepository productRepository,
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             TenantContext tenantContext) {
         this.saleRepository = saleRepository;
         this.saleItemRepository = saleItemRepository;
+        this.customerRepository = customerRepository;
+        this.productRepository = productRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.financialTransactionService = financialTransactionService;
         this.tenantContext = tenantContext;
@@ -41,7 +49,17 @@ public class SaleService {
 
     @Transactional
     public SaleResponse create(SaleRequest request) {
+        tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
+
+        if (!customerRepository.existsByIdAndPropertyId(request.getCustomerId(), propertyId)) {
+            throw new BusinessException("Cliente inválido para esta propriedade");
+        }
+        request.getItems().forEach(item -> {
+            if (!productRepository.existsByIdAndPropertyId(item.getProductId(), propertyId)) {
+                throw new BusinessException("Produto inválido para esta propriedade");
+            }
+        });
 
         BigDecimal total = request.getItems().stream()
                 .map(item -> item.getUnitPrice().multiply(item.getQuantity()))

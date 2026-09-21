@@ -29,6 +29,8 @@ export const authApi = {
 
 export const propertiesApi = {
   listMine: () => apiClient.get<PropertySummary[]>('/properties/me').then((r) => r.data),
+  create: (data: { organizationId: number; name: string; location?: string; totalAreaHa?: number }) =>
+    apiClient.post<PropertySummary>('/properties', data).then((r) => r.data),
 }
 
 export const onboardingApi = {
@@ -44,36 +46,69 @@ export const onboardingApi = {
 export const activitiesApi = {
   list: () => apiClient.get<Activity[]>('/activities').then((r) => r.data),
   create: (data: ActivityInput) => apiClient.post<Activity>('/activities', data).then((r) => r.data),
+  update: (id: number, data: ActivityInput) =>
+    apiClient.put<Activity>(`/activities/${id}`, data).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/activities/${id}`).then((r) => r.data),
 }
+
+type PartyInput = { name: string; document?: string; phone?: string; email?: string }
+
+type TransactionInput = {
+  type: TransactionType
+  description: string
+  amount: number
+  transactionDate: string
+  costCenterId?: number
+}
+
+type PayableInput = { description: string; amount: number; dueDate: string; supplierId?: number }
+type ReceivableInput = { description: string; amount: number; dueDate: string; customerId?: number }
+type CostCenterInput = { name: string; activityId?: number }
 
 export const financeApi = {
   listTransactions: (from?: string, to?: string) =>
     apiClient.get<FinancialTransaction[]>('/finance/transactions', { params: { from, to } }).then((r) => r.data),
-  createTransaction: (data: {
-    type: TransactionType
-    description: string
-    amount: number
-    transactionDate: string
-    costCenterId?: number
-  }) => apiClient.post<FinancialTransaction>('/finance/transactions', data).then((r) => r.data),
+  createTransaction: (data: TransactionInput) =>
+    apiClient.post<FinancialTransaction>('/finance/transactions', data).then((r) => r.data),
+  updateTransaction: (id: number, data: TransactionInput) =>
+    apiClient.put<FinancialTransaction>(`/finance/transactions/${id}`, data).then((r) => r.data),
+  removeTransaction: (id: number) => apiClient.delete<void>(`/finance/transactions/${id}`).then((r) => r.data),
+
   listPayables: () => apiClient.get<AccountPayable[]>('/finance/payables').then((r) => r.data),
-  createPayable: (data: { description: string; amount: number; dueDate: string; supplierId?: number }) =>
-    apiClient.post<AccountPayable>('/finance/payables', data).then((r) => r.data),
+  createPayable: (data: PayableInput) => apiClient.post<AccountPayable>('/finance/payables', data).then((r) => r.data),
+  updatePayable: (id: number, data: PayableInput) =>
+    apiClient.put<AccountPayable>(`/finance/payables/${id}`, data).then((r) => r.data),
+  removePayable: (id: number) => apiClient.delete<void>(`/finance/payables/${id}`).then((r) => r.data),
   payPayable: (id: number) => apiClient.patch<AccountPayable>(`/finance/payables/${id}/pay`).then((r) => r.data),
+  unpayPayable: (id: number) => apiClient.patch<AccountPayable>(`/finance/payables/${id}/unpay`).then((r) => r.data),
+
   listReceivables: () => apiClient.get<AccountReceivable[]>('/finance/receivables').then((r) => r.data),
-  createReceivable: (data: { description: string; amount: number; dueDate: string; customerId?: number }) =>
+  createReceivable: (data: ReceivableInput) =>
     apiClient.post<AccountReceivable>('/finance/receivables', data).then((r) => r.data),
+  updateReceivable: (id: number, data: ReceivableInput) =>
+    apiClient.put<AccountReceivable>(`/finance/receivables/${id}`, data).then((r) => r.data),
+  removeReceivable: (id: number) => apiClient.delete<void>(`/finance/receivables/${id}`).then((r) => r.data),
   receiveReceivable: (id: number) =>
     apiClient.patch<AccountReceivable>(`/finance/receivables/${id}/receive`).then((r) => r.data),
+  unreceiveReceivable: (id: number) =>
+    apiClient.patch<AccountReceivable>(`/finance/receivables/${id}/unreceive`).then((r) => r.data),
+
   listCostCenters: () => apiClient.get<CostCenter[]>('/finance/cost-centers').then((r) => r.data),
-  createCostCenter: (data: { name: string; activityId?: number }) =>
+  createCostCenter: (data: CostCenterInput) =>
     apiClient.post<CostCenter>('/finance/cost-centers', data).then((r) => r.data),
+  updateCostCenter: (id: number, data: CostCenterInput) =>
+    apiClient.put<CostCenter>(`/finance/cost-centers/${id}`, data).then((r) => r.data),
+  removeCostCenter: (id: number) => apiClient.delete<void>(`/finance/cost-centers/${id}`).then((r) => r.data),
 }
+
+type ProductInput = { name: string; category?: string; unit: string; minStock: number }
 
 export const inventoryApi = {
   listProducts: () => apiClient.get<Product[]>('/inventory/products').then((r) => r.data),
-  createProduct: (data: { name: string; category?: string; unit: string; minStock: number }) =>
-    apiClient.post<Product>('/inventory/products', data).then((r) => r.data),
+  createProduct: (data: ProductInput) => apiClient.post<Product>('/inventory/products', data).then((r) => r.data),
+  updateProduct: (id: number, data: ProductInput) =>
+    apiClient.put<Product>(`/inventory/products/${id}`, data).then((r) => r.data),
+  removeProduct: (id: number) => apiClient.delete<void>(`/inventory/products/${id}`).then((r) => r.data),
   lowStock: () => apiClient.get<Product[]>('/inventory/products/low-stock').then((r) => r.data),
   listMovements: () => apiClient.get<InventoryMovement[]>('/inventory/movements').then((r) => r.data),
   createMovement: (data: {
@@ -94,8 +129,10 @@ export const purchasesApi = {
     items: { productId: number; quantity: number; unitPrice: number }[]
   }) => apiClient.post<Purchase>('/purchases', data).then((r) => r.data),
   listSuppliers: () => apiClient.get<Supplier[]>('/purchases/suppliers').then((r) => r.data),
-  createSupplier: (data: { name: string; document?: string; phone?: string; email?: string }) =>
-    apiClient.post<Supplier>('/purchases/suppliers', data).then((r) => r.data),
+  createSupplier: (data: PartyInput) => apiClient.post<Supplier>('/purchases/suppliers', data).then((r) => r.data),
+  updateSupplier: (id: number, data: PartyInput) =>
+    apiClient.put<Supplier>(`/purchases/suppliers/${id}`, data).then((r) => r.data),
+  removeSupplier: (id: number) => apiClient.delete<void>(`/purchases/suppliers/${id}`).then((r) => r.data),
 }
 
 export const salesApi = {
@@ -106,8 +143,10 @@ export const salesApi = {
     items: { productId: number; quantity: number; unitPrice: number }[]
   }) => apiClient.post<Sale>('/sales', data).then((r) => r.data),
   listCustomers: () => apiClient.get<Customer[]>('/sales/customers').then((r) => r.data),
-  createCustomer: (data: { name: string; document?: string; phone?: string; email?: string }) =>
-    apiClient.post<Customer>('/sales/customers', data).then((r) => r.data),
+  createCustomer: (data: PartyInput) => apiClient.post<Customer>('/sales/customers', data).then((r) => r.data),
+  updateCustomer: (id: number, data: PartyInput) =>
+    apiClient.put<Customer>(`/sales/customers/${id}`, data).then((r) => r.data),
+  removeCustomer: (id: number) => apiClient.delete<void>(`/sales/customers/${id}`).then((r) => r.data),
 }
 
 export const productionApi = {

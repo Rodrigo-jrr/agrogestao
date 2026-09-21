@@ -15,7 +15,7 @@ const suggestedActivities = ['Pecuária', 'Agricultura', 'Leite', 'Horta', 'Avic
 
 export function OnboardingPage() {
   const navigate = useNavigate()
-  const { refresh, selectProperty } = useProperty()
+  const { refresh } = useProperty()
   const [organizationName, setOrganizationName] = useState('')
   const [propertyName, setPropertyName] = useState('')
   const [location, setLocation] = useState('')
@@ -56,8 +56,8 @@ export function OnboardingPage() {
           areaHa: a.areaHa ? Number(a.areaHa) : undefined,
         })),
       })
+      localStorage.setItem('agro.propertyId', String(created.id))
       await refresh()
-      selectProperty(created.id)
       navigate('/dashboard')
     } catch (err) {
       setError(apiErrorMessage(err))
