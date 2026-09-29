@@ -1,7 +1,9 @@
 import axios from 'axios'
 
+// Padrão '/api': frontend e API servidos no mesmo domínio (proxy do Vite em dev, reverse proxy em produção).
+// Para API em outro domínio, defina VITE_API_BASE_URL no build (ex.: https://api.exemplo.com/api).
 export const apiClient = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
 })
 
 apiClient.interceptors.request.use((config) => {

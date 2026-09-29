@@ -7,7 +7,7 @@ Esta é a base do projeto: fundação (autenticação, multi-propriedade, segura
 ## Stack
 
 - **Backend:** Java 21, Spring Boot 3.3, Maven
-- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
 - **Banco:** MySQL 8
 
 ## Pré-requisitos
@@ -50,7 +50,18 @@ A aplicação sobe em `http://localhost:5173` e já está configurada com proxy 
 
 1. Criar conta em `/register`.
 2. Completar o onboarding (`/onboarding`): nome da propriedade, localização, área e atividades.
-3. Usar o dashboard e os módulos: Financeiro, Estoque, Produção, Compras, Vendas, Atividades.
+3. Usar o dashboard e os módulos: Financeiro (com fluxo de caixa), Estoque, Produção, Compras, Vendas, Atividades.
+4. Convidar a equipe em **Equipe**: a pessoa cria a conta em `/register` e o proprietário/gerente a adiciona pelo e-mail, escolhendo o papel (Proprietário, Gerente, Colaborador ou Visualizador).
+
+## Produção
+
+Todas as variáveis estão documentadas em [.env.example](.env.example).
+
+- **Backend:** gere o jar com `mvn -f backend/pom.xml -B package` e rode com `SPRING_PROFILES_ACTIVE=prod`. Nesse perfil não há valores padrão: a aplicação **se recusa a subir** se `JWT_SECRET` estiver ausente, curto (< 32 bytes) ou igual ao de desenvolvimento, se `CORS_ALLOWED_ORIGINS` apontar para localhost, ou se faltarem as variáveis do banco. As migrations do Flyway rodam na inicialização.
+- **Frontend:** `npm --prefix frontend run build` gera `frontend/dist/` (arquivos estáticos). O padrão é chamar a API em `/api` no mesmo domínio (configure o reverse proxy para encaminhar `/api` ao backend); para API em outro domínio, defina `VITE_API_BASE_URL` no build — ver [frontend/.env.example](frontend/.env.example).
+- **CI:** [.github/workflows/ci.yml](.github/workflows/ci.yml) roda `mvn verify` no backend e lint + build no frontend a cada push/PR para `main`.
+
+> **Aviso (macOS/iCloud):** se o projeto estiver em uma pasta sincronizada com o iCloud (ex.: Documentos), deixe as dependências em `frontend/node_modules.nosync` com um link `node_modules -> node_modules.nosync`; caso contrário o iCloud pode tirar os arquivos do disco e travar `npm`/`tsc`/`git`.
 
 ## Testando a API diretamente
 
