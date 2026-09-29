@@ -3,6 +3,7 @@ import { activitiesApi, financeApi, purchasesApi, salesApi } from '../api/endpoi
 import { apiErrorMessage } from '../api/client'
 import type {
   AccountPayable,
+  CashFlow,
   AccountReceivable,
   Activity,
   CostCenter,
@@ -13,7 +14,7 @@ import type {
 } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 
-type Tab = 'transactions' | 'payables' | 'receivables' | 'costCenters'
+type Tab = 'cashFlow' | 'transactions' | 'payables' | 'receivables' | 'costCenters'
 
 function formatCurrency(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -59,6 +60,7 @@ export function FinancePage() {
         {(
           [
             ['transactions', 'Lançamentos'],
+            ['cashFlow', 'Fluxo de caixa'],
             ['payables', 'A pagar'],
             ['receivables', 'A receber'],
             ['costCenters', 'Centros de custo'],
@@ -75,6 +77,8 @@ export function FinancePage() {
           </button>
         ))}
       </div>
+
+      {tab === 'cashFlow' && <CashFlowTab />}
 
       {tab === 'transactions' && (
         <TransactionsTab transactions={transactions} costCenters={costCenters} onChanged={loadAll} />
@@ -407,9 +411,11 @@ function PayablesTab({
                   <button onClick={() => toggle(p)} className="text-rust hover:underline">
                     {p.paid ? 'Desfazer' : 'Marcar pago'}
                   </button>
-                  <button onClick={() => startEdit(p)} className="ml-3 text-rust hover:underline">
-                    Editar
-                  </button>
+                  {!p.paid && (
+                    <button onClick={() => startEdit(p)} className="ml-3 text-rust hover:underline">
+                      Editar
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(p.id)} className="ml-3 text-rust hover:underline">
                     Excluir
                   </button>
@@ -582,9 +588,11 @@ function ReceivablesTab({
                   <button onClick={() => toggle(r)} className="text-rust hover:underline">
                     {r.received ? 'Desfazer' : 'Marcar recebido'}
                   </button>
-                  <button onClick={() => startEdit(r)} className="ml-3 text-rust hover:underline">
-                    Editar
-                  </button>
+                  {!r.received && (
+                    <button onClick={() => startEdit(r)} className="ml-3 text-rust hover:underline">
+                      Editar
+                    </button>
+                  )}
                   <button onClick={() => handleDelete(r.id)} className="ml-3 text-rust hover:underline">
                     Excluir
                   </button>
@@ -735,6 +743,161 @@ function CostCentersTab({
           </tbody>
         </table>
       </div>
+    </div>
+  )
+}
+
+function monthOffset(offset: number) {
+  const d = new Date()
+  d.setDate(1)
+  d.setMonth(d.getMonth() + offset)
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
+}
+
+function formatMonth(month: string) {
+  const [year, m] = month.split('-').map(Number)
+  const name = new Date(year, m - 1, 1).toLocaleDateString('pt-BR', { month: 'short' }).replace('.', '')
+  return `${name}/${String(year).slice(2)}`
+}
+
+function CashFlowTab() {
+  const { currentProperty } = useProperty()
+  const [from, setFrom] = useState(() => monthOffset(-3))
+  const [to, setTo] = useState(() => monthOffset(3))
+  const [data, setData] = useState<CashFlow | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!currentProperty || !from || !to) return
+    setError(null)
+    financeApi
+      .cashFlow(from, to)
+      .then(setData)
+      .catch((err) => {
+        setData(null)
+        setError(apiErrorMessage(err))
+      })
+  }, [currentProperty, from, to])
+
+  const currentMonth = monthOffset(0)
+  const maxBar = data
+    ? Math.max(1, ...data.months.flatMap((m) => [m.income + m.pendingReceivables, m.expense + m.pendingPayables]))
+    : 1
+  const last = data?.months[data.months.length - 1]
+
+  return (
+    <div className="space-y-4">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="text-xs text-terra/60">
+          De
+          <input type="month" value={from} onChange={(e) => setFrom(e.target.value)} className={`${inputClass} mt-1`} />
+        </label>
+        <label className="text-xs text-terra/60">
+          Até
+          <input type="month" value={to} onChange={(e) => setTo(e.target.value)} className={`${inputClass} mt-1`} />
+        </label>
+      </div>
+      {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
+
+      {data && last && (
+        <>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <SummaryCard label="Saldo inicial" value={data.openingBalance} />
+            <SummaryCard label="Saldo realizado" value={last.balance} />
+            <SummaryCard label="Saldo projetado" value={last.projectedBalance} highlight />
+            <div className="rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
+              <p className="text-xs text-terra/50">Vencidas antes do período</p>
+              <p className="mt-1 text-sm text-mata">+ {formatCurrency(data.overdueReceivables)}</p>
+              <p className="text-sm text-rust">- {formatCurrency(data.overduePayables)}</p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex flex-wrap gap-4 text-xs text-terra/60">
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-mata" /> Entradas
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-rust" /> Saídas
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="inline-block h-2.5 w-2.5 rounded-sm bg-terra/15" /> Em aberto (previsto)
+              </span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="text-left text-terra/50">
+                    <th className="pb-2">Mês</th>
+                    <th className="pb-2 w-1/4">Movimento</th>
+                    <th className="pb-2 text-right">Entradas</th>
+                    <th className="pb-2 text-right">Saídas</th>
+                    <th className="pb-2 text-right">Resultado</th>
+                    <th className="pb-2 text-right">Saldo</th>
+                    <th className="pb-2 text-right">Projetado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.months.map((m) => (
+                    <tr
+                      key={m.month}
+                      className={`border-t border-terra/5 ${m.month === currentMonth ? 'bg-trigo/10' : ''}`}
+                    >
+                      <td className="py-2 pr-2 font-medium whitespace-nowrap capitalize">{formatMonth(m.month)}</td>
+                      <td className="py-2 pr-3">
+                        <Bar realized={m.income} pending={m.pendingReceivables} max={maxBar} color="bg-mata" />
+                        <Bar realized={m.expense} pending={m.pendingPayables} max={maxBar} color="bg-rust" />
+                      </td>
+                      <td className="py-2 pl-2 text-right whitespace-nowrap text-mata">
+                        {formatCurrency(m.income)}
+                        {m.pendingReceivables > 0 && (
+                          <div className="text-xs text-terra/40">+{formatCurrency(m.pendingReceivables)} previsto</div>
+                        )}
+                      </td>
+                      <td className={`py-2 pl-2 text-right whitespace-nowrap ${m.expense > 0 ? 'text-rust' : ''}`}>
+                        {formatCurrency(m.expense)}
+                        {m.pendingPayables > 0 && (
+                          <div className="text-xs text-terra/40">+{formatCurrency(m.pendingPayables)} previsto</div>
+                        )}
+                      </td>
+                      <td className={`py-2 pl-2 text-right whitespace-nowrap ${m.net < 0 ? 'text-rust' : ''}`}>{formatCurrency(m.net)}</td>
+                      <td className={`py-2 pl-2 text-right font-medium whitespace-nowrap ${m.balance < 0 ? 'text-rust' : ''}`}>
+                        {formatCurrency(m.balance)}
+                      </td>
+                      <td className={`py-2 pl-2 text-right whitespace-nowrap ${m.projectedBalance < 0 ? 'text-rust' : 'text-terra/70'}`}>
+                        {formatCurrency(m.projectedBalance)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="mt-3 text-xs text-terra/40">
+              Saldo = lançamentos realizados. Projetado = saldo + contas a pagar/receber em aberto até o mês.
+            </p>
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function SummaryCard({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+  return (
+    <div className={`rounded-2xl p-4 shadow-sm ${highlight ? 'bg-mata text-terreiro' : 'border border-terra/10 bg-white'}`}>
+      <p className={`text-xs ${highlight ? 'text-terreiro/70' : 'text-terra/50'}`}>{label}</p>
+      <p className={`mt-1 font-serif text-xl font-semibold ${!highlight && value < 0 ? 'text-rust' : ''}`}>
+        {formatCurrency(value)}
+      </p>
+    </div>
+  )
+}
+
+function Bar({ realized, pending, max, color }: { realized: number; pending: number; max: number; color: string }) {
+  return (
+    <div className="my-0.5 flex h-2 w-full overflow-hidden rounded-full bg-terra/5">
+      <div className={color} style={{ width: `${(realized / max) * 100}%` }} />
+      <div className="bg-terra/15" style={{ width: `${(pending / max) * 100}%` }} />
     </div>
   )
 }

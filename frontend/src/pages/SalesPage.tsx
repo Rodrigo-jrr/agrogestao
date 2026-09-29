@@ -37,6 +37,17 @@ export function SalesPage() {
     if (currentProperty) loadAll()
   }, [currentProperty])
 
+  async function handleCancel(id: number) {
+    if (!window.confirm('Cancelar esta venda? Os itens voltarão ao estoque e o lançamento de receita será removido.')) return
+    setListError(null)
+    try {
+      await salesApi.cancel(id)
+      loadAll()
+    } catch (err) {
+      setListError(apiErrorMessage(err))
+    }
+  }
+
   function updateItem(index: number, field: keyof ItemRow, value: string) {
     setItems((current) => current.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
   }
@@ -231,21 +242,31 @@ export function SalesPage() {
                 <th className="pb-2">Data</th>
                 <th className="pb-2">Cliente</th>
                 <th className="pb-2 text-right">Total</th>
+                <th className="pb-2" />
               </tr>
             </thead>
             <tbody>
               {sales.map((s) => (
-                <tr key={s.id} className="border-t border-terra/5">
+                <tr key={s.id} className={`border-t border-terra/5 ${s.canceled ? 'text-terra/40 line-through' : ''}`}>
                   <td className="py-2 text-terra/50">{s.saleDate}</td>
                   <td className="py-2">{customers.find((c) => c.id === s.customerId)?.name ?? s.customerId}</td>
                   <td className="py-2 text-right">
                     {s.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
+                  <td className="py-2 text-right whitespace-nowrap no-underline">
+                    {s.canceled ? (
+                      <span className="inline-block text-xs text-terra/50 [text-decoration:none]">Cancelada</span>
+                    ) : (
+                      <button onClick={() => handleCancel(s.id)} className="text-rust hover:underline">
+                        Cancelar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {sales.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-4 text-center text-terra/40">
+                  <td colSpan={4} className="py-4 text-center text-terra/40">
                     Nenhuma venda registrada.
                   </td>
                 </tr>

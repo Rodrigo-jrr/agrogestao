@@ -37,6 +37,17 @@ export function PurchasesPage() {
     if (currentProperty) loadAll()
   }, [currentProperty])
 
+  async function handleCancel(id: number) {
+    if (!window.confirm('Cancelar esta compra? O estoque dos itens será estornado e o lançamento de despesa removido.')) return
+    setListError(null)
+    try {
+      await purchasesApi.cancel(id)
+      loadAll()
+    } catch (err) {
+      setListError(apiErrorMessage(err))
+    }
+  }
+
   function updateItem(index: number, field: keyof ItemRow, value: string) {
     setItems((current) => current.map((row, i) => (i === index ? { ...row, [field]: value } : row)))
   }
@@ -231,21 +242,31 @@ export function PurchasesPage() {
                 <th className="pb-2">Data</th>
                 <th className="pb-2">Fornecedor</th>
                 <th className="pb-2 text-right">Total</th>
+                <th className="pb-2" />
               </tr>
             </thead>
             <tbody>
               {purchases.map((p) => (
-                <tr key={p.id} className="border-t border-terra/5">
+                <tr key={p.id} className={`border-t border-terra/5 ${p.canceled ? 'text-terra/40 line-through' : ''}`}>
                   <td className="py-2 text-terra/50">{p.purchaseDate}</td>
                   <td className="py-2">{suppliers.find((s) => s.id === p.supplierId)?.name ?? p.supplierId}</td>
                   <td className="py-2 text-right">
                     {p.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                   </td>
+                  <td className="py-2 text-right whitespace-nowrap no-underline">
+                    {p.canceled ? (
+                      <span className="inline-block text-xs text-terra/50 [text-decoration:none]">Cancelada</span>
+                    ) : (
+                      <button onClick={() => handleCancel(p.id)} className="text-rust hover:underline">
+                        Cancelar
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
               {purchases.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="py-4 text-center text-terra/40">
+                  <td colSpan={4} className="py-4 text-center text-terra/40">
                     Nenhuma compra registrada.
                   </td>
                 </tr>

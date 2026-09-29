@@ -5,6 +5,7 @@ import type {
   AccountPayable,
   AccountReceivable,
   AuthResponse,
+  CashFlow,
   CostCenter,
   Customer,
   DashboardSummary,
@@ -14,6 +15,8 @@ import type {
   ProductionRecord,
   Purchase,
   PropertySummary,
+  PropertyMemberInfo,
+  PropertyRole,
   Sale,
   Supplier,
   TransactionType,
@@ -31,6 +34,15 @@ export const propertiesApi = {
   listMine: () => apiClient.get<PropertySummary[]>('/properties/me').then((r) => r.data),
   create: (data: { organizationId: number; name: string; location?: string; totalAreaHa?: number }) =>
     apiClient.post<PropertySummary>('/properties', data).then((r) => r.data),
+}
+
+export const membersApi = {
+  list: () => apiClient.get<PropertyMemberInfo[]>('/properties/current/members').then((r) => r.data),
+  add: (data: { email: string; role: PropertyRole }) =>
+    apiClient.post<PropertyMemberInfo>('/properties/current/members', data).then((r) => r.data),
+  updateRole: (id: number, role: PropertyRole) =>
+    apiClient.put<PropertyMemberInfo>(`/properties/current/members/${id}`, { role }).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/properties/current/members/${id}`).then((r) => r.data),
 }
 
 export const onboardingApi = {
@@ -66,6 +78,9 @@ type ReceivableInput = { description: string; amount: number; dueDate: string; c
 type CostCenterInput = { name: string; activityId?: number }
 
 export const financeApi = {
+  cashFlow: (from?: string, to?: string) =>
+    apiClient.get<CashFlow>('/finance/cash-flow', { params: { from, to } }).then((r) => r.data),
+
   listTransactions: (from?: string, to?: string) =>
     apiClient.get<FinancialTransaction[]>('/finance/transactions', { params: { from, to } }).then((r) => r.data),
   createTransaction: (data: TransactionInput) =>
@@ -128,6 +143,7 @@ export const purchasesApi = {
     purchaseDate: string
     items: { productId: number; quantity: number; unitPrice: number }[]
   }) => apiClient.post<Purchase>('/purchases', data).then((r) => r.data),
+  cancel: (id: number) => apiClient.post<Purchase>(`/purchases/${id}/cancel`).then((r) => r.data),
   listSuppliers: () => apiClient.get<Supplier[]>('/purchases/suppliers').then((r) => r.data),
   createSupplier: (data: PartyInput) => apiClient.post<Supplier>('/purchases/suppliers', data).then((r) => r.data),
   updateSupplier: (id: number, data: PartyInput) =>
@@ -142,6 +158,7 @@ export const salesApi = {
     saleDate: string
     items: { productId: number; quantity: number; unitPrice: number }[]
   }) => apiClient.post<Sale>('/sales', data).then((r) => r.data),
+  cancel: (id: number) => apiClient.post<Sale>(`/sales/${id}/cancel`).then((r) => r.data),
   listCustomers: () => apiClient.get<Customer[]>('/sales/customers').then((r) => r.data),
   createCustomer: (data: PartyInput) => apiClient.post<Customer>('/sales/customers', data).then((r) => r.data),
   updateCustomer: (id: number, data: PartyInput) =>
@@ -149,15 +166,20 @@ export const salesApi = {
   removeCustomer: (id: number) => apiClient.delete<void>(`/sales/customers/${id}`).then((r) => r.data),
 }
 
+type ProductionInput = {
+  productName: string
+  quantity: number
+  unit: string
+  productionDate: string
+  activityId?: number
+}
+
 export const productionApi = {
   list: () => apiClient.get<ProductionRecord[]>('/production').then((r) => r.data),
-  create: (data: {
-    productName: string
-    quantity: number
-    unit: string
-    productionDate: string
-    activityId?: number
-  }) => apiClient.post<ProductionRecord>('/production', data).then((r) => r.data),
+  create: (data: ProductionInput) => apiClient.post<ProductionRecord>('/production', data).then((r) => r.data),
+  update: (id: number, data: ProductionInput) =>
+    apiClient.put<ProductionRecord>(`/production/${id}`, data).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/production/${id}`).then((r) => r.data),
 }
 
 export const dashboardApi = {

@@ -13,6 +13,7 @@ import { ProductionPage } from './pages/ProductionPage'
 import { PurchasesPage } from './pages/PurchasesPage'
 import { SalesPage } from './pages/SalesPage'
 import { ActivitiesPage } from './pages/ActivitiesPage'
+import { MembersPage } from './pages/MembersPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -41,6 +42,7 @@ export default function App() {
                   <Route path="/compras" element={<PurchasesPage />} />
                   <Route path="/vendas" element={<SalesPage />} />
                   <Route path="/atividades" element={<ActivitiesPage />} />
+                  <Route path="/equipe" element={<MembersPage />} />
                 </Route>
               </Route>
             </Route>

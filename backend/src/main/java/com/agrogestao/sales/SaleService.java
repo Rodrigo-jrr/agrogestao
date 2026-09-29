@@ -1,6 +1,9 @@
 package com.agrogestao.sales;
 
 import com.agrogestao.common.exception.BusinessException;
+import com.agrogestao.common.exception.ResourceNotFoundException;
+import com.agrogestao.finance.FinancialTransaction;
+import com.agrogestao.finance.FinancialTransactionRepository;
 import com.agrogestao.finance.FinancialTransactionService;
 import com.agrogestao.finance.TransactionType;
 import com.agrogestao.inventory.InventoryMovementService;
@@ -10,6 +13,8 @@ import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.dto.SaleRequest;
 import com.agrogestao.sales.dto.SaleResponse;
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +28,7 @@ public class SaleService {
     private final ProductRepository productRepository;
     private final InventoryMovementService inventoryMovementService;
     private final FinancialTransactionService financialTransactionService;
+    private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
 
     public SaleService(
@@ -32,6 +38,7 @@ public class SaleService {
             ProductRepository productRepository,
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
+            FinancialTransactionRepository financialTransactionRepository,
             TenantContext tenantContext) {
         this.saleRepository = saleRepository;
         this.saleItemRepository = saleItemRepository;
@@ -39,6 +46,7 @@ public class SaleService {
         this.productRepository = productRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.financialTransactionService = financialTransactionService;
+        this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -84,13 +92,49 @@ public class SaleService {
                     item.getQuantity(), item.getUnitPrice(), request.getSaleDate(), "Venda #" + sale.getId());
         });
 
-        financialTransactionService.registerFromOperation(propertyId, TransactionType.INCOME,
-                "Venda #" + sale.getId(), total, request.getSaleDate(), null);
+        FinancialTransaction transaction = financialTransactionService.registerFromOperation(propertyId,
+                TransactionType.INCOME, "Venda #" + sale.getId(), total, request.getSaleDate(), null);
+        sale.setFinancialTransactionId(transaction.getId());
+        saleRepository.save(sale);
 
         return toResponse(sale);
     }
 
+    /**
+     * Cancela a venda mantendo o histórico: estorna o estoque com um movimento inverso e remove o
+     * lançamento financeiro gerado (ou registra um estorno, para registros antigos sem vínculo).
+     */
+    @Transactional
+    public SaleResponse cancel(Long id) {
+        tenantContext.requireManageAccess();
+        Long propertyId = tenantContext.requirePropertyId();
+        Sale sale = saleRepository.findById(id)
+                .filter(found -> found.getPropertyId().equals(propertyId))
+                .orElseThrow(() -> new ResourceNotFoundException("Venda não encontrada"));
+        if (sale.getCanceledAt() != null) {
+            throw new BusinessException("Esta venda já foi cancelada.");
+        }
+
+        saleItemRepository.findBySaleId(id).forEach(item -> {
+            inventoryMovementService.registerMovement(propertyId, item.getProductId(), MovementType.IN,
+                    item.getQuantity(), item.getUnitPrice(), LocalDate.now(), "Cancelamento da venda #" + id);
+        });
+
+        Long transactionId = sale.getFinancialTransactionId();
+        sale.setFinancialTransactionId(null);
+        sale.setCanceledAt(LocalDateTime.now());
+        saleRepository.saveAndFlush(sale);
+        if (transactionId != null) {
+            financialTransactionRepository.deleteById(transactionId);
+        } else {
+            financialTransactionService.registerFromOperation(propertyId, TransactionType.EXPENSE,
+                    "Estorno da venda #" + id, sale.getTotalAmount(), LocalDate.now(), null);
+        }
+        return toResponse(sale);
+    }
+
     private SaleResponse toResponse(Sale sale) {
-        return new SaleResponse(sale.getId(), sale.getCustomerId(), sale.getSaleDate(), sale.getTotalAmount());
+        return new SaleResponse(sale.getId(), sale.getCustomerId(), sale.getSaleDate(), sale.getTotalAmount(),
+                sale.getCanceledAt() != null);
     }
 }

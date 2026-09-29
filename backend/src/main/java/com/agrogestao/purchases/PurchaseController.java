@@ -38,6 +38,11 @@ public class PurchaseController {
         return ResponseEntity.ok(purchaseService.create(request));
     }
 
+    @PostMapping("/{id}/cancel")
+    public PurchaseResponse cancel(@PathVariable Long id) {
+        return purchaseService.cancel(id);
+    }
+
     @GetMapping("/suppliers")
     public List<SupplierResponse> listSuppliers() {
         return supplierService.list();

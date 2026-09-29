@@ -13,4 +13,5 @@ public class PurchaseResponse {
     private final Long supplierId;
     private final LocalDate purchaseDate;
     private final BigDecimal totalAmount;
+    private final boolean canceled;
 }

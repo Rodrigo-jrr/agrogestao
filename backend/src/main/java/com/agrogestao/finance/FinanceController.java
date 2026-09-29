@@ -4,12 +4,14 @@ import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
 import com.agrogestao.finance.dto.AccountReceivableRequest;
 import com.agrogestao.finance.dto.AccountReceivableResponse;
+import com.agrogestao.finance.dto.CashFlowResponse;
 import com.agrogestao.finance.dto.CostCenterRequest;
 import com.agrogestao.finance.dto.CostCenterResponse;
 import com.agrogestao.finance.dto.FinancialTransactionRequest;
 import com.agrogestao.finance.dto.FinancialTransactionResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,16 +35,19 @@ public class FinanceController {
     private final AccountPayableService accountPayableService;
     private final AccountReceivableService accountReceivableService;
     private final CostCenterService costCenterService;
+    private final CashFlowService cashFlowService;
 
     public FinanceController(
             FinancialTransactionService financialTransactionService,
             AccountPayableService accountPayableService,
             AccountReceivableService accountReceivableService,
-            CostCenterService costCenterService) {
+            CostCenterService costCenterService,
+            CashFlowService cashFlowService) {
         this.financialTransactionService = financialTransactionService;
         this.accountPayableService = accountPayableService;
         this.accountReceivableService = accountReceivableService;
         this.costCenterService = costCenterService;
+        this.cashFlowService = cashFlowService;
     }
 
     @GetMapping("/transactions")
@@ -70,6 +75,16 @@ public class FinanceController {
     public ResponseEntity<Void> deleteTransaction(@PathVariable Long id) {
         financialTransactionService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    /** Fluxo de caixa mensal; padrão: 3 meses anteriores até 3 meses à frente. Parâmetros no formato yyyy-MM. */
+    @GetMapping("/cash-flow")
+    public CashFlowResponse cashFlow(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth from,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM") YearMonth to) {
+        YearMonth current = YearMonth.now();
+        return cashFlowService.monthly(from != null ? from : current.minusMonths(3),
+                to != null ? to : current.plusMonths(3));
     }
 
     @GetMapping("/payables")

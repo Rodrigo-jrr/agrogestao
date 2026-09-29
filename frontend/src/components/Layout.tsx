@@ -13,6 +13,7 @@ const coreNav = [
   { to: '/compras', label: 'Compras' },
   { to: '/vendas', label: 'Vendas' },
   { to: '/atividades', label: 'Atividades' },
+  { to: '/equipe', label: 'Equipe' },
 ]
 
 const comingSoonNav = ['Pecuária', 'Agricultura']

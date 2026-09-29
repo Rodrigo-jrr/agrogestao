@@ -13,4 +13,5 @@ public class SaleResponse {
     private final Long customerId;
     private final LocalDate saleDate;
     private final BigDecimal totalAmount;
+    private final boolean canceled;
 }

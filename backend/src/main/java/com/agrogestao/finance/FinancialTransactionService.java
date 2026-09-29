@@ -8,6 +8,8 @@ import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.FinancialTransactionRequest;
 import com.agrogestao.finance.dto.FinancialTransactionResponse;
 import com.agrogestao.properties.TenantContext;
+import com.agrogestao.purchases.PurchaseRepository;
+import com.agrogestao.sales.SaleRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
@@ -18,16 +20,28 @@ public class FinancialTransactionService {
 
     private final FinancialTransactionRepository financialTransactionRepository;
     private final CostCenterRepository costCenterRepository;
+    private final AccountPayableRepository accountPayableRepository;
+    private final AccountReceivableRepository accountReceivableRepository;
+    private final PurchaseRepository purchaseRepository;
+    private final SaleRepository saleRepository;
     private final TenantContext tenantContext;
     private final AuditService auditService;
 
     public FinancialTransactionService(
             FinancialTransactionRepository financialTransactionRepository,
             CostCenterRepository costCenterRepository,
+            AccountPayableRepository accountPayableRepository,
+            AccountReceivableRepository accountReceivableRepository,
+            PurchaseRepository purchaseRepository,
+            SaleRepository saleRepository,
             TenantContext tenantContext,
             AuditService auditService) {
         this.financialTransactionRepository = financialTransactionRepository;
         this.costCenterRepository = costCenterRepository;
+        this.accountPayableRepository = accountPayableRepository;
+        this.accountReceivableRepository = accountReceivableRepository;
+        this.purchaseRepository = purchaseRepository;
+        this.saleRepository = saleRepository;
         this.tenantContext = tenantContext;
         this.auditService = auditService;
     }
@@ -66,6 +80,7 @@ public class FinancialTransactionService {
         Long propertyId = tenantContext.requirePropertyId();
         validateCostCenter(propertyId, request.getCostCenterId());
         FinancialTransaction transaction = findOwned(id, propertyId);
+        ensureNotLinkedToAccount(id);
         transaction.setType(request.getType());
         transaction.setDescription(request.getDescription());
         transaction.setAmount(request.getAmount());
@@ -84,6 +99,7 @@ public class FinancialTransactionService {
         tenantContext.requireManageAccess();
         Long propertyId = tenantContext.requirePropertyId();
         FinancialTransaction transaction = findOwned(id, propertyId);
+        ensureNotLinkedToAccount(id);
         financialTransactionRepository.delete(transaction);
 
         auditService.record(propertyId, SecurityUtils.getCurrentUserId(), "FinancialTransaction",
@@ -100,6 +116,19 @@ public class FinancialTransactionService {
         transaction.setTransactionDate(date);
         transaction.setCostCenterId(costCenterId);
         return financialTransactionRepository.save(transaction);
+    }
+
+    private void ensureNotLinkedToAccount(Long transactionId) {
+        if (accountPayableRepository.existsByFinancialTransactionId(transactionId)
+                || accountReceivableRepository.existsByFinancialTransactionId(transactionId)) {
+            throw new BusinessException(
+                    "Este lançamento foi gerado pela baixa de uma conta. Desfaça a baixa na aba A pagar/A receber.");
+        }
+        if (purchaseRepository.existsByFinancialTransactionId(transactionId)
+                || saleRepository.existsByFinancialTransactionId(transactionId)) {
+            throw new BusinessException(
+                    "Este lançamento foi gerado por uma compra ou venda. Para desfazê-lo, cancele a operação de origem.");
+        }
     }
 
     private void validateCostCenter(Long propertyId, Long costCenterId) {

@@ -6,22 +6,30 @@ import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.SupplierRepository;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AccountPayableService {
 
     private final AccountPayableRepository accountPayableRepository;
     private final SupplierRepository supplierRepository;
+    private final FinancialTransactionService financialTransactionService;
+    private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
 
     public AccountPayableService(
             AccountPayableRepository accountPayableRepository,
             SupplierRepository supplierRepository,
+            FinancialTransactionService financialTransactionService,
+            FinancialTransactionRepository financialTransactionRepository,
             TenantContext tenantContext) {
         this.accountPayableRepository = accountPayableRepository;
         this.supplierRepository = supplierRepository;
+        this.financialTransactionService = financialTransactionService;
+        this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -47,6 +55,9 @@ public class AccountPayableService {
         tenantContext.requireWriteAccess();
         validateSupplier(tenantContext.requirePropertyId(), request.getSupplierId());
         AccountPayable payable = findOwned(id);
+        if (payable.isPaid()) {
+            throw new BusinessException("Desfaça a baixa antes de editar esta conta.");
+        }
         payable.setDescription(request.getDescription());
         payable.setAmount(request.getAmount());
         payable.setDueDate(request.getDueDate());
@@ -59,18 +70,35 @@ public class AccountPayableService {
         accountPayableRepository.delete(findOwned(id));
     }
 
+    /** Dá baixa na conta e registra o pagamento como lançamento realizado no caixa. */
+    @Transactional
     public AccountPayableResponse markPaid(Long id) {
         tenantContext.requireWriteAccess();
         AccountPayable payable = findOwned(id);
+        if (payable.isPaid()) {
+            return toResponse(payable);
+        }
+        FinancialTransaction transaction = financialTransactionService.registerFromOperation(
+                payable.getPropertyId(), TransactionType.EXPENSE, "Pagamento: " + payable.getDescription(),
+                payable.getAmount(), LocalDate.now(), null);
         payable.setPaid(true);
+        payable.setFinancialTransactionId(transaction.getId());
         return toResponse(accountPayableRepository.save(payable));
     }
 
+    /** Desfaz a baixa e remove o lançamento gerado por ela. */
+    @Transactional
     public AccountPayableResponse unmarkPaid(Long id) {
         tenantContext.requireWriteAccess();
         AccountPayable payable = findOwned(id);
+        Long transactionId = payable.getFinancialTransactionId();
         payable.setPaid(false);
-        return toResponse(accountPayableRepository.save(payable));
+        payable.setFinancialTransactionId(null);
+        accountPayableRepository.saveAndFlush(payable);
+        if (transactionId != null) {
+            financialTransactionRepository.deleteById(transactionId);
+        }
+        return toResponse(payable);
     }
 
     private void validateSupplier(Long propertyId, Long supplierId) {

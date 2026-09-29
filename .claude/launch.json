@@ -2,6 +2,12 @@
   "version": "0.0.1",
   "configurations": [
     {
+      "name": "agro-backend",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": ["-q", "-f", "backend/pom.xml", "spring-boot:run"],
+      "port": 8080
+    },
+    {
       "name": "agro-frontend",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["--prefix", "frontend", "run", "dev"],

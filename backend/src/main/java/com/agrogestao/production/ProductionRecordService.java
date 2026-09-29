@@ -2,6 +2,7 @@ package com.agrogestao.production;
 
 import com.agrogestao.activities.ActivityRepository;
 import com.agrogestao.common.exception.BusinessException;
+import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.production.dto.ProductionRecordRequest;
 import com.agrogestao.production.dto.ProductionRecordResponse;
 import com.agrogestao.properties.TenantContext;
@@ -33,18 +34,48 @@ public class ProductionRecordService {
     public ProductionRecordResponse create(ProductionRecordRequest request) {
         tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
-        if (request.getActivityId() != null
-                && !activityRepository.existsByIdAndPropertyId(request.getActivityId(), propertyId)) {
-            throw new BusinessException("Atividade inválida para esta propriedade");
-        }
+        validateActivity(propertyId, request.getActivityId());
         ProductionRecord record = new ProductionRecord();
         record.setPropertyId(propertyId);
+        applyRequest(record, request);
+        return toResponse(productionRecordRepository.save(record));
+    }
+
+    public ProductionRecordResponse update(Long id, ProductionRecordRequest request) {
+        tenantContext.requireWriteAccess();
+        Long propertyId = tenantContext.requirePropertyId();
+        validateActivity(propertyId, request.getActivityId());
+        ProductionRecord record = findOwned(id, propertyId);
+        applyRequest(record, request);
+        return toResponse(productionRecordRepository.save(record));
+    }
+
+    public void delete(Long id) {
+        tenantContext.requireManageAccess();
+        productionRecordRepository.delete(findOwned(id, tenantContext.requirePropertyId()));
+    }
+
+    private void validateActivity(Long propertyId, Long activityId) {
+        if (activityId != null && !activityRepository.existsByIdAndPropertyId(activityId, propertyId)) {
+            throw new BusinessException("Atividade inválida para esta propriedade");
+        }
+    }
+
+    private ProductionRecord findOwned(Long id, Long propertyId) {
+        ProductionRecord record = productionRecordRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Registro de produção não encontrado"));
+        if (!record.getPropertyId().equals(propertyId)) {
+            throw new ResourceNotFoundException("Registro de produção não encontrado");
+        }
+        return record;
+    }
+
+    private void applyRequest(ProductionRecord record, ProductionRecordRequest request) {
         record.setProductName(request.getProductName());
         record.setQuantity(request.getQuantity());
         record.setUnit(request.getUnit());
         record.setProductionDate(request.getProductionDate());
         record.setActivityId(request.getActivityId());
-        return toResponse(productionRecordRepository.save(record));
     }
 
     private ProductionRecordResponse toResponse(ProductionRecord record) {

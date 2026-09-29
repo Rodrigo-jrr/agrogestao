@@ -6,22 +6,30 @@ import com.agrogestao.finance.dto.AccountReceivableRequest;
 import com.agrogestao.finance.dto.AccountReceivableResponse;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.CustomerRepository;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AccountReceivableService {
 
     private final AccountReceivableRepository accountReceivableRepository;
     private final CustomerRepository customerRepository;
+    private final FinancialTransactionService financialTransactionService;
+    private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
 
     public AccountReceivableService(
             AccountReceivableRepository accountReceivableRepository,
             CustomerRepository customerRepository,
+            FinancialTransactionService financialTransactionService,
+            FinancialTransactionRepository financialTransactionRepository,
             TenantContext tenantContext) {
         this.accountReceivableRepository = accountReceivableRepository;
         this.customerRepository = customerRepository;
+        this.financialTransactionService = financialTransactionService;
+        this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
     }
 
@@ -47,6 +55,9 @@ public class AccountReceivableService {
         tenantContext.requireWriteAccess();
         validateCustomer(tenantContext.requirePropertyId(), request.getCustomerId());
         AccountReceivable receivable = findOwned(id);
+        if (receivable.isReceived()) {
+            throw new BusinessException("Desfaça a baixa antes de editar esta conta.");
+        }
         receivable.setDescription(request.getDescription());
         receivable.setAmount(request.getAmount());
         receivable.setDueDate(request.getDueDate());
@@ -59,18 +70,35 @@ public class AccountReceivableService {
         accountReceivableRepository.delete(findOwned(id));
     }
 
+    /** Dá baixa na conta e registra o recebimento como lançamento realizado no caixa. */
+    @Transactional
     public AccountReceivableResponse markReceived(Long id) {
         tenantContext.requireWriteAccess();
         AccountReceivable receivable = findOwned(id);
+        if (receivable.isReceived()) {
+            return toResponse(receivable);
+        }
+        FinancialTransaction transaction = financialTransactionService.registerFromOperation(
+                receivable.getPropertyId(), TransactionType.INCOME, "Recebimento: " + receivable.getDescription(),
+                receivable.getAmount(), LocalDate.now(), null);
         receivable.setReceived(true);
+        receivable.setFinancialTransactionId(transaction.getId());
         return toResponse(accountReceivableRepository.save(receivable));
     }
 
+    /** Desfaz a baixa e remove o lançamento gerado por ela. */
+    @Transactional
     public AccountReceivableResponse unmarkReceived(Long id) {
         tenantContext.requireWriteAccess();
         AccountReceivable receivable = findOwned(id);
+        Long transactionId = receivable.getFinancialTransactionId();
         receivable.setReceived(false);
-        return toResponse(accountReceivableRepository.save(receivable));
+        receivable.setFinancialTransactionId(null);
+        accountReceivableRepository.saveAndFlush(receivable);
+        if (transactionId != null) {
+            financialTransactionRepository.deleteById(transactionId);
+        }
+        return toResponse(receivable);
     }
 
     private void validateCustomer(Long propertyId, Long customerId) {

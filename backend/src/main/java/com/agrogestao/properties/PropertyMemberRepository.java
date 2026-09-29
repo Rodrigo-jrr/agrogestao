@@ -8,6 +8,10 @@ public interface PropertyMemberRepository extends JpaRepository<PropertyMember, 
 
     List<PropertyMember> findByUserId(Long userId);
 
+    List<PropertyMember> findByPropertyId(Long propertyId);
+
+    long countByPropertyIdAndRole(Long propertyId, PropertyRole role);
+
     Optional<PropertyMember> findByPropertyIdAndUserId(Long propertyId, Long userId);
 
     boolean existsByPropertyIdAndUserId(Long propertyId, Long userId);

@@ -6,6 +6,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -28,4 +29,10 @@ public class Sale extends BaseEntity {
 
     @Column(name = "total_amount", nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
+
+    @Column(name = "financial_transaction_id")
+    private Long financialTransactionId;
+
+    @Column(name = "canceled_at")
+    private LocalDateTime canceledAt;
 }

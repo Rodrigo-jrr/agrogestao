@@ -38,6 +38,11 @@ public class SaleController {
         return ResponseEntity.ok(saleService.create(request));
     }
 
+    @PostMapping("/{id}/cancel")
+    public SaleResponse cancel(@PathVariable Long id) {
+        return saleService.cancel(id);
+    }
+
     @GetMapping("/customers")
     public List<CustomerResponse> listCustomers() {
         return customerService.list();

@@ -107,6 +107,7 @@ export interface Purchase {
   supplierId: number
   purchaseDate: string
   totalAmount: number
+  canceled: boolean
 }
 
 export interface Sale {
@@ -114,6 +115,7 @@ export interface Sale {
   customerId: number
   saleDate: string
   totalAmount: number
+  canceled: boolean
 }
 
 export interface ProductionRecord {
@@ -139,4 +141,33 @@ export interface DashboardSummary {
   result: number
   production: ProductionSummaryItem[]
   lowStockAlerts: Product[]
+}
+
+export interface PropertyMemberInfo {
+  id: number
+  userId: number
+  name: string
+  email: string | null
+  role: PropertyRole
+  currentUser: boolean
+}
+
+export interface CashFlowMonth {
+  month: string
+  income: number
+  expense: number
+  net: number
+  balance: number
+  pendingReceivables: number
+  pendingPayables: number
+  projectedBalance: number
+}
+
+export interface CashFlow {
+  from: string
+  to: string
+  openingBalance: number
+  overdueReceivables: number
+  overduePayables: number
+  months: CashFlowMonth[]
 }
