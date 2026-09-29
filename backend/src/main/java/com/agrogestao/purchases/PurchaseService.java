@@ -1,5 +1,7 @@
 package com.agrogestao.purchases;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.FinancialTransaction;
@@ -30,6 +32,7 @@ public class PurchaseService {
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public PurchaseService(
             PurchaseRepository purchaseRepository,
@@ -39,7 +42,8 @@ public class PurchaseService {
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.supplierRepository = supplierRepository;
@@ -48,6 +52,7 @@ public class PurchaseService {
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<PurchaseResponse> list() {
@@ -97,6 +102,7 @@ public class PurchaseService {
                 TransactionType.EXPENSE, "Compra #" + purchase.getId(), total, request.getPurchaseDate(), null);
         purchase.setFinancialTransactionId(transaction.getId());
         purchaseRepository.save(purchase);
+        auditService.record("Purchase", purchase.getId(), AuditAction.CREATE, "total " + purchase.getTotalAmount());
 
         return toResponse(purchase);
     }
@@ -136,6 +142,7 @@ public class PurchaseService {
             financialTransactionService.registerFromOperation(propertyId, TransactionType.INCOME,
                     "Estorno da compra #" + id, purchase.getTotalAmount(), LocalDate.now(), null);
         }
+        auditService.record("Purchase", purchase.getId(), AuditAction.CANCEL, "total " + purchase.getTotalAmount());
         return toResponse(purchase);
     }
 

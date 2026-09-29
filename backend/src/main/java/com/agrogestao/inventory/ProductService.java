@@ -1,5 +1,7 @@
 package com.agrogestao.inventory;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.inventory.dto.ProductRequest;
 import com.agrogestao.inventory.dto.ProductResponse;
@@ -14,14 +16,17 @@ public class ProductService {
     private final ProductRepository productRepository;
     private final InventoryItemRepository inventoryItemRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public ProductService(
             ProductRepository productRepository,
             InventoryItemRepository inventoryItemRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.productRepository = productRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<ProductResponse> list() {
@@ -40,6 +45,7 @@ public class ProductService {
         product.setUnit(request.getUnit());
         product.setMinStock(request.getMinStock());
         productRepository.save(product);
+        auditService.record("Product", product.getId(), AuditAction.CREATE, product.getName());
         return toResponse(product, product.getPropertyId());
     }
 
@@ -51,12 +57,15 @@ public class ProductService {
         product.setUnit(request.getUnit());
         product.setMinStock(request.getMinStock());
         productRepository.save(product);
+        auditService.record("Product", product.getId(), AuditAction.UPDATE, product.getName());
         return toResponse(product, product.getPropertyId());
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        productRepository.delete(findOwned(id));
+        Product product = findOwned(id);
+        productRepository.delete(product);
+        auditService.record("Product", product.getId(), AuditAction.DELETE, product.getName());
     }
 
     private Product findOwned(Long id) {

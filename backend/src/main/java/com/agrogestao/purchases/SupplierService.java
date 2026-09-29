@@ -1,5 +1,7 @@
 package com.agrogestao.purchases;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.dto.SupplierRequest;
@@ -12,10 +14,12 @@ public class SupplierService {
 
     private final SupplierRepository supplierRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
-    public SupplierService(SupplierRepository supplierRepository, TenantContext tenantContext) {
+    public SupplierService(SupplierRepository supplierRepository, TenantContext tenantContext, AuditService auditService) {
         this.supplierRepository = supplierRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<SupplierResponse> list() {
@@ -31,7 +35,9 @@ public class SupplierService {
         supplier.setDocument(request.getDocument());
         supplier.setPhone(request.getPhone());
         supplier.setEmail(request.getEmail());
-        return toResponse(supplierRepository.save(supplier));
+        supplierRepository.save(supplier);
+        auditService.record("Supplier", supplier.getId(), AuditAction.CREATE, supplier.getName());
+        return toResponse(supplier);
     }
 
     public SupplierResponse update(Long id, SupplierRequest request) {
@@ -41,12 +47,16 @@ public class SupplierService {
         supplier.setDocument(request.getDocument());
         supplier.setPhone(request.getPhone());
         supplier.setEmail(request.getEmail());
-        return toResponse(supplierRepository.save(supplier));
+        supplierRepository.save(supplier);
+        auditService.record("Supplier", supplier.getId(), AuditAction.UPDATE, supplier.getName());
+        return toResponse(supplier);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        supplierRepository.delete(findOwned(id));
+        Supplier supplier = findOwned(id);
+        supplierRepository.delete(supplier);
+        auditService.record("Supplier", supplier.getId(), AuditAction.DELETE, supplier.getName());
     }
 
     private Supplier findOwned(Long id) {

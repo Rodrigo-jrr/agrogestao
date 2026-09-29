@@ -1,5 +1,7 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.activities.ActivityRepository;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
@@ -15,14 +17,17 @@ public class CostCenterService {
     private final CostCenterRepository costCenterRepository;
     private final ActivityRepository activityRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public CostCenterService(
             CostCenterRepository costCenterRepository,
             ActivityRepository activityRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.costCenterRepository = costCenterRepository;
         this.activityRepository = activityRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<CostCenterResponse> list() {
@@ -39,7 +44,9 @@ public class CostCenterService {
         costCenter.setPropertyId(propertyId);
         costCenter.setName(request.getName());
         costCenter.setActivityId(request.getActivityId());
-        return toResponse(costCenterRepository.save(costCenter));
+        costCenterRepository.save(costCenter);
+        auditService.record("CostCenter", costCenter.getId(), AuditAction.CREATE, costCenter.getName());
+        return toResponse(costCenter);
     }
 
     public CostCenterResponse update(Long id, CostCenterRequest request) {
@@ -49,12 +56,16 @@ public class CostCenterService {
         CostCenter costCenter = findOwned(id, propertyId);
         costCenter.setName(request.getName());
         costCenter.setActivityId(request.getActivityId());
-        return toResponse(costCenterRepository.save(costCenter));
+        costCenterRepository.save(costCenter);
+        auditService.record("CostCenter", costCenter.getId(), AuditAction.UPDATE, costCenter.getName());
+        return toResponse(costCenter);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        costCenterRepository.delete(findOwned(id, tenantContext.requirePropertyId()));
+        CostCenter costCenter = findOwned(id, tenantContext.requirePropertyId());
+        costCenterRepository.delete(costCenter);
+        auditService.record("CostCenter", costCenter.getId(), AuditAction.DELETE, costCenter.getName());
     }
 
     private void validateActivity(Long propertyId, Long activityId) {

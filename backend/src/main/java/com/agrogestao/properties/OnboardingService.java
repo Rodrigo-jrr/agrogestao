@@ -1,5 +1,7 @@
 package com.agrogestao.properties;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.activities.Activity;
 import com.agrogestao.activities.ActivityRepository;
 import com.agrogestao.organizations.Organization;
@@ -15,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class OnboardingService {
 
+    private final AuditService auditService;
     private final OrganizationRepository organizationRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
     private final PropertyRepository propertyRepository;
@@ -26,7 +29,9 @@ public class OnboardingService {
             OrganizationMemberRepository organizationMemberRepository,
             PropertyRepository propertyRepository,
             PropertyMemberRepository propertyMemberRepository,
-            ActivityRepository activityRepository) {
+            ActivityRepository activityRepository,
+            AuditService auditService) {
+        this.auditService = auditService;
         this.organizationRepository = organizationRepository;
         this.organizationMemberRepository = organizationMemberRepository;
         this.propertyRepository = propertyRepository;
@@ -67,6 +72,9 @@ public class OnboardingService {
             activity.setAreaHa(activityInput.getAreaHa());
             activityRepository.save(activity);
         });
+
+        auditService.record(property.getId(), userId, "Property", property.getId(), AuditAction.CREATE,
+                property.getName());
 
         return new PropertySummaryResponse(
                 property.getId(),

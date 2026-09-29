@@ -1,5 +1,7 @@
 package com.agrogestao.production;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.activities.ActivityRepository;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
@@ -15,14 +17,17 @@ public class ProductionRecordService {
     private final ProductionRecordRepository productionRecordRepository;
     private final ActivityRepository activityRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public ProductionRecordService(
             ProductionRecordRepository productionRecordRepository,
             ActivityRepository activityRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.productionRecordRepository = productionRecordRepository;
         this.activityRepository = activityRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<ProductionRecordResponse> list() {
@@ -38,7 +43,9 @@ public class ProductionRecordService {
         ProductionRecord record = new ProductionRecord();
         record.setPropertyId(propertyId);
         applyRequest(record, request);
-        return toResponse(productionRecordRepository.save(record));
+        productionRecordRepository.save(record);
+        auditService.record("ProductionRecord", record.getId(), AuditAction.CREATE, describe(record));
+        return toResponse(record);
     }
 
     public ProductionRecordResponse update(Long id, ProductionRecordRequest request) {
@@ -47,12 +54,16 @@ public class ProductionRecordService {
         validateActivity(propertyId, request.getActivityId());
         ProductionRecord record = findOwned(id, propertyId);
         applyRequest(record, request);
-        return toResponse(productionRecordRepository.save(record));
+        productionRecordRepository.save(record);
+        auditService.record("ProductionRecord", record.getId(), AuditAction.UPDATE, describe(record));
+        return toResponse(record);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        productionRecordRepository.delete(findOwned(id, tenantContext.requirePropertyId()));
+        ProductionRecord record = findOwned(id, tenantContext.requirePropertyId());
+        productionRecordRepository.delete(record);
+        auditService.record("ProductionRecord", record.getId(), AuditAction.DELETE, describe(record));
     }
 
     private void validateActivity(Long propertyId, Long activityId) {
@@ -76,6 +87,10 @@ public class ProductionRecordService {
         record.setUnit(request.getUnit());
         record.setProductionDate(request.getProductionDate());
         record.setActivityId(request.getActivityId());
+    }
+
+    private static String describe(ProductionRecord record) {
+        return "%s %s %s".formatted(record.getProductName(), record.getQuantity(), record.getUnit());
     }
 
     private ProductionRecordResponse toResponse(ProductionRecord record) {

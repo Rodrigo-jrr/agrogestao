@@ -1,5 +1,7 @@
 package com.agrogestao.inventory;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.inventory.dto.InventoryMovementRequest;
 import com.agrogestao.inventory.dto.InventoryMovementResponse;
@@ -17,16 +19,19 @@ public class InventoryMovementService {
     private final InventoryItemRepository inventoryItemRepository;
     private final ProductRepository productRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public InventoryMovementService(
             InventoryMovementRepository inventoryMovementRepository,
             InventoryItemRepository inventoryItemRepository,
             ProductRepository productRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.inventoryMovementRepository = inventoryMovementRepository;
         this.inventoryItemRepository = inventoryItemRepository;
         this.productRepository = productRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<InventoryMovementResponse> list() {
@@ -43,6 +48,7 @@ public class InventoryMovementService {
         }
         InventoryMovement movement = registerMovement(propertyId, request.getProductId(), request.getType(),
                 request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
+        auditService.record("InventoryMovement", movement.getId(), AuditAction.CREATE, "%s %s do produto #%d".formatted(movement.getType(), movement.getQuantity(), movement.getProductId()));
         return toResponse(movement);
     }
 

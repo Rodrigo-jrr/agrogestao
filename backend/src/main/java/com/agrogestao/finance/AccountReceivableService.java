@@ -1,5 +1,7 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountReceivableRequest;
@@ -19,18 +21,21 @@ public class AccountReceivableService {
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public AccountReceivableService(
             AccountReceivableRepository accountReceivableRepository,
             CustomerRepository customerRepository,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.accountReceivableRepository = accountReceivableRepository;
         this.customerRepository = customerRepository;
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<AccountReceivableResponse> list() {
@@ -48,7 +53,9 @@ public class AccountReceivableService {
         receivable.setAmount(request.getAmount());
         receivable.setDueDate(request.getDueDate());
         receivable.setCustomerId(request.getCustomerId());
-        return toResponse(accountReceivableRepository.save(receivable));
+        accountReceivableRepository.save(receivable);
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.CREATE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        return toResponse(receivable);
     }
 
     public AccountReceivableResponse update(Long id, AccountReceivableRequest request) {
@@ -62,12 +69,16 @@ public class AccountReceivableService {
         receivable.setAmount(request.getAmount());
         receivable.setDueDate(request.getDueDate());
         receivable.setCustomerId(request.getCustomerId());
-        return toResponse(accountReceivableRepository.save(receivable));
+        accountReceivableRepository.save(receivable);
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        return toResponse(receivable);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        accountReceivableRepository.delete(findOwned(id));
+        AccountReceivable receivable = findOwned(id);
+        accountReceivableRepository.delete(receivable);
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.DELETE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
     }
 
     /** Dá baixa na conta e registra o recebimento como lançamento realizado no caixa. */
@@ -83,7 +94,9 @@ public class AccountReceivableService {
                 receivable.getAmount(), LocalDate.now(), null);
         receivable.setReceived(true);
         receivable.setFinancialTransactionId(transaction.getId());
-        return toResponse(accountReceivableRepository.save(receivable));
+        accountReceivableRepository.save(receivable);
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa: " + "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        return toResponse(receivable);
     }
 
     /** Desfaz a baixa e remove o lançamento gerado por ela. */
@@ -98,6 +111,7 @@ public class AccountReceivableService {
         if (transactionId != null) {
             financialTransactionRepository.deleteById(transactionId);
         }
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
         return toResponse(receivable);
     }
 

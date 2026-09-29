@@ -1,5 +1,7 @@
 package com.agrogestao.sales;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.dto.CustomerRequest;
@@ -12,10 +14,12 @@ public class CustomerService {
 
     private final CustomerRepository customerRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
-    public CustomerService(CustomerRepository customerRepository, TenantContext tenantContext) {
+    public CustomerService(CustomerRepository customerRepository, TenantContext tenantContext, AuditService auditService) {
         this.customerRepository = customerRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<CustomerResponse> list() {
@@ -31,7 +35,9 @@ public class CustomerService {
         customer.setDocument(request.getDocument());
         customer.setPhone(request.getPhone());
         customer.setEmail(request.getEmail());
-        return toResponse(customerRepository.save(customer));
+        customerRepository.save(customer);
+        auditService.record("Customer", customer.getId(), AuditAction.CREATE, customer.getName());
+        return toResponse(customer);
     }
 
     public CustomerResponse update(Long id, CustomerRequest request) {
@@ -41,12 +47,16 @@ public class CustomerService {
         customer.setDocument(request.getDocument());
         customer.setPhone(request.getPhone());
         customer.setEmail(request.getEmail());
-        return toResponse(customerRepository.save(customer));
+        customerRepository.save(customer);
+        auditService.record("Customer", customer.getId(), AuditAction.UPDATE, customer.getName());
+        return toResponse(customer);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        customerRepository.delete(findOwned(id));
+        Customer customer = findOwned(id);
+        customerRepository.delete(customer);
+        auditService.record("Customer", customer.getId(), AuditAction.DELETE, customer.getName());
     }
 
     private Customer findOwned(Long id) {

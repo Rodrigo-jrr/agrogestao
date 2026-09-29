@@ -1,5 +1,7 @@
 package com.agrogestao.properties;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.auth.SecurityUtils;
 import com.agrogestao.auth.User;
 import com.agrogestao.auth.UserRepository;
@@ -22,14 +24,17 @@ public class PropertyMemberService {
     private final PropertyMemberRepository propertyMemberRepository;
     private final UserRepository userRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public PropertyMemberService(
             PropertyMemberRepository propertyMemberRepository,
             UserRepository userRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.propertyMemberRepository = propertyMemberRepository;
         this.userRepository = userRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<MemberResponse> list() {
@@ -59,7 +64,9 @@ public class PropertyMemberService {
         member.setPropertyId(propertyId);
         member.setUserId(user.getId());
         member.setRole(request.getRole());
-        return toResponse(propertyMemberRepository.save(member), user);
+        propertyMemberRepository.save(member);
+        auditService.record("PropertyMember", member.getId(), AuditAction.CREATE, user.getEmail() + " como " + member.getRole());
+        return toResponse(member, user);
     }
 
     @Transactional
@@ -72,8 +79,10 @@ public class PropertyMemberService {
         if (member.getRole() == PropertyRole.OWNER && newRole != PropertyRole.OWNER) {
             ensureNotLastOwner(member);
         }
+        PropertyRole previousRole = member.getRole();
         member.setRole(newRole);
         propertyMemberRepository.save(member);
+        auditService.record("PropertyMember", member.getId(), AuditAction.UPDATE, "usuário #" + member.getUserId() + ": " + previousRole + " -> " + newRole);
         return toResponse(member, userRepository.findById(member.getUserId()).orElse(null));
     }
 
@@ -86,6 +95,7 @@ public class PropertyMemberService {
             ensureNotLastOwner(member);
         }
         propertyMemberRepository.delete(member);
+        auditService.record("PropertyMember", member.getId(), AuditAction.DELETE, "usuário #" + member.getUserId() + " (" + member.getRole() + ")");
     }
 
     /** Somente proprietários podem conceder, alterar ou remover o papel de proprietário. */

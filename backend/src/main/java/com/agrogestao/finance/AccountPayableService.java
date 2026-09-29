@@ -1,5 +1,7 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountPayableRequest;
@@ -19,18 +21,21 @@ public class AccountPayableService {
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public AccountPayableService(
             AccountPayableRepository accountPayableRepository,
             SupplierRepository supplierRepository,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.accountPayableRepository = accountPayableRepository;
         this.supplierRepository = supplierRepository;
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<AccountPayableResponse> list() {
@@ -48,7 +53,9 @@ public class AccountPayableService {
         payable.setAmount(request.getAmount());
         payable.setDueDate(request.getDueDate());
         payable.setSupplierId(request.getSupplierId());
-        return toResponse(accountPayableRepository.save(payable));
+        accountPayableRepository.save(payable);
+        auditService.record("AccountPayable", payable.getId(), AuditAction.CREATE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        return toResponse(payable);
     }
 
     public AccountPayableResponse update(Long id, AccountPayableRequest request) {
@@ -62,12 +69,16 @@ public class AccountPayableService {
         payable.setAmount(request.getAmount());
         payable.setDueDate(request.getDueDate());
         payable.setSupplierId(request.getSupplierId());
-        return toResponse(accountPayableRepository.save(payable));
+        accountPayableRepository.save(payable);
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        return toResponse(payable);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        accountPayableRepository.delete(findOwned(id));
+        AccountPayable payable = findOwned(id);
+        accountPayableRepository.delete(payable);
+        auditService.record("AccountPayable", payable.getId(), AuditAction.DELETE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
     }
 
     /** Dá baixa na conta e registra o pagamento como lançamento realizado no caixa. */
@@ -83,7 +94,9 @@ public class AccountPayableService {
                 payable.getAmount(), LocalDate.now(), null);
         payable.setPaid(true);
         payable.setFinancialTransactionId(transaction.getId());
-        return toResponse(accountPayableRepository.save(payable));
+        accountPayableRepository.save(payable);
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa: " + "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        return toResponse(payable);
     }
 
     /** Desfaz a baixa e remove o lançamento gerado por ela. */
@@ -98,6 +111,7 @@ public class AccountPayableService {
         if (transactionId != null) {
             financialTransactionRepository.deleteById(transactionId);
         }
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s %s".formatted(payable.getDescription(), payable.getAmount()));
         return toResponse(payable);
     }
 

@@ -1,5 +1,7 @@
 package com.agrogestao.activities;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.activities.dto.ActivityRequest;
 import com.agrogestao.activities.dto.ActivityResponse;
 import com.agrogestao.common.exception.ResourceNotFoundException;
@@ -12,10 +14,12 @@ public class ActivityService {
 
     private final ActivityRepository activityRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
-    public ActivityService(ActivityRepository activityRepository, TenantContext tenantContext) {
+    public ActivityService(ActivityRepository activityRepository, TenantContext tenantContext, AuditService auditService) {
         this.activityRepository = activityRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<ActivityResponse> list() {
@@ -30,19 +34,25 @@ public class ActivityService {
         Activity activity = new Activity();
         activity.setPropertyId(tenantContext.requirePropertyId());
         applyRequest(activity, request);
-        return toResponse(activityRepository.save(activity));
+        activityRepository.save(activity);
+        auditService.record("Activity", activity.getId(), AuditAction.CREATE, activity.getName());
+        return toResponse(activity);
     }
 
     public ActivityResponse update(Long id, ActivityRequest request) {
         tenantContext.requireWriteAccess();
         Activity activity = findOwned(id);
         applyRequest(activity, request);
-        return toResponse(activityRepository.save(activity));
+        activityRepository.save(activity);
+        auditService.record("Activity", activity.getId(), AuditAction.UPDATE, activity.getName());
+        return toResponse(activity);
     }
 
     public void delete(Long id) {
         tenantContext.requireManageAccess();
-        activityRepository.delete(findOwned(id));
+        Activity activity = findOwned(id);
+        activityRepository.delete(activity);
+        auditService.record("Activity", activity.getId(), AuditAction.DELETE, activity.getName());
     }
 
     private Activity findOwned(Long id) {

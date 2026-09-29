@@ -1,5 +1,7 @@
 package com.agrogestao.properties;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.ForbiddenException;
 import com.agrogestao.organizations.OrganizationMemberRepository;
 import com.agrogestao.properties.dto.PropertyRequest;
@@ -11,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PropertyService {
 
+    private final AuditService auditService;
     private final PropertyRepository propertyRepository;
     private final PropertyMemberRepository propertyMemberRepository;
     private final OrganizationMemberRepository organizationMemberRepository;
@@ -18,10 +21,12 @@ public class PropertyService {
     public PropertyService(
             PropertyRepository propertyRepository,
             PropertyMemberRepository propertyMemberRepository,
-            OrganizationMemberRepository organizationMemberRepository) {
+            OrganizationMemberRepository organizationMemberRepository,
+            AuditService auditService) {
         this.propertyRepository = propertyRepository;
         this.propertyMemberRepository = propertyMemberRepository;
         this.organizationMemberRepository = organizationMemberRepository;
+        this.auditService = auditService;
     }
 
     public List<PropertySummaryResponse> listForUser(Long userId) {
@@ -60,6 +65,8 @@ public class PropertyService {
         propertyMember.setUserId(userId);
         propertyMember.setRole(PropertyRole.OWNER);
         propertyMemberRepository.save(propertyMember);
+        auditService.record(property.getId(), userId, "Property", property.getId(), AuditAction.CREATE,
+                property.getName());
 
         return new PropertySummaryResponse(
                 property.getId(),

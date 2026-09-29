@@ -1,5 +1,7 @@
 package com.agrogestao.sales;
 
+import com.agrogestao.audit.AuditAction;
+import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.FinancialTransaction;
@@ -30,6 +32,7 @@ public class SaleService {
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
     private final TenantContext tenantContext;
+    private final AuditService auditService;
 
     public SaleService(
             SaleRepository saleRepository,
@@ -39,7 +42,8 @@ public class SaleService {
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
-            TenantContext tenantContext) {
+            TenantContext tenantContext,
+            AuditService auditService) {
         this.saleRepository = saleRepository;
         this.saleItemRepository = saleItemRepository;
         this.customerRepository = customerRepository;
@@ -48,6 +52,7 @@ public class SaleService {
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
         this.tenantContext = tenantContext;
+        this.auditService = auditService;
     }
 
     public List<SaleResponse> list() {
@@ -96,6 +101,7 @@ public class SaleService {
                 TransactionType.INCOME, "Venda #" + sale.getId(), total, request.getSaleDate(), null);
         sale.setFinancialTransactionId(transaction.getId());
         saleRepository.save(sale);
+        auditService.record("Sale", sale.getId(), AuditAction.CREATE, "total " + sale.getTotalAmount());
 
         return toResponse(sale);
     }
@@ -130,6 +136,7 @@ public class SaleService {
             financialTransactionService.registerFromOperation(propertyId, TransactionType.EXPENSE,
                     "Estorno da venda #" + id, sale.getTotalAmount(), LocalDate.now(), null);
         }
+        auditService.record("Sale", sale.getId(), AuditAction.CANCEL, "total " + sale.getTotalAmount());
         return toResponse(sale);
     }
 

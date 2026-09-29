@@ -69,7 +69,10 @@ tasks, documents, notifications, analytics, ai
 - Senhas com `BCrypt`.
 - JWT assinado (HS256), expiração curta, validado em `JwtAuthenticationFilter`.
 - Toda rota exceto `/api/auth/**` exige autenticação; rotas de negócio exigem também `PropertyMember` válido via `TenantContext`.
-- Auditoria mínima (`AuditLog`) registrada nas operações críticas de `finance` como exemplo do padrão a ser estendido (seção 39 do documento-base).
+- Auditoria (`AuditLog`, seção 39 do documento-base) registrada em todas as operações de escrita — criação/edição/exclusão em todos os módulos, baixas de contas, cancelamentos de compras/vendas e mudanças na equipe — com propriedade, usuário, entidade, ação e um resumo. Use `AuditService.record(entidade, id, ação, detalhes)` ao criar novos serviços.
+- Papéis por propriedade: `OWNER` (tudo, inclusive gerenciar proprietários), `MANAGER` (exclui e gerencia equipe), `WORKER` (cria/edita), `VIEWER` (só leitura). A propriedade sempre mantém ao menos um `OWNER`.
+- Compras/vendas guardam o lançamento financeiro gerado (`financial_transaction_id`); o cancelamento estorna o estoque e remove o lançamento. Lançamentos gerados por compra/venda/baixa de conta não podem ser editados ou excluídos diretamente.
+- Testes de integração em `backend/src/test` (H2 em modo MySQL + migrations Flyway), rodados no CI.
 
 ## Como rodar
 
