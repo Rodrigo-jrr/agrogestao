@@ -1,4 +1,9 @@
 # Perfil de produção: sem valores padrão para segredos/infra. Ative com SPRING_PROFILES_ACTIVE=prod.
+server:
+  # Atrás de proxy/balanceador: usa o IP real do cliente (X-Forwarded-For). O Tomcat só aceita esse
+  # cabeçalho vindo de proxies da rede interna, então um cliente externo não consegue falsificá-lo.
+  forward-headers-strategy: native
+
 spring:
   datasource:
     url: jdbc:mysql://${DB_HOST}:${DB_PORT:3306}/${DB_NAME}?useSSL=${DB_USE_SSL:true}&serverTimezone=UTC

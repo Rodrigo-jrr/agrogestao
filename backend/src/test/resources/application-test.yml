@@ -16,3 +16,9 @@ logging:
 agrogestao:
   admin:
     emails: admin@plataforma.test
+  # Os testes fazem centenas de cadastros/logins a partir do mesmo IP (127.0.0.1).
+  security:
+    login:
+      max-failures-per-ip: 100000
+    register:
+      max-per-ip-per-hour: 100000

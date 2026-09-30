@@ -46,6 +46,9 @@ public class InventoryMovementService {
         if (!productRepository.existsByIdAndPropertyId(request.getProductId(), propertyId)) {
             throw new BusinessException("Produto inválido para esta propriedade");
         }
+        if (request.getType() != MovementType.ADJUST && request.getQuantity().signum() == 0) {
+            throw new BusinessException("Informe uma quantidade maior que zero para entradas e saídas.");
+        }
         InventoryMovement movement = registerMovement(propertyId, request.getProductId(), request.getType(),
                 request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
         auditService.record("InventoryMovement", movement.getId(), AuditAction.CREATE, "%s %s do produto #%d".formatted(movement.getType(), movement.getQuantity(), movement.getProductId()));

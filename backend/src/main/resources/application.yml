@@ -39,6 +39,14 @@ agrogestao:
     base-url: ${APP_BASE_URL:http://localhost:5173}
   mail:
     from: ${MAIL_FROM:AgroGestão <nao-responda@agrogestao.local>}
+  security:
+    # Proteção contra tentativa e erro (janela deslizante, em memória)
+    login:
+      max-failures-per-account: ${LOGIN_MAX_FAILURES_PER_ACCOUNT:5}
+      max-failures-per-ip: ${LOGIN_MAX_FAILURES_PER_IP:20}
+      window-minutes: ${LOGIN_WINDOW_MINUTES:15}
+    register:
+      max-per-ip-per-hour: ${REGISTER_MAX_PER_IP_PER_HOUR:10}
   admin:
     # E-mails com acesso ao painel de administração da plataforma (separados por vírgula)
     emails: ${PLATFORM_ADMIN_EMAILS:rodrigojr.rezende@gmail.com}

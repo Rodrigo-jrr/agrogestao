@@ -15,19 +15,23 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AccountService accountService;
+    private final LoginProtectionService loginProtectionService;
 
     public AuthService(
             UserRepository userRepository,
             PasswordEncoder passwordEncoder,
             JwtService jwtService,
-            AccountService accountService) {
+            AccountService accountService,
+            LoginProtectionService loginProtectionService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
         this.accountService = accountService;
+        this.loginProtectionService = loginProtectionService;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String clientIp) {
+        loginProtectionService.checkRegistrationAllowed(clientIp);
         if (userRepository.existsByEmail(request.getEmail())) {
             throw new BusinessException("Já existe uma conta com este e-mail");
         }
@@ -42,12 +46,14 @@ public class AuthService {
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail());
     }
 
-    public AuthResponse login(LoginRequest request) {
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadCredentialsException("Credenciais inválidas"));
-        if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+    public AuthResponse login(LoginRequest request, String clientIp) {
+        loginProtectionService.checkLoginAllowed(request.getEmail(), clientIp);
+        User user = userRepository.findByEmail(request.getEmail()).orElse(null);
+        if (user == null || !passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+            loginProtectionService.loginFailed(request.getEmail(), clientIp);
             throw new BadCredentialsException("Credenciais inválidas");
         }
+        loginProtectionService.loginSucceeded(request.getEmail());
         String token = jwtService.generateToken(user.getId());
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail());
     }

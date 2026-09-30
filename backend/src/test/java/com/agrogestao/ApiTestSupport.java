@@ -121,7 +121,7 @@ public abstract class ApiTestSupport {
         }
         String response = mockMvc.perform(builder)
                 .andExpect(status().is(expectedStatus))
-                .andReturn().getResponse().getContentAsString();
+                .andReturn().getResponse().getContentAsString(java.nio.charset.StandardCharsets.UTF_8);
         return response.isEmpty() ? null : objectMapper.readTree(response);
     }
 

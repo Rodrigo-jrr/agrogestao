@@ -11,13 +11,15 @@ import lombok.Setter;
 public class RegisterRequest {
 
     @NotBlank
+    @Size(max = 150)
     private String name;
 
     @NotBlank
     @Email
+    @Size(max = 180)
     private String email;
 
     @NotBlank
-    @Size(min = 8, message = "deve ter ao menos 8 caracteres")
+    @Size(min = 8, max = 72, message = "deve ter entre 8 e 72 caracteres")
     private String password;
 }

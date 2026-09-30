@@ -24,6 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class PurchaseService {
 
+    /** Limite da coluna DECIMAL(15,2). */
+    private static final BigDecimal MAX_TOTAL = new BigDecimal("9999999999999.99");
+
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final SupplierRepository supplierRepository;
@@ -77,6 +80,9 @@ public class PurchaseService {
         BigDecimal total = request.getItems().stream()
                 .map(item -> item.getUnitPrice().multiply(item.getQuantity()))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (total.compareTo(MAX_TOTAL) > 0) {
+            throw new BusinessException("O valor total da operação ultrapassa o limite permitido.");
+        }
 
         Purchase purchase = new Purchase();
         purchase.setPropertyId(propertyId);
