@@ -28,13 +28,14 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-terreiro font-sans">
+      {/* Altura da tela inteira e fixa na rolagem: o rodapé da barra (usuário, propriedade, admin) fica sempre visível. */}
       <aside
-        className={`${menuOpen ? 'block' : 'hidden'} md:block fixed md:static z-20 h-full w-64 bg-mata`}
+        className={`${menuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-20 w-64 flex-col bg-mata md:sticky md:top-0 md:flex md:h-screen md:shrink-0`}
       >
         <div className="px-4 py-5">
           <Logo size={26} variant="light" />
         </div>
-        <nav className="flex flex-col gap-1 px-3">
+        <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
           {coreNav.map((item) => (
             <NavLink
               key={item.to}
@@ -58,17 +59,9 @@ export function Layout() {
           </div>
         </nav>
 
-        <div className="absolute bottom-0 w-64 border-t border-terreiro/10 px-4 py-4">
+        <div className="border-t border-terreiro/10 px-4 py-4">
           <p className="text-sm font-medium text-terreiro">{user?.name}</p>
           <p className="text-xs text-terreiro/50">{currentProperty?.name}</p>
-          {isPlatformAdmin && (
-            <NavLink
-              to="/admin"
-              className="mt-2 inline-block rounded-full border border-trigo/60 px-2.5 py-0.5 text-xs font-medium text-trigo hover:bg-trigo/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trigo"
-            >
-              Administração da plataforma
-            </NavLink>
-          )}
         </div>
       </aside>
 
@@ -101,6 +94,14 @@ export function Layout() {
           </select>
 
           <div className="flex items-center gap-3 text-sm text-terra/70">
+            {isPlatformAdmin && (
+              <NavLink
+                to="/admin"
+                className="rounded-full border border-trigo-dark/50 bg-trigo/15 px-3 py-1 text-xs font-medium text-trigo-dark hover:bg-trigo/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trigo-dark"
+              >
+                Administração
+              </NavLink>
+            )}
             <span className="hidden sm:inline">{user?.name}</span>
             <button
               onClick={logout}
