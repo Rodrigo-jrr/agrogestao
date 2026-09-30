@@ -71,7 +71,11 @@ public class InventoryMovementService {
         InventoryMovement movement = registerMovement(propertyId, product.getId(), request.getType(),
                 request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
         auditService.record("InventoryMovement", movement.getId(), AuditAction.CREATE,
-                "%s %s de %s".formatted(movement.getType(), movement.getQuantity(), product.getName()));
+                "%s de %s %s de %s".formatted(switch (movement.getType()) {
+                    case IN -> "Entrada";
+                    case OUT -> "Saída";
+                    case ADJUST -> "Ajuste para";
+                }, movement.getQuantity().stripTrailingZeros().toPlainString(), product.getUnit(), product.getName()));
         return toResponse(movement, product);
     }
 

@@ -2,6 +2,7 @@ package com.agrogestao.finance;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.Money;
 import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
@@ -58,7 +59,7 @@ public class AccountReceivableService {
         receivable.setDueDate(request.getDueDate());
         receivable.setCustomerId(request.getCustomerId());
         accountReceivableRepository.save(receivable);
-        auditService.record("AccountReceivable", receivable.getId(), AuditAction.CREATE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.CREATE, "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
         return toResponse(receivable);
     }
 
@@ -79,7 +80,7 @@ public class AccountReceivableService {
         receivable.setDueDate(request.getDueDate());
         receivable.setCustomerId(request.getCustomerId());
         accountReceivableRepository.save(receivable);
-        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
         return toResponse(receivable);
     }
 
@@ -91,7 +92,7 @@ public class AccountReceivableService {
                     + ". Para removê-la, cancele a venda.");
         }
         accountReceivableRepository.delete(receivable);
-        auditService.record("AccountReceivable", receivable.getId(), AuditAction.DELETE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.DELETE, "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
     }
 
     /** Dá baixa na conta e registra o recebimento como lançamento realizado no caixa. */
@@ -108,7 +109,7 @@ public class AccountReceivableService {
         receivable.setReceived(true);
         receivable.setFinancialTransactionId(transaction.getId());
         accountReceivableRepository.save(receivable);
-        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa: " + "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa: " + "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
         return toResponse(receivable);
     }
 
@@ -124,7 +125,7 @@ public class AccountReceivableService {
         if (transactionId != null) {
             financialTransactionRepository.deleteById(transactionId);
         }
-        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
+        auditService.record("AccountReceivable", receivable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
         return toResponse(receivable);
     }
 

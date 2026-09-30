@@ -53,6 +53,69 @@ public class EmailService {
                 """.formatted(user.getName(), link("/redefinir-senha", token)));
     }
 
+    /** Vai para o endereço novo: só ele pode concluir a troca. */
+    public void sendEmailChangeConfirmation(User user, String newEmail, String token) {
+        send(newEmail, "Confirme seu novo e-mail no AgroGestão", """
+                Olá, %s!
+
+                Você pediu para usar este endereço na sua conta do AgroGestão. Para confirmar, abra o link:
+
+                %s
+
+                O link vale por 24 horas. Até lá, o login continua com o e-mail antigo. Se não foi você,
+                ignore esta mensagem.
+                """.formatted(user.getName(), link("/confirmar-novo-email", token)));
+    }
+
+    /** Aviso ao endereço atual: se não foi a pessoa, ela fica sabendo antes de perder o acesso. */
+    public void sendEmailChangeNotice(User user, String newEmail) {
+        send(user.getEmail(), "Pedido de troca de e-mail no AgroGestão", """
+                Olá, %s!
+
+                Recebemos um pedido para trocar o e-mail da sua conta para %s. A troca só acontece quando o
+                novo endereço for confirmado.
+
+                Se não foi você, troque sua senha agora em "Meu perfil" ou pelo "Esqueci minha senha".
+                """.formatted(user.getName(), newEmail));
+    }
+
+    public void sendPasswordChangedNotice(User user) {
+        send(user.getEmail(), "Sua senha do AgroGestão foi alterada", """
+                Olá, %s!
+
+                A senha da sua conta acabou de ser alterada e as outras sessões abertas foram encerradas.
+
+                Se não foi você, use "Esqueci minha senha" na tela de login para criar uma nova:
+                %s
+                """.formatted(user.getName(), appBaseUrl + "/esqueci-senha"));
+    }
+
+    /** Convite para quem ainda não tem conta. */
+    public void sendInvitation(String email, String inviterName, String propertyName, String roleLabel, String token) {
+        send(email, inviterName + " convidou você para o AgroGestão", """
+                Olá!
+
+                %s convidou você para a equipe da propriedade %s no AgroGestão, como %s.
+
+                Para aceitar, abra o link abaixo e crie sua conta:
+
+                %s
+
+                O convite vale por 7 dias. Se você não conhece quem enviou, ignore esta mensagem.
+                """.formatted(inviterName, propertyName, roleLabel.toLowerCase(), link("/convite", token)));
+    }
+
+    /** Aviso para quem já tinha conta e foi adicionado direto à equipe. */
+    public void sendAddedToProperty(User user, String inviterName, String propertyName, String roleLabel) {
+        send(user.getEmail(), "Você entrou na equipe de " + propertyName, """
+                Olá, %s!
+
+                %s adicionou você à equipe da propriedade %s no AgroGestão, como %s.
+
+                A propriedade já aparece na sua conta: %s
+                """.formatted(user.getName(), inviterName, propertyName, roleLabel.toLowerCase(), appBaseUrl + "/login"));
+    }
+
     private String link(String path, String token) {
         return UriComponentsBuilder.fromUriString(appBaseUrl + path).queryParam("token", token).toUriString();
     }

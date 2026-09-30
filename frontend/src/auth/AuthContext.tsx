@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authApi, meApi } from '../api/endpoints'
-import type { MeInfo } from '../api/types'
+import type { AuthResponse, MeInfo } from '../api/types'
 
 interface AuthUser {
   userId: number
@@ -15,7 +15,11 @@ interface AuthContextValue {
   isPlatformAdmin: boolean
   /** null enquanto ainda não carregou. */
   emailVerified: boolean | null
+  /** E-mail novo aguardando confirmação. */
+  pendingEmail: string | null
   refreshMe: () => Promise<void>
+  /** Guarda um token recebido fora do login (troca de senha, cadastro por convite). */
+  startSession: (response: AuthResponse) => void
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
@@ -34,20 +38,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Ignora dados de outro usuário (ex.: logo após trocar de conta).
   const currentMe = user && me?.userId === user.userId ? me : null
 
+  const userId = user?.userId
   const refreshMe = useCallback(async () => {
-    if (!user) return
+    if (!userId) return
     try {
-      setMe(await meApi.get())
+      const info = await meApi.get()
+      setMe(info)
+      // Nome e e-mail podem ter mudado (perfil, troca de e-mail confirmada em outro aparelho).
+      setUser((current) => {
+        if (!current || current.userId !== info.userId) return current
+        if (current.name === info.name && current.email === info.email) return current
+        const updated = { ...current, name: info.name, email: info.email }
+        localStorage.setItem('agro.user', JSON.stringify(updated))
+        return updated
+      })
     } catch {
       setMe(null)
     }
-  }, [user])
+  }, [userId])
 
   useEffect(() => {
     refreshMe()
   }, [refreshMe])
 
-  function persist(response: { token: string; userId: number; name: string; email: string }) {
+  function persist(response: AuthResponse) {
     localStorage.setItem('agro.token', response.token)
     const authUser = { userId: response.userId, name: response.name, email: response.email }
     localStorage.setItem('agro.user', JSON.stringify(authUser))
@@ -77,7 +91,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isPlatformAdmin: currentMe?.platformAdmin ?? false,
         emailVerified: currentMe ? currentMe.emailVerified : null,
+        pendingEmail: currentMe?.pendingEmail ?? null,
         refreshMe,
+        startSession: persist,
         login,
         register,
         logout,

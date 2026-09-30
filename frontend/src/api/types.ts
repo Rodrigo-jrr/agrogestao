@@ -245,6 +245,8 @@ export interface MeInfo {
   email: string
   emailVerified: boolean
   platformAdmin: boolean
+  /** E-mail novo aguardando confirmação pelo link enviado a ele. */
+  pendingEmail: string | null
 }
 
 export interface AdminPropertyRow {
@@ -304,3 +306,46 @@ export interface TransactionTotals {
 }
 
 export type SettlementStatus = 'OPEN' | 'SETTLED' | 'ALL'
+
+export interface InvitationInfo {
+  id: number
+  email: string
+  role: PropertyRole
+  invitedByName: string | null
+  createdAt: string
+  expiresAt: string
+  expired: boolean
+}
+
+/** ADDED: já tinha conta e entrou direto. INVITED: recebeu convite por e-mail. */
+export interface InviteResult {
+  outcome: 'ADDED' | 'INVITED'
+  member: PropertyMemberInfo | null
+  invitation: InvitationInfo | null
+}
+
+export interface InvitationPreview {
+  propertyName: string
+  invitedByName: string | null
+  email: string
+  role: PropertyRole
+  accountExists: boolean
+}
+
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'CANCEL' | 'VIEW'
+
+export interface AuditEntry {
+  id: number
+  createdAt: string
+  userId: number | null
+  userName: string | null
+  entityName: string
+  entityId: number
+  action: AuditAction
+  details: string | null
+}
+
+export interface AuditAuthor {
+  userId: number
+  name: string
+}

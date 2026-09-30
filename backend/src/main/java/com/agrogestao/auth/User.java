@@ -31,6 +31,10 @@ public class User extends BaseEntity {
     @Column(name = "password_changed_at")
     private LocalDateTime passwordChangedAt;
 
+    /** E-mail novo aguardando confirmação; o login continua pelo atual até lá. */
+    @Column(name = "pending_email", length = 180)
+    private String pendingEmail;
+
     public boolean isEmailVerified() {
         return emailVerifiedAt != null;
     }

@@ -2,9 +2,15 @@ package com.agrogestao.audit;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
-public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
+public interface AuditLogRepository extends JpaRepository<AuditLog, Long>, JpaSpecificationExecutor<AuditLog> {
+
+    /** Quem já fez alguma coisa na propriedade (inclusive quem saiu da equipe). */
+    @Query("SELECT DISTINCT a.userId FROM AuditLog a WHERE a.propertyId = :propertyId AND a.userId IS NOT NULL")
+    List<Long> findAuthorIds(@Param("propertyId") Long propertyId);
 
     List<AuditLog> findByPropertyIdOrderByIdAsc(Long propertyId);
 

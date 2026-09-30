@@ -16,7 +16,11 @@ const coreNav = [
   { to: '/vendas', label: 'Vendas' },
   { to: '/atividades', label: 'Atividades' },
   { to: '/equipe', label: 'Equipe' },
+  { to: '/propriedade', label: 'Propriedade' },
 ]
+
+/** Só proprietários consultam o histórico (o servidor também bloqueia). */
+const ownerNav = [{ to: '/historico', label: 'Histórico' }]
 
 const comingSoonNav = ['Pecuária', 'Agricultura']
 
@@ -56,7 +60,7 @@ export function Layout() {
           <Logo size={26} variant="light" />
         </div>
         <nav className="flex flex-1 flex-col gap-1 overflow-y-auto px-3">
-          {coreNav.map((item) => (
+          {[...coreNav, ...(currentProperty?.role === 'OWNER' ? ownerNav : [])].map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
@@ -126,7 +130,18 @@ export function Layout() {
                 Administração
               </NavLink>
             )}
-            <span className="hidden sm:inline">{user?.name}</span>
+            <NavLink
+              to="/perfil"
+              aria-label={`${user?.name ?? ''} — meu perfil`}
+              className={({ isActive }) =>
+                `rounded-md px-2 py-1 hover:bg-terra/5 hover:text-terra focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rust ${
+                  isActive ? 'font-medium text-terra' : ''
+                }`
+              }
+            >
+              <span className="hidden sm:inline">{user?.name}</span>
+              <span className="sm:hidden">Perfil</span>
+            </NavLink>
             <button
               onClick={logout}
               className={outlineButtonClass}

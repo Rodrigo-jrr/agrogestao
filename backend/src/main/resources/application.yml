@@ -47,6 +47,9 @@ agrogestao:
       window-minutes: ${LOGIN_WINDOW_MINUTES:15}
     register:
       max-per-ip-per-hour: ${REGISTER_MAX_PER_IP_PER_HOUR:10}
+    invitations:
+      # E-mails de convite por propriedade a cada 24h (evita usar o app para disparar spam)
+      max-per-property-per-day: ${INVITATIONS_MAX_PER_PROPERTY_PER_DAY:20}
   admin:
     # E-mails com acesso ao painel de administração da plataforma (separados por vírgula)
     emails: ${PLATFORM_ADMIN_EMAILS:rodrigojr.rezende@gmail.com}

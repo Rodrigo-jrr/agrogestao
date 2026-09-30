@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { safeNext } from '../auth/safeNext'
 import { apiErrorMessage } from '../api/client'
 import { AuthShell } from '../components/AuthShell'
 import { inputClass, primaryButtonClass } from '../components/ui'
@@ -8,6 +9,9 @@ import { inputClass, primaryButtonClass } from '../components/ui'
 export function LoginPage() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  // Ex.: vindo da página de convite, volta para ela depois de entrar.
+  const next = safeNext(searchParams.get('next'))
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -19,7 +23,7 @@ export function LoginPage() {
     setLoading(true)
     try {
       await login(email, password)
-      navigate('/dashboard')
+      navigate(next ?? '/dashboard')
     } catch (err) {
       setError(apiErrorMessage(err))
     } finally {

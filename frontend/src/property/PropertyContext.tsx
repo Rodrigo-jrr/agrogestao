@@ -21,6 +21,9 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   const [currentProperty, setCurrentProperty] = useState<PropertySummary | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  // Para qual estado de login a lista atual foi carregada. Logo após entrar, a lista ainda é a de
+  // "deslogado" (vazia) até a busca terminar: sem isso, a rota protegida mandaria para o onboarding.
+  const [loadedFor, setLoadedFor] = useState<boolean | null>(null)
 
   const applyCurrent = useCallback((list: PropertySummary[]) => {
     const storedId = localStorage.getItem('agro.propertyId')
@@ -38,6 +41,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
       setProperties([])
       setCurrentProperty(null)
       setLoading(false)
+      setLoadedFor(false)
       return
     }
     setLoading(true)
@@ -49,6 +53,7 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
     } catch (err) {
       setError(apiErrorMessage(err))
     } finally {
+      setLoadedFor(true)
       setLoading(false)
     }
   }, [isAuthenticated, applyCurrent])
@@ -66,7 +71,16 @@ export function PropertyProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <PropertyContext.Provider value={{ properties, currentProperty, loading, error, selectProperty, refresh }}>
+    <PropertyContext.Provider
+      value={{
+        properties,
+        currentProperty,
+        loading: loading || loadedFor !== isAuthenticated,
+        error,
+        selectProperty,
+        refresh,
+      }}
+    >
       {children}
     </PropertyContext.Provider>
   )

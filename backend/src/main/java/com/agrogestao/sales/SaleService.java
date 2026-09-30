@@ -2,6 +2,7 @@ package com.agrogestao.sales;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.Money;
 import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
@@ -208,7 +209,7 @@ public class SaleService {
     }
 
     private static String describe(Sale sale) {
-        return "total " + sale.getTotalAmount()
+        return "total " + Money.brl(sale.getTotalAmount())
                 + (sale.getPaymentType() == PaymentType.INSTALLMENTS
                         ? " em " + sale.getInstallmentCount() + " parcela(s)" : " à vista");
     }

@@ -2,6 +2,7 @@ package com.agrogestao.finance;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.Money;
 import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
@@ -58,7 +59,7 @@ public class AccountPayableService {
         payable.setDueDate(request.getDueDate());
         payable.setSupplierId(request.getSupplierId());
         accountPayableRepository.save(payable);
-        auditService.record("AccountPayable", payable.getId(), AuditAction.CREATE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        auditService.record("AccountPayable", payable.getId(), AuditAction.CREATE, "%s (%s)".formatted(payable.getDescription(), Money.brl(payable.getAmount())));
         return toResponse(payable);
     }
 
@@ -79,7 +80,7 @@ public class AccountPayableService {
         payable.setDueDate(request.getDueDate());
         payable.setSupplierId(request.getSupplierId());
         accountPayableRepository.save(payable);
-        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "%s (%s)".formatted(payable.getDescription(), Money.brl(payable.getAmount())));
         return toResponse(payable);
     }
 
@@ -91,7 +92,7 @@ public class AccountPayableService {
                     + ". Para removê-la, cancele a compra.");
         }
         accountPayableRepository.delete(payable);
-        auditService.record("AccountPayable", payable.getId(), AuditAction.DELETE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        auditService.record("AccountPayable", payable.getId(), AuditAction.DELETE, "%s (%s)".formatted(payable.getDescription(), Money.brl(payable.getAmount())));
     }
 
     /** Dá baixa na conta e registra o pagamento como lançamento realizado no caixa. */
@@ -108,7 +109,7 @@ public class AccountPayableService {
         payable.setPaid(true);
         payable.setFinancialTransactionId(transaction.getId());
         accountPayableRepository.save(payable);
-        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa: " + "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa: " + "%s (%s)".formatted(payable.getDescription(), Money.brl(payable.getAmount())));
         return toResponse(payable);
     }
 
@@ -124,7 +125,7 @@ public class AccountPayableService {
         if (transactionId != null) {
             financialTransactionRepository.deleteById(transactionId);
         }
-        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s %s".formatted(payable.getDescription(), payable.getAmount()));
+        auditService.record("AccountPayable", payable.getId(), AuditAction.UPDATE, "baixa desfeita: " + "%s (%s)".formatted(payable.getDescription(), Money.brl(payable.getAmount())));
         return toResponse(payable);
     }
 

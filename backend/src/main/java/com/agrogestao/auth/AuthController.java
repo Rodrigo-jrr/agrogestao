@@ -21,10 +21,12 @@ public class AuthController {
 
     private final AuthService authService;
     private final AccountService accountService;
+    private final ProfileService profileService;
 
-    public AuthController(AuthService authService, AccountService accountService) {
+    public AuthController(AuthService authService, AccountService accountService, ProfileService profileService) {
         this.authService = authService;
         this.accountService = accountService;
+        this.profileService = profileService;
     }
 
     @PostMapping("/register")
@@ -41,6 +43,13 @@ public class AuthController {
     @PostMapping("/verify-email")
     public ResponseEntity<Void> verifyEmail(@Valid @RequestBody TokenRequest request) {
         accountService.verifyEmail(request.token());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Público: o link pode ser aberto em outro aparelho, sem estar logado. */
+    @PostMapping("/confirm-email-change")
+    public ResponseEntity<Void> confirmEmailChange(@Valid @RequestBody TokenRequest request) {
+        profileService.confirmEmailChange(request.token());
         return ResponseEntity.noContent().build();
     }
 

@@ -5,7 +5,12 @@ import type {
   AccountPayable,
   AccountReceivable,
   AdminOverview,
+  AuditAuthor,
+  AuditEntry,
   AuthResponse,
+  InvitationInfo,
+  InvitationPreview,
+  InviteResult,
   CashFlow,
   CostCenter,
   Customer,
@@ -45,11 +50,20 @@ export const authApi = {
     apiClient.post<{ message: string }>('/auth/forgot-password', { email }).then((r) => r.data),
   resetPassword: (token: string, newPassword: string) =>
     apiClient.post<void>('/auth/reset-password', { token, newPassword }).then((r) => r.data),
+  confirmEmailChange: (token: string) =>
+    apiClient.post<void>('/auth/confirm-email-change', { token }).then((r) => r.data),
 }
 
 export const meApi = {
   get: () => apiClient.get<MeInfo>('/me').then((r) => r.data),
   resendVerification: () => apiClient.post<void>('/me/resend-verification').then((r) => r.data),
+  updateName: (name: string) => apiClient.put<MeInfo>('/me', { name }).then((r) => r.data),
+  /** Devolve um token novo: as outras sessões são encerradas. */
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.post<AuthResponse>('/me/password', { currentPassword, newPassword }).then((r) => r.data),
+  requestEmailChange: (newEmail: string, currentPassword: string) =>
+    apiClient.post<void>('/me/email', { newEmail, currentPassword }).then((r) => r.data),
+  cancelEmailChange: () => apiClient.delete<void>('/me/email').then((r) => r.data),
 }
 
 export const adminApi = {
@@ -60,6 +74,37 @@ export const propertiesApi = {
   listMine: () => apiClient.get<PropertySummary[]>('/properties/me').then((r) => r.data),
   create: (data: { organizationId: number; name: string; location?: string; totalAreaHa?: number }) =>
     apiClient.post<PropertySummary>('/properties', data).then((r) => r.data),
+  updateCurrent: (data: { name: string; location: string | null; totalAreaHa: number | null }) =>
+    apiClient.put<PropertySummary>('/properties/current', data).then((r) => r.data),
+  /** Definitivo: apaga a propriedade e todos os dados dela. */
+  deleteCurrent: (confirmName: string, password: string) =>
+    apiClient.delete<void>('/properties/current', { data: { confirmName, password } }).then((r) => r.data),
+}
+
+export const invitationsApi = {
+  invite: (data: { email: string; role: PropertyRole }) =>
+    apiClient.post<InviteResult>('/properties/current/invitations', data).then((r) => r.data),
+  list: () => apiClient.get<InvitationInfo[]>('/properties/current/invitations').then((r) => r.data),
+  resend: (id: number) =>
+    apiClient.post<InvitationInfo>(`/properties/current/invitations/${id}/resend`).then((r) => r.data),
+  cancel: (id: number) => apiClient.delete<void>(`/properties/current/invitations/${id}`).then((r) => r.data),
+  preview: (token: string) =>
+    apiClient.post<InvitationPreview>('/auth/invitations/preview', { token }).then((r) => r.data),
+  register: (token: string, name: string, password: string) =>
+    apiClient.post<AuthResponse>('/auth/invitations/register', { token, name, password }).then((r) => r.data),
+  accept: (token: string) => apiClient.post<PropertySummary>('/invitations/accept', { token }).then((r) => r.data),
+}
+
+export const auditApi = {
+  search: (params: { from: string; to: string; userId?: number; entity?: string[] } & PageParams) =>
+    apiClient
+      .get<PageResponse<AuditEntry>>('/properties/current/audit', {
+        params,
+        // entity=A&entity=B (sem colchetes), como o Spring espera.
+        paramsSerializer: { indexes: null },
+      })
+      .then((r) => r.data),
+  authors: () => apiClient.get<AuditAuthor[]>('/properties/current/audit/authors').then((r) => r.data),
 }
 
 export const membersApi = {

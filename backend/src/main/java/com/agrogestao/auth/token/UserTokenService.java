@@ -33,10 +33,7 @@ public class UserTokenService {
         LocalDateTime now = LocalDateTime.now();
         userTokenRepository.invalidateAll(userId, purpose, now);
 
-        byte[] bytes = new byte[TOKEN_BYTES];
-        RANDOM.nextBytes(bytes);
-        String rawToken = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
-
+        String rawToken = randomToken();
         UserToken token = new UserToken();
         token.setUserId(userId);
         token.setPurpose(purpose);
@@ -67,7 +64,14 @@ public class UserTokenService {
         return userTokenRepository.countByUserIdAndPurposeAndCreatedAtAfter(userId, purpose, since);
     }
 
-    static String hash(String rawToken) {
+    /** Valor aleatório de 256 bits, seguro para ir num link. */
+    public static String randomToken() {
+        byte[] bytes = new byte[TOKEN_BYTES];
+        RANDOM.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    public static String hash(String rawToken) {
         try {
             byte[] digest = MessageDigest.getInstance("SHA-256").digest(rawToken.getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(digest);

@@ -1,33 +1,28 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
-import { membersApi } from '../api/endpoints'
+import { invitationsApi, membersApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
-import type { PropertyMemberInfo, PropertyRole } from '../api/types'
+import type { InvitationInfo, PropertyMemberInfo, PropertyRole } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-import { fieldLabelClass, inputClass, linkDangerClass, primaryButtonClass } from '../components/ui'
+import { fieldLabelClass, inputClass, linkDangerClass, linkNeutralClass, primaryButtonClass } from '../components/ui'
 import { useConfirm } from '../components/ConfirmDialog'
-
-const roleLabels: Record<PropertyRole, string> = {
-  OWNER: 'Proprietário',
-  MANAGER: 'Gerente',
-  WORKER: 'Colaborador',
-  VIEWER: 'Visualizador',
-}
-
-const roleDescriptions: Record<PropertyRole, string> = {
-  OWNER: 'Acesso total, inclusive gerenciar outros proprietários.',
-  MANAGER: 'Registra, edita e exclui dados; gerencia a equipe.',
-  WORKER: 'Registra e edita o dia a dia; não exclui.',
-  VIEWER: 'Somente consulta.',
-}
+import { FormMessage } from '../components/FormMessage'
+import { formatDate } from '../lib/format'
+import { roleDescriptions, roleLabels } from '../lib/roles'
 
 export function MembersPage() {
   const { currentProperty } = useProperty()
   const [members, setMembers] = useState<PropertyMemberInfo[]>([])
+  const [invitations, setInvitations] = useState<InvitationInfo[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [sending, setSending] = useState(false)
   const [listError, setListError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<PropertyRole>('WORKER')
+
+  const formId = useId()
+  const confirm = useConfirm()
 
   const myRole = currentProperty?.role
   const canManage = myRole === 'OWNER' || myRole === 'MANAGER'
@@ -41,6 +36,14 @@ export function MembersPage() {
       .then(setMembers)
       .catch((err) => setListError(apiErrorMessage(err)))
       .finally(() => setLoading(false))
+    if (canManage) {
+      invitationsApi
+        .list()
+        .then(setInvitations)
+        .catch((err) => setListError(apiErrorMessage(err)))
+    } else {
+      setInvitations([])
+    }
   }
 
   useEffect(() => {
@@ -50,13 +53,48 @@ export function MembersPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
+    setSuccess(null)
+    setSending(true)
     try {
-      await membersApi.add({ email, role })
+      const result = await invitationsApi.invite({ email, role })
+      setSuccess(
+        result.outcome === 'ADDED'
+          ? `${result.member?.name} já tinha conta e entrou na equipe. Avisamos por e-mail.`
+          : `Convite enviado para ${email.trim()}. O link vale por 7 dias.`,
+      )
       setEmail('')
       setRole('WORKER')
       loadMembers()
     } catch (err) {
       setError(apiErrorMessage(err))
+    } finally {
+      setSending(false)
+    }
+  }
+
+  async function handleResend(invitation: InvitationInfo) {
+    setListError(null)
+    try {
+      await invitationsApi.resend(invitation.id)
+      setSuccess(`Enviamos um novo convite para ${invitation.email}. O link anterior não funciona mais.`)
+      loadMembers()
+    } catch (err) {
+      setListError(apiErrorMessage(err))
+    }
+  }
+
+  async function handleCancelInvitation(invitation: InvitationInfo) {
+    const ok = await confirm({
+      title: `Cancelar o convite de ${invitation.email}?`,
+      message: 'O link enviado deixa de funcionar. Você pode convidar a pessoa de novo depois.',
+      confirmLabel: 'Cancelar convite',
+    })
+    if (!ok) return
+    try {
+      await invitationsApi.cancel(invitation.id)
+      loadMembers()
+    } catch (err) {
+      setListError(apiErrorMessage(err))
     }
   }
 
@@ -70,8 +108,6 @@ export function MembersPage() {
     }
   }
 
-  const formId = useId()
-  const confirm = useConfirm()
 
   async function handleRemove(member: PropertyMemberInfo) {
     const ok = await confirm({
@@ -99,8 +135,8 @@ export function MembersPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {canManage ? (
           <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-            <h2 className="text-sm font-semibold text-terra">Adicionar membro</h2>
-            {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
+            <h2 className="text-sm font-semibold text-terra">Convidar pessoa</h2>
+            <FormMessage error={error} success={success} />
             <div>
               <label htmlFor={`${formId}-e-mail-da-pessoa`} className={fieldLabelClass}>
                 E-mail da pessoa
@@ -132,9 +168,11 @@ export function MembersPage() {
               </select>
             </div>
             <p className="text-xs text-terra/50">{roleDescriptions[role]}</p>
-            <button className={`w-full ${primaryButtonClass}`}>Adicionar</button>
-            <p className="text-xs text-terra/40">
-              A pessoa precisa ter criado uma conta no sistema com este e-mail.
+            <button disabled={sending} className={`w-full ${primaryButtonClass}`}>
+              {sending ? 'Enviando…' : 'Enviar convite'}
+            </button>
+            <p className="text-xs text-terra/50">
+              Quem já tem conta entra na hora. Quem não tem recebe um link por e-mail para criar a conta.
             </p>
           </form>
         ) : (
@@ -202,6 +240,46 @@ export function MembersPage() {
               </tbody>
             </table>
           </div>
+
+          {invitations.length > 0 && (
+            <>
+              <h2 className="mt-6 mb-3 text-sm font-semibold text-terra">Convites pendentes</h2>
+              <ul className="divide-y divide-terra/5 border-t border-terra/5 text-sm">
+                {invitations.map((invitation) => {
+                  const canHandle = myRole === 'OWNER' || invitation.role !== 'OWNER'
+                  return (
+                    <li key={invitation.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 py-2">
+                      <div className="min-w-0">
+                        <p className="break-all text-terra">{invitation.email}</p>
+                        <p className="text-xs text-terra/50">
+                          {roleLabels[invitation.role]} ·{' '}
+                          {invitation.expired ? (
+                            <span className="text-rust">expirou em {formatDate(invitation.expiresAt)}</span>
+                          ) : (
+                            <>vale até {formatDate(invitation.expiresAt)}</>
+                          )}
+                          {invitation.invitedByName && <> · enviado por {invitation.invitedByName}</>}
+                        </p>
+                      </div>
+                      {canHandle && (
+                        <div className="flex gap-3">
+                          <button onClick={() => handleResend(invitation)} className={`cursor-pointer ${linkNeutralClass}`}>
+                            Reenviar
+                          </button>
+                          <button
+                            onClick={() => handleCancelInvitation(invitation)}
+                            className={`cursor-pointer ${linkDangerClass}`}
+                          >
+                            Cancelar
+                          </button>
+                        </div>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </>
+          )}
         </div>
       </div>
     </div>

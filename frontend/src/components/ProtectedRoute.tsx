@@ -10,7 +10,8 @@ export function ProtectedRoute() {
 
 export function RequirePropertyRoute() {
   const { properties, loading, error, refresh } = useProperty()
-  if (loading) return <div className="p-6 text-terra/50">Carregando...</div>
+  // Só na primeira carga: ao recarregar a lista (ex.: depois de editar a propriedade) a página continua montada.
+  if (loading && properties.length === 0) return <div className="p-6 text-terra/50">Carregando...</div>
   if (error) {
     return (
       <div className="p-6">

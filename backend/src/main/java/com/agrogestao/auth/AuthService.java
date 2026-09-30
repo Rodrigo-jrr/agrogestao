@@ -46,6 +46,27 @@ public class AuthService {
         return new AuthResponse(token, user.getId(), user.getName(), user.getEmail());
     }
 
+    /**
+     * Conta criada pelo link de um convite: quem abriu o link recebido no e-mail já comprovou que ele é seu,
+     * então a conta nasce com o e-mail confirmado.
+     */
+    public User registerVerified(String name, String email, String password, String clientIp) {
+        loginProtectionService.checkRegistrationAllowed(clientIp);
+        if (userRepository.existsByEmail(email)) {
+            throw new BusinessException("Já existe uma conta com este e-mail. Entre com ela para aceitar o convite.");
+        }
+        User user = new User();
+        user.setName(name.trim());
+        user.setEmail(email);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setEmailVerifiedAt(java.time.LocalDateTime.now());
+        return userRepository.save(user);
+    }
+
+    public AuthResponse tokenFor(User user) {
+        return new AuthResponse(jwtService.generateToken(user.getId()), user.getId(), user.getName(), user.getEmail());
+    }
+
     public AuthResponse login(LoginRequest request, String clientIp) {
         loginProtectionService.checkLoginAllowed(request.getEmail(), clientIp);
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);

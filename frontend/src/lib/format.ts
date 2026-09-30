@@ -26,3 +26,9 @@ export function toIsoDate(value: Date) {
 export function todayIso() {
   return toIsoDate(new Date())
 }
+
+/** "2026-09-30T15:48:23" (horário do servidor, sem fuso) -> "30/09/2026 15:48". */
+export function formatDateTime(isoDateTime: string) {
+  const time = isoDateTime.slice(11, 16)
+  return time ? `${formatDate(isoDateTime)} ${time}` : formatDate(isoDateTime)
+}

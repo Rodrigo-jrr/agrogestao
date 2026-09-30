@@ -3,6 +3,7 @@ package com.agrogestao.finance;
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
 import com.agrogestao.auth.SecurityUtils;
+import com.agrogestao.common.Money;
 import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
@@ -80,7 +81,7 @@ public class FinancialTransactionService {
 
         auditService.record(propertyId, SecurityUtils.getCurrentUserId(), "FinancialTransaction",
                 transaction.getId(), AuditAction.CREATE,
-                "%s %s".formatted(transaction.getType(), transaction.getAmount()));
+                describe(transaction));
 
         return toResponse(transaction);
     }
@@ -100,7 +101,7 @@ public class FinancialTransactionService {
 
         auditService.record(propertyId, SecurityUtils.getCurrentUserId(), "FinancialTransaction",
                 transaction.getId(), AuditAction.UPDATE,
-                "%s %s".formatted(transaction.getType(), transaction.getAmount()));
+                describe(transaction));
 
         return toResponse(transaction);
     }
@@ -113,7 +114,7 @@ public class FinancialTransactionService {
         financialTransactionRepository.delete(transaction);
 
         auditService.record(propertyId, SecurityUtils.getCurrentUserId(), "FinancialTransaction",
-                id, AuditAction.DELETE, null);
+                id, AuditAction.DELETE, describe(transaction));
     }
 
     public FinancialTransaction registerFromOperation(Long propertyId, TransactionType type, String description,
@@ -160,5 +161,10 @@ public class FinancialTransactionService {
         return new FinancialTransactionResponse(
                 transaction.getId(), transaction.getType(), transaction.getDescription(),
                 transaction.getAmount(), transaction.getTransactionDate(), transaction.getCostCenterId());
+    }
+
+    private static String describe(FinancialTransaction transaction) {
+        return "%s: %s (%s)".formatted(transaction.getType() == TransactionType.INCOME ? "Receita" : "Despesa",
+                transaction.getDescription(), Money.brl(transaction.getAmount()));
     }
 }

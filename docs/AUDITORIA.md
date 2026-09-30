@@ -49,10 +49,10 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 
 ## Bloco 4 — Conta, equipe e controle
 
-- [ ] **4.1 Perfil:** trocar nome, e-mail (com nova confirmação) e senha estando logado.
-- [ ] **4.2 Propriedade:** editar nome/área/local e excluir.
-- [ ] **4.3 Convite da equipe por e-mail** (hoje a pessoa precisa criar conta antes).
-- [ ] **4.4 Tela de auditoria** para o proprietário ("quem fez o quê").
+- [x] **4.1 Perfil:** trocar nome, e-mail (com nova confirmação) e senha estando logado.
+- [x] **4.2 Propriedade:** editar nome/área/local e excluir.
+- [x] **4.3 Convite da equipe por e-mail** (hoje a pessoa precisa criar conta antes).
+- [x] **4.4 Tela de auditoria** para o proprietário ("quem fez o quê").
 
 ## Bloco 5 — LGPD
 

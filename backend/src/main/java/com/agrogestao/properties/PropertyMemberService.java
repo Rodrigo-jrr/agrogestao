@@ -2,6 +2,7 @@ package com.agrogestao.properties;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.auth.EmailService;
 import com.agrogestao.auth.SecurityUtils;
 import com.agrogestao.auth.User;
 import com.agrogestao.auth.UserRepository;
@@ -23,18 +24,24 @@ public class PropertyMemberService {
 
     private final PropertyMemberRepository propertyMemberRepository;
     private final UserRepository userRepository;
+    private final PropertyRepository propertyRepository;
     private final TenantContext tenantContext;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public PropertyMemberService(
             PropertyMemberRepository propertyMemberRepository,
             UserRepository userRepository,
+            PropertyRepository propertyRepository,
             TenantContext tenantContext,
-            AuditService auditService) {
+            AuditService auditService,
+            EmailService emailService) {
         this.propertyMemberRepository = propertyMemberRepository;
         this.userRepository = userRepository;
+        this.propertyRepository = propertyRepository;
         this.tenantContext = tenantContext;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
 
     public List<MemberResponse> list() {
@@ -65,7 +72,12 @@ public class PropertyMemberService {
         member.setUserId(user.getId());
         member.setRole(request.getRole());
         propertyMemberRepository.save(member);
-        auditService.record("PropertyMember", member.getId(), AuditAction.CREATE, user.getEmail() + " como " + member.getRole());
+        auditService.record("PropertyMember", member.getId(), AuditAction.CREATE,
+                user.getName() + " (" + user.getEmail() + ") como " + member.getRole().label());
+
+        String inviterName = userRepository.findById(SecurityUtils.getCurrentUserId()).map(User::getName).orElse("Alguém");
+        String propertyName = propertyRepository.findById(propertyId).map(Property::getName).orElse("");
+        emailService.sendAddedToProperty(user, inviterName, propertyName, member.getRole().label());
         return toResponse(member, user);
     }
 
@@ -82,7 +94,8 @@ public class PropertyMemberService {
         PropertyRole previousRole = member.getRole();
         member.setRole(newRole);
         propertyMemberRepository.save(member);
-        auditService.record("PropertyMember", member.getId(), AuditAction.UPDATE, "usuário #" + member.getUserId() + ": " + previousRole + " -> " + newRole);
+        auditService.record("PropertyMember", member.getId(), AuditAction.UPDATE,
+                memberName(member) + ": " + previousRole.label() + " → " + newRole.label());
         return toResponse(member, userRepository.findById(member.getUserId()).orElse(null));
     }
 
@@ -95,11 +108,12 @@ public class PropertyMemberService {
             ensureNotLastOwner(member);
         }
         propertyMemberRepository.delete(member);
-        auditService.record("PropertyMember", member.getId(), AuditAction.DELETE, "usuário #" + member.getUserId() + " (" + member.getRole() + ")");
+        auditService.record("PropertyMember", member.getId(), AuditAction.DELETE,
+                memberName(member) + " (" + member.getRole().label() + ")");
     }
 
     /** Somente proprietários podem conceder, alterar ou remover o papel de proprietário. */
-    private void requireOwnerToGrant(PropertyRole role) {
+    public void requireOwnerToGrant(PropertyRole role) {
         if (role == PropertyRole.OWNER && tenantContext.getRole() != PropertyRole.OWNER) {
             throw new ForbiddenException("Apenas proprietários podem gerenciar outros proprietários.");
         }
@@ -120,6 +134,10 @@ public class PropertyMemberService {
             throw new ResourceNotFoundException("Membro não encontrado");
         }
         return member;
+    }
+
+    private String memberName(PropertyMember member) {
+        return userRepository.findById(member.getUserId()).map(User::getName).orElse("usuário removido");
     }
 
     private MemberResponse toResponse(PropertyMember member, User user) {
