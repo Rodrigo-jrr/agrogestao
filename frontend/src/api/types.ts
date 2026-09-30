@@ -48,6 +48,9 @@ export interface AccountPayable {
   dueDate: string
   supplierId: number | null
   paid: boolean
+  purchaseId: number | null
+  installmentNumber: number | null
+  installmentCount: number | null
 }
 
 export interface AccountReceivable {
@@ -57,6 +60,9 @@ export interface AccountReceivable {
   dueDate: string
   customerId: number | null
   received: boolean
+  saleId: number | null
+  installmentNumber: number | null
+  installmentCount: number | null
 }
 
 export interface CostCenter {
@@ -107,12 +113,66 @@ export interface Customer {
   email: string | null
 }
 
+export type PaymentType = 'CASH' | 'INSTALLMENTS'
+
+export interface InstallmentInput {
+  dueDate: string
+  amount: number
+}
+
+export interface InstallmentView {
+  accountId: number
+  number: number
+  count: number
+  dueDate: string
+  amount: number
+  settled: boolean
+}
+
 export interface Purchase {
   id: number
   supplierId: number
   purchaseDate: string
   totalAmount: number
   canceled: boolean
+  paymentType: PaymentType
+  installmentCount: number
+}
+
+export interface TradeDetailItem {
+  productId: number
+  productName: string | null
+  unit: string | null
+  quantity: number
+  unitPrice: number
+  unitCost?: number | null
+  total: number
+}
+
+export interface PurchaseDetail {
+  id: number
+  supplierId: number
+  supplierName: string | null
+  purchaseDate: string
+  totalAmount: number
+  paymentType: PaymentType
+  canceled: boolean
+  items: TradeDetailItem[]
+  installments: InstallmentView[]
+}
+
+export interface SaleDetail {
+  id: number
+  customerId: number
+  customerName: string | null
+  saleDate: string
+  totalAmount: number
+  totalCost: number | null
+  margin: number | null
+  paymentType: PaymentType
+  canceled: boolean
+  items: TradeDetailItem[]
+  installments: InstallmentView[]
 }
 
 export interface Sale {
@@ -121,6 +181,8 @@ export interface Sale {
   saleDate: string
   totalAmount: number
   canceled: boolean
+  paymentType: PaymentType
+  installmentCount: number
 }
 
 export interface ProductionRecord {

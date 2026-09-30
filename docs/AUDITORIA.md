@@ -27,7 +27,7 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 - [x] **2.2 Dashboard fixo no mês atual**, sem escolher período.
 - [x] **2.3 Estoque sem histórico e sem valor.** O histórico de entradas/saídas existe na API mas não aparece
   na tela; o custo médio (`average_cost`) nunca é calculado, então não há "valor do estoque".
-- [ ] **2.4 Compras e vendas só à vista.** Toda compra/venda vira lançamento pago na hora; falta "a prazo"
+- [x] **2.4 Compras e vendas só à vista.** Toda compra/venda vira lançamento pago na hora; falta "a prazo"
   (gerar conta a pagar/receber com vencimento). Também não dá para ver os itens de uma compra/venda.
 - [x] **2.5 Produto usado não pode ser excluído nem arquivado.** Excluir um produto com movimentação dá
   erro genérico; falta "arquivar" (some das listas, mantém o histórico).

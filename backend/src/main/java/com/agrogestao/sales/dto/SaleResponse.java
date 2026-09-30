@@ -1,5 +1,6 @@
 package com.agrogestao.sales.dto;
 
+import com.agrogestao.finance.PaymentType;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import lombok.AllArgsConstructor;
@@ -14,4 +15,7 @@ public class SaleResponse {
     private final LocalDate saleDate;
     private final BigDecimal totalAmount;
     private final boolean canceled;
+    private final PaymentType paymentType;
+    /** 0 para à vista. */
+    private final int installmentCount;
 }

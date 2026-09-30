@@ -461,9 +461,11 @@ function PayablesTab({
                       Editar
                     </button>
                   )}
-                  <button onClick={() => handleDelete(p.id)} className="ml-3 text-rust hover:underline">
-                    Excluir
-                  </button>
+                  {p.purchaseId == null && (
+                    <button onClick={() => handleDelete(p.id)} className="ml-3 text-rust hover:underline">
+                      Excluir
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
@@ -632,9 +634,11 @@ function ReceivablesTab({
                       Editar
                     </button>
                   )}
-                  <button onClick={() => handleDelete(r.id)} className="ml-3 text-rust hover:underline">
-                    Excluir
-                  </button>
+                  {r.saleId == null && (
+                    <button onClick={() => handleDelete(r.id)} className="ml-3 text-rust hover:underline">
+                      Excluir
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

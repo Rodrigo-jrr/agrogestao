@@ -11,15 +11,19 @@ import type {
   Customer,
   DashboardSummary,
   FinancialTransaction,
+  InstallmentInput,
   InventoryMovement,
   MeInfo,
   Product,
+  PaymentType,
   ProductionRecord,
+  PurchaseDetail,
   Purchase,
   PropertySummary,
   PropertyMemberInfo,
   PropertyRole,
   Sale,
+  SaleDetail,
   Supplier,
   TransactionType,
   MovementType,
@@ -162,8 +166,11 @@ export const purchasesApi = {
     supplierId: number
     purchaseDate: string
     items: { productId: number; quantity: number; unitPrice: number }[]
+    paymentType?: PaymentType
+    installments?: InstallmentInput[]
   }) => apiClient.post<Purchase>('/purchases', data).then((r) => r.data),
   cancel: (id: number) => apiClient.post<Purchase>(`/purchases/${id}/cancel`).then((r) => r.data),
+  detail: (id: number) => apiClient.get<PurchaseDetail>(`/purchases/${id}`).then((r) => r.data),
   listSuppliers: () => apiClient.get<Supplier[]>('/purchases/suppliers').then((r) => r.data),
   createSupplier: (data: PartyInput) => apiClient.post<Supplier>('/purchases/suppliers', data).then((r) => r.data),
   updateSupplier: (id: number, data: PartyInput) =>
@@ -177,8 +184,11 @@ export const salesApi = {
     customerId: number
     saleDate: string
     items: { productId: number; quantity: number; unitPrice: number }[]
+    paymentType?: PaymentType
+    installments?: InstallmentInput[]
   }) => apiClient.post<Sale>('/sales', data).then((r) => r.data),
   cancel: (id: number) => apiClient.post<Sale>(`/sales/${id}/cancel`).then((r) => r.data),
+  detail: (id: number) => apiClient.get<SaleDetail>(`/sales/${id}`).then((r) => r.data),
   listCustomers: () => apiClient.get<Customer[]>('/sales/customers').then((r) => r.data),
   createCustomer: (data: PartyInput) => apiClient.post<Customer>('/sales/customers', data).then((r) => r.data),
   updateCustomer: (id: number, data: PartyInput) =>

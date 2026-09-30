@@ -35,6 +35,16 @@ public class AccountPayable extends BaseEntity {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
+    /** Parcela de compra a prazo (nulo para contas avulsas). */
+    @Column(name = "purchase_id")
+    private Long purchaseId;
+
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    @Column(name = "installment_count")
+    private Integer installmentCount;
+
     @Column(nullable = false)
     private boolean paid = false;
 }

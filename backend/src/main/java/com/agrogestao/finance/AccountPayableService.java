@@ -6,6 +6,8 @@ import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
+import com.agrogestao.finance.dto.InstallmentInput;
+import com.agrogestao.finance.dto.InstallmentView;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.SupplierRepository;
 import java.time.LocalDate;
@@ -65,6 +67,11 @@ public class AccountPayableService {
         if (payable.isPaid()) {
             throw new BusinessException("Desfaça a baixa antes de editar esta conta.");
         }
+        if (payable.getPurchaseId() != null && (payable.getAmount().compareTo(request.getAmount()) != 0
+                || !java.util.Objects.equals(payable.getSupplierId(), request.getSupplierId()))) {
+            throw new BusinessException("Esta conta é parcela da compra #" + payable.getPurchaseId()
+                    + ": só o vencimento e a descrição podem ser alterados.");
+        }
         payable.setDescription(request.getDescription());
         payable.setAmount(request.getAmount());
         payable.setDueDate(request.getDueDate());
@@ -77,6 +84,10 @@ public class AccountPayableService {
     public void delete(Long id) {
         tenantContext.requireManageAccess();
         AccountPayable payable = findOwned(id);
+        if (payable.getPurchaseId() != null) {
+            throw new BusinessException("Esta conta é parcela da compra #" + payable.getPurchaseId()
+                    + ". Para removê-la, cancele a compra.");
+        }
         accountPayableRepository.delete(payable);
         auditService.record("AccountPayable", payable.getId(), AuditAction.DELETE, "%s %s".formatted(payable.getDescription(), payable.getAmount()));
     }
@@ -115,6 +126,41 @@ public class AccountPayableService {
         return toResponse(payable);
     }
 
+    /** Cria uma conta por parcela da compra a prazo. Chamado dentro da transação da compra. */
+    public void createInstallments(Long propertyId, Long supplierId, Long purchaseId,
+            List<InstallmentInput> installments) {
+        int count = installments.size();
+        for (int i = 0; i < count; i++) {
+            InstallmentInput installment = installments.get(i);
+            AccountPayable payable = new AccountPayable();
+            payable.setPropertyId(propertyId);
+            payable.setSupplierId(supplierId);
+            payable.setPurchaseId(purchaseId);
+            payable.setInstallmentNumber(i + 1);
+            payable.setInstallmentCount(count);
+            payable.setDescription("Compra #" + purchaseId + (count > 1 ? " — parcela " + (i + 1) + "/" + count : ""));
+            payable.setAmount(installment.amount());
+            payable.setDueDate(installment.dueDate());
+            accountPayableRepository.save(payable);
+        }
+    }
+
+    public List<InstallmentView> installmentsOf(Long purchaseId) {
+        return accountPayableRepository.findByPurchaseIdOrderByInstallmentNumberAsc(purchaseId).stream()
+                .map(a -> new InstallmentView(a.getId(), a.getInstallmentNumber(), a.getInstallmentCount(),
+                        a.getDueDate(), a.getAmount(), a.isPaid()))
+                .toList();
+    }
+
+    /** Remove as parcelas ao cancelar a compra; exige que nenhuma tenha sido baixada. */
+    public void removeInstallments(Long purchaseId) {
+        List<AccountPayable> installments = accountPayableRepository.findByPurchaseIdOrderByInstallmentNumberAsc(purchaseId);
+        if (installments.stream().anyMatch(AccountPayable::isPaid)) {
+            throw new BusinessException("Esta compra tem parcelas já baixadas. Desfaça as baixas em Financeiro antes de cancelar.");
+        }
+        accountPayableRepository.deleteAll(installments);
+    }
+
     private void validateSupplier(Long propertyId, Long supplierId) {
         if (supplierId != null && !supplierRepository.existsByIdAndPropertyId(supplierId, propertyId)) {
             throw new BusinessException("Fornecedor inválido para esta propriedade");
@@ -133,6 +179,7 @@ public class AccountPayableService {
 
     private AccountPayableResponse toResponse(AccountPayable payable) {
         return new AccountPayableResponse(payable.getId(), payable.getDescription(), payable.getAmount(),
-                payable.getDueDate(), payable.getSupplierId(), payable.isPaid());
+                payable.getDueDate(), payable.getSupplierId(), payable.isPaid(), payable.getPurchaseId(),
+                payable.getInstallmentNumber(), payable.getInstallmentCount());
     }
 }

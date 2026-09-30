@@ -35,6 +35,16 @@ public class AccountReceivable extends BaseEntity {
     @Column(name = "due_date", nullable = false)
     private LocalDate dueDate;
 
+    /** Parcela de venda a prazo (nulo para contas avulsas). */
+    @Column(name = "sale_id")
+    private Long saleId;
+
+    @Column(name = "installment_number")
+    private Integer installmentNumber;
+
+    @Column(name = "installment_count")
+    private Integer installmentCount;
+
     @Column(nullable = false)
     private boolean received = false;
 }

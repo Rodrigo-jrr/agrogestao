@@ -1,8 +1,11 @@
 package com.agrogestao.sales;
 
 import com.agrogestao.common.BaseEntity;
+import com.agrogestao.finance.PaymentType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -35,4 +38,12 @@ public class Sale extends BaseEntity {
 
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_type", nullable = false, length = 20)
+    private PaymentType paymentType = PaymentType.CASH;
+
+    /** 0 para à vista. */
+    @Column(name = "installment_count", nullable = false)
+    private int installmentCount;
 }

@@ -6,6 +6,8 @@ import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountReceivableRequest;
 import com.agrogestao.finance.dto.AccountReceivableResponse;
+import com.agrogestao.finance.dto.InstallmentInput;
+import com.agrogestao.finance.dto.InstallmentView;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.CustomerRepository;
 import java.time.LocalDate;
@@ -65,6 +67,11 @@ public class AccountReceivableService {
         if (receivable.isReceived()) {
             throw new BusinessException("Desfaça a baixa antes de editar esta conta.");
         }
+        if (receivable.getSaleId() != null && (receivable.getAmount().compareTo(request.getAmount()) != 0
+                || !java.util.Objects.equals(receivable.getCustomerId(), request.getCustomerId()))) {
+            throw new BusinessException("Esta conta é parcela da venda #" + receivable.getSaleId()
+                    + ": só o vencimento e a descrição podem ser alterados.");
+        }
         receivable.setDescription(request.getDescription());
         receivable.setAmount(request.getAmount());
         receivable.setDueDate(request.getDueDate());
@@ -77,6 +84,10 @@ public class AccountReceivableService {
     public void delete(Long id) {
         tenantContext.requireManageAccess();
         AccountReceivable receivable = findOwned(id);
+        if (receivable.getSaleId() != null) {
+            throw new BusinessException("Esta conta é parcela da venda #" + receivable.getSaleId()
+                    + ". Para removê-la, cancele a venda.");
+        }
         accountReceivableRepository.delete(receivable);
         auditService.record("AccountReceivable", receivable.getId(), AuditAction.DELETE, "%s %s".formatted(receivable.getDescription(), receivable.getAmount()));
     }
@@ -115,6 +126,41 @@ public class AccountReceivableService {
         return toResponse(receivable);
     }
 
+    /** Cria uma conta por parcela da venda a prazo. Chamado dentro da transação da venda. */
+    public void createInstallments(Long propertyId, Long customerId, Long saleId,
+            List<InstallmentInput> installments) {
+        int count = installments.size();
+        for (int i = 0; i < count; i++) {
+            InstallmentInput installment = installments.get(i);
+            AccountReceivable receivable = new AccountReceivable();
+            receivable.setPropertyId(propertyId);
+            receivable.setCustomerId(customerId);
+            receivable.setSaleId(saleId);
+            receivable.setInstallmentNumber(i + 1);
+            receivable.setInstallmentCount(count);
+            receivable.setDescription("Venda #" + saleId + (count > 1 ? " — parcela " + (i + 1) + "/" + count : ""));
+            receivable.setAmount(installment.amount());
+            receivable.setDueDate(installment.dueDate());
+            accountReceivableRepository.save(receivable);
+        }
+    }
+
+    public List<InstallmentView> installmentsOf(Long saleId) {
+        return accountReceivableRepository.findBySaleIdOrderByInstallmentNumberAsc(saleId).stream()
+                .map(a -> new InstallmentView(a.getId(), a.getInstallmentNumber(), a.getInstallmentCount(),
+                        a.getDueDate(), a.getAmount(), a.isReceived()))
+                .toList();
+    }
+
+    /** Remove as parcelas ao cancelar a venda; exige que nenhuma tenha sido baixada. */
+    public void removeInstallments(Long saleId) {
+        List<AccountReceivable> installments = accountReceivableRepository.findBySaleIdOrderByInstallmentNumberAsc(saleId);
+        if (installments.stream().anyMatch(AccountReceivable::isReceived)) {
+            throw new BusinessException("Esta venda tem parcelas já baixadas. Desfaça as baixas em Financeiro antes de cancelar.");
+        }
+        accountReceivableRepository.deleteAll(installments);
+    }
+
     private void validateCustomer(Long propertyId, Long customerId) {
         if (customerId != null && !customerRepository.existsByIdAndPropertyId(customerId, propertyId)) {
             throw new BusinessException("Cliente inválido para esta propriedade");
@@ -133,6 +179,7 @@ public class AccountReceivableService {
 
     private AccountReceivableResponse toResponse(AccountReceivable receivable) {
         return new AccountReceivableResponse(receivable.getId(), receivable.getDescription(), receivable.getAmount(),
-                receivable.getDueDate(), receivable.getCustomerId(), receivable.isReceived());
+                receivable.getDueDate(), receivable.getCustomerId(), receivable.isReceived(), receivable.getSaleId(),
+                receivable.getInstallmentNumber(), receivable.getInstallmentCount());
     }
 }

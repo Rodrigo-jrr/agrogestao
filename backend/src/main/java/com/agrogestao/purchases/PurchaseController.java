@@ -1,5 +1,6 @@
 package com.agrogestao.purchases;
 
+import com.agrogestao.purchases.dto.PurchaseDetailResponse;
 import com.agrogestao.purchases.dto.PurchaseRequest;
 import com.agrogestao.purchases.dto.PurchaseResponse;
 import com.agrogestao.purchases.dto.SupplierRequest;
@@ -36,6 +37,11 @@ public class PurchaseController {
     @PostMapping
     public ResponseEntity<PurchaseResponse> create(@Valid @RequestBody PurchaseRequest request) {
         return ResponseEntity.ok(purchaseService.create(request));
+    }
+
+    @GetMapping("/{id}")
+    public PurchaseDetailResponse detail(@PathVariable Long id) {
+        return purchaseService.detail(id);
     }
 
     @PostMapping("/{id}/cancel")

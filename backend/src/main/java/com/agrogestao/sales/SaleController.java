@@ -2,6 +2,7 @@ package com.agrogestao.sales;
 
 import com.agrogestao.sales.dto.CustomerRequest;
 import com.agrogestao.sales.dto.CustomerResponse;
+import com.agrogestao.sales.dto.SaleDetailResponse;
 import com.agrogestao.sales.dto.SaleRequest;
 import com.agrogestao.sales.dto.SaleResponse;
 import jakarta.validation.Valid;
@@ -36,6 +37,11 @@ public class SaleController {
     @PostMapping
     public ResponseEntity<SaleResponse> create(@Valid @RequestBody SaleRequest request) {
         return ResponseEntity.ok(saleService.create(request));
+    }
+
+    @GetMapping("/{id}")
+    public SaleDetailResponse detail(@PathVariable Long id) {
+        return saleService.detail(id);
     }
 
     @PostMapping("/{id}/cancel")

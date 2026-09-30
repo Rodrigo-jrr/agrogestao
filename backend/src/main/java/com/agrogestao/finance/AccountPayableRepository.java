@@ -11,4 +11,6 @@ public interface AccountPayableRepository extends JpaRepository<AccountPayable, 
     List<AccountPayable> findByPropertyIdAndPaidFalseAndDueDateLessThanEqual(Long propertyId, LocalDate to);
 
     boolean existsByFinancialTransactionId(Long financialTransactionId);
+
+    List<AccountPayable> findByPurchaseIdOrderByInstallmentNumberAsc(Long purchaseId);
 }

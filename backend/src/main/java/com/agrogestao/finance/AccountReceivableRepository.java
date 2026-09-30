@@ -11,4 +11,6 @@ public interface AccountReceivableRepository extends JpaRepository<AccountReceiv
     List<AccountReceivable> findByPropertyIdAndReceivedFalseAndDueDateLessThanEqual(Long propertyId, LocalDate to);
 
     boolean existsByFinancialTransactionId(Long financialTransactionId);
+
+    List<AccountReceivable> findBySaleIdOrderByInstallmentNumberAsc(Long saleId);
 }

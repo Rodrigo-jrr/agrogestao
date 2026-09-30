@@ -15,4 +15,7 @@ public class AccountReceivableResponse {
     private final LocalDate dueDate;
     private final Long customerId;
     private final boolean received;
+    private final Long saleId;
+    private final Integer installmentNumber;
+    private final Integer installmentCount;
 }

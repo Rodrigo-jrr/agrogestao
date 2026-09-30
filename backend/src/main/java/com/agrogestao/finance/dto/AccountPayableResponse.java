@@ -15,4 +15,7 @@ public class AccountPayableResponse {
     private final LocalDate dueDate;
     private final Long supplierId;
     private final boolean paid;
+    private final Long purchaseId;
+    private final Integer installmentNumber;
+    private final Integer installmentCount;
 }
