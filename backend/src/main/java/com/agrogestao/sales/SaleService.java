@@ -8,9 +8,9 @@ import com.agrogestao.finance.FinancialTransaction;
 import com.agrogestao.finance.FinancialTransactionRepository;
 import com.agrogestao.finance.FinancialTransactionService;
 import com.agrogestao.finance.TransactionType;
+import com.agrogestao.inventory.InventoryMovement;
 import com.agrogestao.inventory.InventoryMovementService;
 import com.agrogestao.inventory.MovementType;
-import com.agrogestao.inventory.ProductRepository;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.sales.dto.SaleRequest;
 import com.agrogestao.sales.dto.SaleResponse;
@@ -30,7 +30,6 @@ public class SaleService {
     private final SaleRepository saleRepository;
     private final SaleItemRepository saleItemRepository;
     private final CustomerRepository customerRepository;
-    private final ProductRepository productRepository;
     private final InventoryMovementService inventoryMovementService;
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
@@ -41,7 +40,6 @@ public class SaleService {
             SaleRepository saleRepository,
             SaleItemRepository saleItemRepository,
             CustomerRepository customerRepository,
-            ProductRepository productRepository,
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
@@ -50,7 +48,6 @@ public class SaleService {
         this.saleRepository = saleRepository;
         this.saleItemRepository = saleItemRepository;
         this.customerRepository = customerRepository;
-        this.productRepository = productRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
@@ -71,11 +68,7 @@ public class SaleService {
         if (!customerRepository.existsByIdAndPropertyId(request.getCustomerId(), propertyId)) {
             throw new BusinessException("Cliente inválido para esta propriedade");
         }
-        request.getItems().forEach(item -> {
-            if (!productRepository.existsByIdAndPropertyId(item.getProductId(), propertyId)) {
-                throw new BusinessException("Produto inválido para esta propriedade");
-            }
-        });
+        request.getItems().forEach(item -> inventoryMovementService.requireActiveProduct(propertyId, item.getProductId()));
 
         BigDecimal total = request.getItems().stream()
                 .map(item -> item.getUnitPrice().multiply(item.getQuantity()))
@@ -92,15 +85,17 @@ public class SaleService {
         saleRepository.save(sale);
 
         request.getItems().forEach(item -> {
+            // A saída grava o custo médio do momento; guardamos no item para estornar pelo mesmo custo.
+            InventoryMovement movement = inventoryMovementService.registerMovement(propertyId, item.getProductId(),
+                    MovementType.OUT, item.getQuantity(), null, request.getSaleDate(), "Venda #" + sale.getId());
+
             SaleItem saleItem = new SaleItem();
             saleItem.setSaleId(sale.getId());
             saleItem.setProductId(item.getProductId());
             saleItem.setQuantity(item.getQuantity());
             saleItem.setUnitPrice(item.getUnitPrice());
+            saleItem.setUnitCost(movement.getUnitCost());
             saleItemRepository.save(saleItem);
-
-            inventoryMovementService.registerMovement(propertyId, item.getProductId(), MovementType.OUT,
-                    item.getQuantity(), item.getUnitPrice(), request.getSaleDate(), "Venda #" + sale.getId());
         });
 
         FinancialTransaction transaction = financialTransactionService.registerFromOperation(propertyId,
@@ -129,7 +124,7 @@ public class SaleService {
 
         saleItemRepository.findBySaleId(id).forEach(item -> {
             inventoryMovementService.registerMovement(propertyId, item.getProductId(), MovementType.IN,
-                    item.getQuantity(), item.getUnitPrice(), LocalDate.now(), "Cancelamento da venda #" + id);
+                    item.getQuantity(), item.getUnitCost(), LocalDate.now(), "Cancelamento da venda #" + id);
         });
 
         Long transactionId = sale.getFinancialTransactionId();

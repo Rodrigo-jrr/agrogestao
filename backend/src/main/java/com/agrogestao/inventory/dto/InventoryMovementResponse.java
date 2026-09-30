@@ -12,6 +12,8 @@ public class InventoryMovementResponse {
 
     private final Long id;
     private final Long productId;
+    private final String productName;
+    private final String unit;
     private final MovementType type;
     private final BigDecimal quantity;
     private final BigDecimal unitCost;

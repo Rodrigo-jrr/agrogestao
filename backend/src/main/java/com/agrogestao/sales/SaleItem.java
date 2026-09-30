@@ -27,4 +27,8 @@ public class SaleItem extends BaseEntity {
 
     @Column(name = "unit_price", nullable = false, precision = 15, scale = 2)
     private BigDecimal unitPrice;
+
+    /** Custo médio do produto no momento da venda. */
+    @Column(name = "unit_cost", precision = 15, scale = 2)
+    private BigDecimal unitCost;
 }

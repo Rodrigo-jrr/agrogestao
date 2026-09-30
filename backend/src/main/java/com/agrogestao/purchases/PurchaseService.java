@@ -10,7 +10,6 @@ import com.agrogestao.finance.FinancialTransactionService;
 import com.agrogestao.finance.TransactionType;
 import com.agrogestao.inventory.InventoryMovementService;
 import com.agrogestao.inventory.MovementType;
-import com.agrogestao.inventory.ProductRepository;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.dto.PurchaseRequest;
 import com.agrogestao.purchases.dto.PurchaseResponse;
@@ -30,7 +29,6 @@ public class PurchaseService {
     private final PurchaseRepository purchaseRepository;
     private final PurchaseItemRepository purchaseItemRepository;
     private final SupplierRepository supplierRepository;
-    private final ProductRepository productRepository;
     private final InventoryMovementService inventoryMovementService;
     private final FinancialTransactionService financialTransactionService;
     private final FinancialTransactionRepository financialTransactionRepository;
@@ -41,7 +39,6 @@ public class PurchaseService {
             PurchaseRepository purchaseRepository,
             PurchaseItemRepository purchaseItemRepository,
             SupplierRepository supplierRepository,
-            ProductRepository productRepository,
             InventoryMovementService inventoryMovementService,
             FinancialTransactionService financialTransactionService,
             FinancialTransactionRepository financialTransactionRepository,
@@ -50,7 +47,6 @@ public class PurchaseService {
         this.purchaseRepository = purchaseRepository;
         this.purchaseItemRepository = purchaseItemRepository;
         this.supplierRepository = supplierRepository;
-        this.productRepository = productRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.financialTransactionService = financialTransactionService;
         this.financialTransactionRepository = financialTransactionRepository;
@@ -71,11 +67,7 @@ public class PurchaseService {
         if (!supplierRepository.existsByIdAndPropertyId(request.getSupplierId(), propertyId)) {
             throw new BusinessException("Fornecedor inválido para esta propriedade");
         }
-        request.getItems().forEach(item -> {
-            if (!productRepository.existsByIdAndPropertyId(item.getProductId(), propertyId)) {
-                throw new BusinessException("Produto inválido para esta propriedade");
-            }
-        });
+        request.getItems().forEach(item -> inventoryMovementService.requireActiveProduct(propertyId, item.getProductId()));
 
         BigDecimal total = request.getItems().stream()
                 .map(item -> item.getUnitPrice().multiply(item.getQuantity()))
@@ -130,8 +122,8 @@ public class PurchaseService {
 
         purchaseItemRepository.findByPurchaseId(id).forEach(item -> {
             try {
-                inventoryMovementService.registerMovement(propertyId, item.getProductId(), MovementType.OUT,
-                        item.getQuantity(), item.getUnitPrice(), LocalDate.now(), "Cancelamento da compra #" + id);
+                inventoryMovementService.reverseEntry(propertyId, item.getProductId(), item.getQuantity(),
+                        item.getUnitPrice(), LocalDate.now(), "Cancelamento da compra #" + id);
             } catch (BusinessException ex) {
                 throw new BusinessException(
                         "Não é possível cancelar: parte do estoque desta compra já foi consumida.");

@@ -72,6 +72,9 @@ export interface Product {
   unit: string
   minStock: number
   currentQuantity: number
+  averageCost: number
+  stockValue: number
+  archived: boolean
 }
 
 export type MovementType = 'IN' | 'OUT' | 'ADJUST'
@@ -79,6 +82,8 @@ export type MovementType = 'IN' | 'OUT' | 'ADJUST'
 export interface InventoryMovement {
   id: number
   productId: number
+  productName: string | null
+  unit: string | null
   type: MovementType
   quantity: number
   unitCost: number | null

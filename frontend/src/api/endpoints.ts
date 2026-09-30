@@ -135,13 +135,17 @@ export const financeApi = {
 type ProductInput = { name: string; category?: string; unit: string; minStock: number }
 
 export const inventoryApi = {
-  listProducts: () => apiClient.get<Product[]>('/inventory/products').then((r) => r.data),
+  listProducts: (includeArchived = false) =>
+    apiClient.get<Product[]>('/inventory/products', { params: { includeArchived } }).then((r) => r.data),
   createProduct: (data: ProductInput) => apiClient.post<Product>('/inventory/products', data).then((r) => r.data),
   updateProduct: (id: number, data: ProductInput) =>
     apiClient.put<Product>(`/inventory/products/${id}`, data).then((r) => r.data),
   removeProduct: (id: number) => apiClient.delete<void>(`/inventory/products/${id}`).then((r) => r.data),
+  archiveProduct: (id: number) => apiClient.post<Product>(`/inventory/products/${id}/archive`).then((r) => r.data),
+  unarchiveProduct: (id: number) => apiClient.post<Product>(`/inventory/products/${id}/unarchive`).then((r) => r.data),
   lowStock: () => apiClient.get<Product[]>('/inventory/products/low-stock').then((r) => r.data),
-  listMovements: () => apiClient.get<InventoryMovement[]>('/inventory/movements').then((r) => r.data),
+  listMovements: (params: { productId?: number; from?: string; to?: string }) =>
+    apiClient.get<InventoryMovement[]>('/inventory/movements', { params }).then((r) => r.data),
   createMovement: (data: {
     productId: number
     type: MovementType

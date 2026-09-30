@@ -14,4 +14,9 @@ public class ProductResponse {
     private final String unit;
     private final BigDecimal minStock;
     private final BigDecimal currentQuantity;
+    /** Custo médio ponderado por unidade. */
+    private final BigDecimal averageCost;
+    /** Saldo × custo médio. */
+    private final BigDecimal stockValue;
+    private final boolean archived;
 }

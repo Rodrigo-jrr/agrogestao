@@ -2,16 +2,27 @@ package com.agrogestao.inventory;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.inventory.dto.InventoryMovementRequest;
 import com.agrogestao.inventory.dto.InventoryMovementResponse;
 import com.agrogestao.properties.TenantContext;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Movimentações de estoque com custo médio ponderado:
+ * - entrada com custo recalcula a média: (saldo × média + qtd × custo) / (saldo + qtd);
+ * - saída não altera a média e registra o custo médio do momento (custo da mercadoria);
+ * - ajuste redefine o saldo (e a média, se um custo for informado).
+ */
 @Service
 public class InventoryMovementService {
 
@@ -34,30 +45,121 @@ public class InventoryMovementService {
         this.auditService = auditService;
     }
 
-    public List<InventoryMovementResponse> list() {
-        return inventoryMovementRepository
-                .findByPropertyIdOrderByMovementDateDesc(tenantContext.requirePropertyId())
-                .stream().map(this::toResponse).toList();
-    }
-
-    public InventoryMovementResponse create(InventoryMovementRequest request) {
-        tenantContext.requireWriteAccess();
+    public List<InventoryMovementResponse> list(Long productId, Period period) {
         Long propertyId = tenantContext.requirePropertyId();
-        if (!productRepository.existsByIdAndPropertyId(request.getProductId(), propertyId)) {
-            throw new BusinessException("Produto inválido para esta propriedade");
-        }
-        if (request.getType() != MovementType.ADJUST && request.getQuantity().signum() == 0) {
-            throw new BusinessException("Informe uma quantidade maior que zero para entradas e saídas.");
-        }
-        InventoryMovement movement = registerMovement(propertyId, request.getProductId(), request.getType(),
-                request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
-        auditService.record("InventoryMovement", movement.getId(), AuditAction.CREATE, "%s %s do produto #%d".formatted(movement.getType(), movement.getQuantity(), movement.getProductId()));
-        return toResponse(movement);
+        List<InventoryMovement> movements = productId != null
+                ? inventoryMovementRepository.findByPropertyIdAndProductIdAndMovementDateBetweenOrderByMovementDateDescIdDesc(
+                        propertyId, productId, period.from(), period.to())
+                : inventoryMovementRepository.findByPropertyIdAndMovementDateBetweenOrderByMovementDateDescIdDesc(
+                        propertyId, period.from(), period.to());
+        Map<Long, Product> products = productRepository.findByPropertyId(propertyId).stream()
+                .collect(Collectors.toMap(Product::getId, Function.identity()));
+        return movements.stream().map(movement -> toResponse(movement, products.get(movement.getProductId()))).toList();
     }
 
     @Transactional
+    public InventoryMovementResponse create(InventoryMovementRequest request) {
+        tenantContext.requireWriteAccess();
+        Long propertyId = tenantContext.requirePropertyId();
+        Product product = requireActiveProduct(propertyId, request.getProductId());
+        if (request.getType() != MovementType.ADJUST && request.getQuantity().signum() == 0) {
+            throw new BusinessException("Informe uma quantidade maior que zero para entradas e saídas.");
+        }
+        InventoryMovement movement = registerMovement(propertyId, product.getId(), request.getType(),
+                request.getQuantity(), request.getUnitCost(), request.getMovementDate(), request.getNotes());
+        auditService.record("InventoryMovement", movement.getId(), AuditAction.CREATE,
+                "%s %s de %s".formatted(movement.getType(), movement.getQuantity(), product.getName()));
+        return toResponse(movement, product);
+    }
+
+    /** Produto da propriedade e não arquivado — exigido para qualquer operação nova. */
+    public Product requireActiveProduct(Long propertyId, Long productId) {
+        Product product = productRepository.findById(productId)
+                .filter(p -> p.getPropertyId().equals(propertyId))
+                .orElseThrow(() -> new BusinessException("Produto inválido para esta propriedade"));
+        if (product.isArchived()) {
+            throw new BusinessException("O produto " + product.getName() + " está arquivado. Reative-o para usar.");
+        }
+        return product;
+    }
+
+    /**
+     * Registra a movimentação e atualiza saldo e custo médio. Em saídas, o custo informado é ignorado:
+     * vale o custo médio do momento, que fica gravado na movimentação.
+     */
+    @Transactional
     public InventoryMovement registerMovement(Long propertyId, Long productId, MovementType type,
             BigDecimal quantity, BigDecimal unitCost, LocalDate date, String notes) {
+        InventoryItem item = findOrCreateItem(propertyId, productId);
+        BigDecimal movementCost = unitCost;
+
+        switch (type) {
+            case IN -> {
+                BigDecimal newQuantity = item.getQuantity().add(quantity);
+                if (unitCost != null && newQuantity.signum() > 0) {
+                    item.setAverageCost(item.getQuantity().multiply(item.getAverageCost())
+                            .add(quantity.multiply(unitCost))
+                            .divide(newQuantity, 2, RoundingMode.HALF_UP));
+                }
+                item.setQuantity(newQuantity);
+            }
+            case OUT -> {
+                BigDecimal resulting = item.getQuantity().subtract(quantity);
+                if (resulting.signum() < 0) {
+                    throw new BusinessException("Estoque insuficiente para esta saída");
+                }
+                item.setQuantity(resulting);
+                movementCost = item.getAverageCost();
+            }
+            case ADJUST -> {
+                item.setQuantity(quantity);
+                if (unitCost != null) {
+                    item.setAverageCost(unitCost);
+                }
+            }
+        }
+        inventoryItemRepository.save(item);
+        return saveMovement(propertyId, productId, type, quantity, movementCost, date, notes);
+    }
+
+    /**
+     * Desfaz uma entrada (cancelamento de compra): tira a quantidade e remove o efeito dela na média,
+     * usando o custo original da entrada.
+     */
+    @Transactional
+    public InventoryMovement reverseEntry(Long propertyId, Long productId, BigDecimal quantity, BigDecimal unitCost,
+            LocalDate date, String notes) {
+        InventoryItem item = findOrCreateItem(propertyId, productId);
+        BigDecimal resulting = item.getQuantity().subtract(quantity);
+        if (resulting.signum() < 0) {
+            throw new BusinessException("Estoque insuficiente para esta saída");
+        }
+        if (resulting.signum() > 0) {
+            BigDecimal average = item.getQuantity().multiply(item.getAverageCost())
+                    .subtract(quantity.multiply(unitCost))
+                    .divide(resulting, 2, RoundingMode.HALF_UP);
+            // Se houve ajustes manuais depois da compra, a conta pode ficar negativa: mantém a média atual.
+            if (average.signum() >= 0) {
+                item.setAverageCost(average);
+            }
+        }
+        item.setQuantity(resulting);
+        inventoryItemRepository.save(item);
+        return saveMovement(propertyId, productId, MovementType.OUT, quantity, unitCost, date, notes);
+    }
+
+    private InventoryItem findOrCreateItem(Long propertyId, Long productId) {
+        return inventoryItemRepository.findByPropertyIdAndProductId(propertyId, productId)
+                .orElseGet(() -> {
+                    InventoryItem newItem = new InventoryItem();
+                    newItem.setPropertyId(propertyId);
+                    newItem.setProductId(productId);
+                    return newItem;
+                });
+    }
+
+    private InventoryMovement saveMovement(Long propertyId, Long productId, MovementType type, BigDecimal quantity,
+            BigDecimal unitCost, LocalDate date, String notes) {
         InventoryMovement movement = new InventoryMovement();
         movement.setPropertyId(propertyId);
         movement.setProductId(productId);
@@ -66,37 +168,13 @@ public class InventoryMovementService {
         movement.setUnitCost(unitCost);
         movement.setMovementDate(date);
         movement.setNotes(notes);
-        inventoryMovementRepository.save(movement);
-
-        applyToBalance(propertyId, productId, type, quantity);
-        return movement;
+        return inventoryMovementRepository.save(movement);
     }
 
-    private void applyToBalance(Long propertyId, Long productId, MovementType type, BigDecimal quantity) {
-        InventoryItem item = inventoryItemRepository.findByPropertyIdAndProductId(propertyId, productId)
-                .orElseGet(() -> {
-                    InventoryItem newItem = new InventoryItem();
-                    newItem.setPropertyId(propertyId);
-                    newItem.setProductId(productId);
-                    return newItem;
-                });
-
-        switch (type) {
-            case IN -> item.setQuantity(item.getQuantity().add(quantity));
-            case OUT -> {
-                BigDecimal resulting = item.getQuantity().subtract(quantity);
-                if (resulting.signum() < 0) {
-                    throw new BusinessException("Estoque insuficiente para esta saída");
-                }
-                item.setQuantity(resulting);
-            }
-            case ADJUST -> item.setQuantity(quantity);
-        }
-        inventoryItemRepository.save(item);
-    }
-
-    private InventoryMovementResponse toResponse(InventoryMovement movement) {
-        return new InventoryMovementResponse(movement.getId(), movement.getProductId(), movement.getType(),
-                movement.getQuantity(), movement.getUnitCost(), movement.getMovementDate(), movement.getNotes());
+    private InventoryMovementResponse toResponse(InventoryMovement movement, Product product) {
+        return new InventoryMovementResponse(movement.getId(), movement.getProductId(),
+                product != null ? product.getName() : null, product != null ? product.getUnit() : null,
+                movement.getType(), movement.getQuantity(), movement.getUnitCost(), movement.getMovementDate(),
+                movement.getNotes());
     }
 }

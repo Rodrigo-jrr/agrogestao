@@ -5,6 +5,7 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -30,4 +31,11 @@ public class Product extends BaseEntity {
 
     @Column(name = "min_stock", nullable = false, precision = 15, scale = 3)
     private BigDecimal minStock = BigDecimal.ZERO;
+
+    @Column(name = "archived_at")
+    private LocalDateTime archivedAt;
+
+    public boolean isArchived() {
+        return archivedAt != null;
+    }
 }
