@@ -22,4 +22,9 @@ public class RegisterRequest {
     @NotBlank
     @Size(min = 8, max = 72, message = "deve ter entre 8 e 72 caracteres")
     private String password;
+
+    /** Versão dos termos de uso e da política de privacidade que a pessoa leu e aceitou. */
+    @NotBlank(message = "é preciso aceitar os termos de uso e a política de privacidade")
+    @Size(max = 20)
+    private String termsVersion;
 }

@@ -56,8 +56,8 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 
 ## Bloco 5 — LGPD
 
-- [ ] **5.1 Termos de uso e política de privacidade** aceitos no cadastro (com registro da versão aceita).
-- [ ] **5.2 Excluir minha conta** e **exportar meus dados**.
+- [x] **5.1 Termos de uso e política de privacidade** aceitos no cadastro (com registro da versão aceita).
+- [x] **5.2 Excluir minha conta** e **exportar meus dados**.
 
 ## Bloco 6 — Qualidade
 
@@ -69,6 +69,10 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 - Token de login no `localStorage` + página sem Content-Security-Policy: definir CSP no servidor que vai
   servir o frontend (ou migrar para cookie `httpOnly`).
 - Serviço de e-mail real, domínio, HTTPS, backups — ver README, seção Produção.
+- Termos de uso e Política de privacidade: preencher os dados do responsável em
+  `frontend/src/lib/legal.ts` (razão social/CNPJ, endereço, e-mail de privacidade, foro, prazo dos backups —
+  aparecem destacados nas páginas enquanto faltarem) e **revisar o texto com um advogado**. Ao mudar o texto,
+  trocar a versão em `legal.ts` e em `TermsService.CURRENT_VERSION`.
 
 ## O que está bom (verificado)
 

@@ -5,5 +5,7 @@ public enum AuditAction {
     UPDATE,
     DELETE,
     CANCEL,
-    VIEW
+    VIEW,
+    /** Exportação dos dados pessoais pelo titular (LGPD). */
+    EXPORT
 }

@@ -80,7 +80,7 @@ class ProfileTest extends ApiTestSupport {
         String token = lastEmailToken(newEmail, "/confirmar-novo-email");
 
         call(HttpMethod.POST, "/api/auth/register", null,
-                Map.of("name", "Rápido", "email", newEmail, "password", "senha1234"), 200);
+                registration("Rápido", newEmail, "senha1234"), 200);
 
         call(HttpMethod.POST, "/api/auth/confirm-email-change", null, Map.of("token", token), 422);
         assertThat(get("/api/me", user).get("email").asString()).isEqualTo(user.email());

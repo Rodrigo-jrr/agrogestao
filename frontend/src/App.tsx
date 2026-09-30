@@ -25,6 +25,8 @@ import { PropertySettingsPage } from './pages/PropertySettingsPage'
 import { AuditPage } from './pages/AuditPage'
 import { InvitationPage } from './pages/InvitationPage'
 import { ConfirmEmailChangePage } from './pages/ConfirmEmailChangePage'
+import { TermsPage } from './pages/TermsPage'
+import { PrivacyPage } from './pages/PrivacyPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -46,6 +48,8 @@ export default function App() {
             <Route path="/verificar-email" element={<VerifyEmailPage />} />
             <Route path="/confirmar-novo-email" element={<ConfirmEmailChangePage />} />
             <Route path="/convite" element={<InvitationPage />} />
+            <Route path="/termos" element={<TermsPage />} />
+            <Route path="/privacidade" element={<PrivacyPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/onboarding" element={<OnboardingPage />} />

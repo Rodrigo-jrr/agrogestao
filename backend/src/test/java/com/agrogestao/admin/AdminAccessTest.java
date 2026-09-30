@@ -110,7 +110,7 @@ class AdminAccessTest extends ApiTestSupport {
             return new Session(response.get("token").asString(), ADMIN_EMAIL, null);
         }
         JsonNode registered = post("/api/auth/register", null,
-                Map.of("name", "Admin", "email", ADMIN_EMAIL, "password", "senha1234"));
+                registration("Admin", ADMIN_EMAIL, "senha1234"));
         Session session = new Session(registered.get("token").asString(), ADMIN_EMAIL, null);
         verifyEmailOf(session);
         return session;

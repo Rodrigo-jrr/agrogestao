@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { safeNext } from '../auth/safeNext'
@@ -12,6 +12,8 @@ export function LoginPage() {
   const [searchParams] = useSearchParams()
   // Ex.: vindo da página de convite, volta para ela depois de entrar.
   const next = safeNext(searchParams.get('next'))
+  const [accountDeleted] = useState(() => sessionStorage.getItem('agro.accountDeleted') === '1')
+  useEffect(() => sessionStorage.removeItem('agro.accountDeleted'), [])
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -36,6 +38,11 @@ export function LoginPage() {
       <p className="mb-6 text-sm text-terra/60">Acesse sua propriedade</p>
 
       <form onSubmit={handleSubmit}>
+        {accountDeleted && !error && (
+          <p role="status" className="mb-4 rounded-md bg-mata/10 px-3 py-2 text-sm text-mata">
+            Sua conta foi excluída. Enviamos uma confirmação para o seu e-mail.
+          </p>
+        )}
         {error && <p className="mb-4 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
 
         <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-terra">E-mail</label>

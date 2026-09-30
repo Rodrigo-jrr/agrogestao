@@ -17,11 +17,13 @@ interface AuthContextValue {
   emailVerified: boolean | null
   /** E-mail novo aguardando confirmação. */
   pendingEmail: string | null
+  /** false: precisa aceitar a versão atual dos termos; null enquanto carrega. */
+  termsAccepted: boolean | null
   refreshMe: () => Promise<void>
   /** Guarda um token recebido fora do login (troca de senha, cadastro por convite). */
   startSession: (response: AuthResponse) => void
   login: (email: string, password: string) => Promise<void>
-  register: (name: string, email: string, password: string) => Promise<void>
+  register: (name: string, email: string, password: string, termsVersion: string) => Promise<void>
   logout: () => void
 }
 
@@ -73,8 +75,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persist(response)
   }
 
-  async function register(name: string, email: string, password: string) {
-    const response = await authApi.register({ name, email, password })
+  async function register(name: string, email: string, password: string, termsVersion: string) {
+    const response = await authApi.register({ name, email, password, termsVersion })
     persist(response)
   }
 
@@ -92,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isPlatformAdmin: currentMe?.platformAdmin ?? false,
         emailVerified: currentMe ? currentMe.emailVerified : null,
         pendingEmail: currentMe?.pendingEmail ?? null,
+        termsAccepted: currentMe ? currentMe.termsAccepted : null,
         refreshMe,
         startSession: persist,
         login,

@@ -82,6 +82,6 @@ class InputValidationTest extends ApiTestSupport {
     @Test
     void passwordLongerThanBcryptLimitIsRejectedOnRegister() throws Exception {
         call(HttpMethod.POST, "/api/auth/register", null,
-                Map.of("name", "Longa", "email", "longa@teste.dev", "password", "a".repeat(73)), 400);
+                registration("Longa", "longa@teste.dev", "a".repeat(73)), 400);
     }
 }

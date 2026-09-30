@@ -83,10 +83,15 @@ public abstract class ApiTestSupport {
         }
     }
 
+    /** Corpo do cadastro, já com o aceite da versão atual dos termos. */
+    protected static Map<String, Object> registration(String name, String email, String password) {
+        return Map.of("name", name, "email", email, "password", password,
+                "termsVersion", com.agrogestao.auth.terms.TermsService.CURRENT_VERSION);
+    }
+
     protected Session registerUser(String name) throws Exception {
         String email = name.toLowerCase().replace(' ', '.') + SEQ.incrementAndGet() + "@teste.dev";
-        JsonNode auth = call(HttpMethod.POST, "/api/auth/register", null,
-                Map.of("name", name, "email", email, "password", "senha1234"), 200);
+        JsonNode auth = call(HttpMethod.POST, "/api/auth/register", null, registration(name, email, "senha1234"), 200);
         return new Session(auth.get("token").asString(), email, null);
     }
 

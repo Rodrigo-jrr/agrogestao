@@ -41,7 +41,8 @@ class InvitationTest extends ApiTestSupport {
         assertThat(preview.get("accountExists").asBoolean()).isFalse();
 
         JsonNode auth = post("/api/auth/invitations/register", null,
-                Map.of("token", token, "name", "Novato", "password", "senha1234"));
+                Map.of("token", token, "name", "Novato", "password", "senha1234",
+                        "termsVersion", com.agrogestao.auth.terms.TermsService.CURRENT_VERSION));
         Session invited = new Session(auth.get("token").asString(), email, null);
 
         JsonNode me = get("/api/me", invited);
@@ -68,7 +69,7 @@ class InvitationTest extends ApiTestSupport {
         assertThat(get("/api/properties/me", stranger)).isEmpty();
 
         // A pessoa convidada cria a conta por fora e depois aceita logada.
-        JsonNode auth = post("/api/auth/register", null, Map.of("name", "Convidada", "email", email, "password", "senha1234"));
+        JsonNode auth = post("/api/auth/register", null, registration("Convidada", email, "senha1234"));
         Session invited = new Session(auth.get("token").asString(), email, null);
         JsonNode joined = post("/api/invitations/accept", invited, Map.of("token", token));
         assertThat(joined.get("role").asString()).isEqualTo("VIEWER");

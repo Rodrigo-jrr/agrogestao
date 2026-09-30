@@ -61,7 +61,7 @@ public class InvitationController {
     @PostMapping("/api/auth/invitations/register")
     public AuthResponse register(@Valid @RequestBody InvitationRegisterRequest request, HttpServletRequest http) {
         return invitationService.registerAndAccept(request.token(), request.name(), request.password(),
-                http.getRemoteAddr());
+                request.termsVersion(), http.getRemoteAddr());
     }
 
     @PostMapping("/api/invitations/accept")

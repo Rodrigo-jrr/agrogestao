@@ -90,7 +90,7 @@ class AccountRecoveryTest extends ApiTestSupport {
     @Test
     void adminAccessRequiresConfirmedEmail() throws Exception {
         JsonNode registered = post("/api/auth/register", null,
-                Map.of("name", "Dono", "email", "dono.admin@teste.dev", "password", "senha1234"));
+                registration("Dono", "dono.admin@teste.dev", "senha1234"));
         Session admin = new Session(registered.get("token").asString(), "dono.admin@teste.dev", null);
 
         call(HttpMethod.GET, "/api/admin/overview", admin, null, 403);

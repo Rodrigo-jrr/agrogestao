@@ -164,9 +164,10 @@ public class InvitationService {
 
     /** Cria a conta com o e-mail do convite e já entra na equipe. */
     @Transactional
-    public AuthResponse registerAndAccept(String token, String name, String password, String clientIp) {
+    public AuthResponse registerAndAccept(String token, String name, String password, String termsVersion,
+            String clientIp) {
         PropertyInvitation invitation = findValid(token);
-        User user = authService.registerVerified(name, invitation.getEmail(), password, clientIp);
+        User user = authService.registerVerified(name, invitation.getEmail(), password, termsVersion, clientIp);
         join(invitation, user);
         return authService.tokenFor(user);
     }

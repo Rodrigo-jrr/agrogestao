@@ -247,6 +247,9 @@ export interface MeInfo {
   platformAdmin: boolean
   /** E-mail novo aguardando confirmação pelo link enviado a ele. */
   pendingEmail: string | null
+  /** Aceitou a versão atual dos termos de uso e da política de privacidade. */
+  termsAccepted: boolean
+  termsVersion: string
 }
 
 export interface AdminPropertyRow {
@@ -348,4 +351,16 @@ export interface AuditEntry {
 export interface AuditAuthor {
   userId: number
   name: string
+}
+
+export interface PropertyRef {
+  id: number
+  name: string
+}
+
+/** O que acontece com cada propriedade ao excluir a conta. */
+export interface DeletionPreview {
+  toDelete: PropertyRef[]
+  toLeave: PropertyRef[]
+  blocking: PropertyRef[]
 }

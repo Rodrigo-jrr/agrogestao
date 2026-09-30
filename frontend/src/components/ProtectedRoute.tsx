@@ -1,10 +1,12 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useProperty } from '../property/PropertyContext'
+import { TermsGate } from './TermsGate'
 
 export function ProtectedRoute() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, termsAccepted } = useAuth()
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  if (termsAccepted === false) return <TermsGate />
   return <Outlet />
 }
 

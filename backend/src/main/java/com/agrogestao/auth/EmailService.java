@@ -116,6 +116,18 @@ public class EmailService {
                 """.formatted(user.getName(), inviterName, propertyName, roleLabel.toLowerCase(), appBaseUrl + "/login"));
     }
 
+    public void sendAccountDeletedNotice(String email, String name) {
+        send(email, "Sua conta do AgroGestão foi excluída", """
+                Olá, %s!
+
+                Sua conta no AgroGestão foi excluída, junto com seus dados pessoais e as propriedades em que você
+                era a única pessoa da equipe. Este é o último e-mail que enviamos para este endereço.
+
+                Se não foi você que pediu a exclusão, fale conosco pelo contato indicado na Política de
+                privacidade: %s
+                """.formatted(name, appBaseUrl + "/privacidade"));
+    }
+
     private String link(String path, String token) {
         return UriComponentsBuilder.fromUriString(appBaseUrl + path).queryParam("token", token).toUriString();
     }

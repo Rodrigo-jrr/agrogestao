@@ -10,6 +10,8 @@ import { AuthShell } from '../components/AuthShell'
 import { FormMessage } from '../components/FormMessage'
 import { inputClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 import { roleLabels } from '../lib/roles'
+import { TERMS_VERSION } from '../lib/legal'
+import { TermsCheckbox } from '../components/TermsCheckbox'
 
 // O token sai da barra de endereço; fica guardado nesta aba para voltar aqui depois de entrar.
 const STORAGE_KEY = 'agro.inviteToken'
@@ -38,6 +40,7 @@ export function InvitationPage() {
   const [busy, setBusy] = useState(false)
   const [name, setName] = useState('')
   const [password, setPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const started = useRef(false)
 
   useEffect(() => {
@@ -78,7 +81,7 @@ export function InvitationPage() {
     setBusy(true)
     setError(null)
     try {
-      startSession(await invitationsApi.register(token, name, password))
+      startSession(await invitationsApi.register(token, name, password, TERMS_VERSION))
       // A lista de propriedades recarrega sozinha ao entrar; a única é a do convite.
       sessionStorage.removeItem(STORAGE_KEY)
       navigate('/dashboard', { replace: true })
@@ -193,9 +196,13 @@ export function InvitationPage() {
               onChange={(e) => setPassword(e.target.value)}
               className={inputClass}
             />
-            <p id={`${id}-hint`} className="mt-1 mb-6 text-xs text-terra/50">
+            <p id={`${id}-hint`} className="mt-1 mb-4 text-xs text-terra/50">
               Pelo menos 8 caracteres.
             </p>
+
+            <div className="mb-6">
+              <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
+            </div>
 
             <button disabled={busy} className={`w-full ${primaryButtonClass}`}>
               {busy ? 'Criando conta…' : 'Criar conta e entrar na equipe'}

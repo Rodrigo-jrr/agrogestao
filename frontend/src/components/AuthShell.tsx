@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Link } from 'react-router-dom'
 import { Logo } from './Logo'
 
 const highlights = [
@@ -44,6 +45,14 @@ export function AuthShell({ title, children }: AuthShellProps) {
           </div>
           <h1 className="mb-1 font-serif text-3xl font-semibold text-terra">{title}</h1>
           {children}
+          <nav aria-label="Documentos" className="mt-10 flex gap-4 text-xs text-terra/50">
+            <Link to="/termos" className="hover:text-terra hover:underline">
+              Termos de uso
+            </Link>
+            <Link to="/privacidade" className="hover:text-terra hover:underline">
+              Política de privacidade
+            </Link>
+          </nav>
         </div>
       </div>
     </div>

@@ -8,6 +8,7 @@ import type {
   AuditAuthor,
   AuditEntry,
   AuthResponse,
+  DeletionPreview,
   InvitationInfo,
   InvitationPreview,
   InviteResult,
@@ -41,7 +42,7 @@ import type {
 export type PageParams = { page?: number; size?: number }
 
 export const authApi = {
-  register: (data: { name: string; email: string; password: string }) =>
+  register: (data: { name: string; email: string; password: string; termsVersion: string }) =>
     apiClient.post<AuthResponse>('/auth/register', data).then((r) => r.data),
   login: (data: { email: string; password: string }) =>
     apiClient.post<AuthResponse>('/auth/login', data).then((r) => r.data),
@@ -64,6 +65,11 @@ export const meApi = {
   requestEmailChange: (newEmail: string, currentPassword: string) =>
     apiClient.post<void>('/me/email', { newEmail, currentPassword }).then((r) => r.data),
   cancelEmailChange: () => apiClient.delete<void>('/me/email').then((r) => r.data),
+  acceptTerms: (termsVersion: string) => apiClient.post<MeInfo>('/me/accept-terms', { termsVersion }).then((r) => r.data),
+  /** Arquivo JSON com todos os dados da pessoa (LGPD, portabilidade). */
+  exportData: () => apiClient.get<Blob>('/me/export', { responseType: 'blob' }).then((r) => r.data),
+  deletionPreview: () => apiClient.get<DeletionPreview>('/me/deletion-preview').then((r) => r.data),
+  deleteAccount: (password: string) => apiClient.delete<void>('/me', { data: { password } }).then((r) => r.data),
 }
 
 export const adminApi = {
@@ -90,8 +96,10 @@ export const invitationsApi = {
   cancel: (id: number) => apiClient.delete<void>(`/properties/current/invitations/${id}`).then((r) => r.data),
   preview: (token: string) =>
     apiClient.post<InvitationPreview>('/auth/invitations/preview', { token }).then((r) => r.data),
-  register: (token: string, name: string, password: string) =>
-    apiClient.post<AuthResponse>('/auth/invitations/register', { token, name, password }).then((r) => r.data),
+  register: (token: string, name: string, password: string, termsVersion: string) =>
+    apiClient
+      .post<AuthResponse>('/auth/invitations/register', { token, name, password, termsVersion })
+      .then((r) => r.data),
   accept: (token: string) => apiClient.post<PropertySummary>('/invitations/accept', { token }).then((r) => r.data),
 }
 

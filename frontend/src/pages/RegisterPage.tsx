@@ -3,7 +3,9 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { apiErrorMessage } from '../api/client'
 import { AuthShell } from '../components/AuthShell'
+import { TermsCheckbox } from '../components/TermsCheckbox'
 import { inputClass, primaryButtonClass } from '../components/ui'
+import { TERMS_VERSION } from '../lib/legal'
 
 export function RegisterPage() {
   const { register } = useAuth()
@@ -11,6 +13,7 @@ export function RegisterPage() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -19,7 +22,7 @@ export function RegisterPage() {
     setError(null)
     setLoading(true)
     try {
-      await register(name, email, password)
+      await register(name, email, password, TERMS_VERSION)
       navigate('/onboarding')
     } catch (err) {
       setError(apiErrorMessage(err))
@@ -63,8 +66,12 @@ export function RegisterPage() {
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className={`mb-6 ${inputClass}`}
+          className={`mb-4 ${inputClass}`}
         />
+
+        <div className="mb-6">
+          <TermsCheckbox checked={acceptedTerms} onChange={setAcceptedTerms} />
+        </div>
 
         <button
           type="submit"
