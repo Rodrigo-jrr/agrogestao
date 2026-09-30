@@ -43,7 +43,7 @@ agrogestao:
     # E-mails com acesso ao painel de administração da plataforma (separados por vírgula)
     emails: ${PLATFORM_ADMIN_EMAILS:rodrigojr.rezende@gmail.com}
   cors:
-    # Lista separada por vírgulas; aceita padrões (ex.: https://*.agrorust.com.br)
+    # Lista separada por vírgulas; aceita padrões (ex.: https://*.agrogestao.com.br)
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:*}
 
 logging:

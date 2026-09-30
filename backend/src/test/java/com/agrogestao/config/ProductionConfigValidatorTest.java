@@ -11,21 +11,21 @@ class ProductionConfigValidatorTest {
 
     @Test
     void acceptsProductionConfiguration() {
-        assertThatCode(() -> new ProductionConfigValidator(STRONG_SECRET, "https://app.agrorust.com.br")
+        assertThatCode(() -> new ProductionConfigValidator(STRONG_SECRET, "https://app.agrogestao.com.br")
                 .afterPropertiesSet()).doesNotThrowAnyException();
     }
 
     @Test
     void rejectsDevelopmentSecret() {
         assertThatThrownBy(() -> new ProductionConfigValidator(ProductionConfigValidator.DEV_JWT_SECRET,
-                "https://app.agrorust.com.br").afterPropertiesSet())
+                "https://app.agrogestao.com.br").afterPropertiesSet())
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("JWT_SECRET");
     }
 
     @Test
     void rejectsShortSecret() {
-        assertThatThrownBy(() -> new ProductionConfigValidator("curto", "https://app.agrorust.com.br")
+        assertThatThrownBy(() -> new ProductionConfigValidator("curto", "https://app.agrogestao.com.br")
                 .afterPropertiesSet())
                 .hasMessageContaining("32 bytes");
     }
