@@ -12,5 +12,8 @@ spring:
 agrogestao:
   jwt:
     secret: ${JWT_SECRET}
+  admin:
+    # Sem padrão em produção: nenhum admin até a variável ser definida.
+    emails: ${PLATFORM_ADMIN_EMAILS:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS}

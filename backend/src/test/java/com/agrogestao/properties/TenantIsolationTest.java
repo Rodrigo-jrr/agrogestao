@@ -29,7 +29,7 @@ class TenantIsolationTest extends ApiTestSupport {
 
     @Test
     void requestWithoutTokenIsRejected() throws Exception {
-        call(HttpMethod.GET, "/api/activities", null, null, 403);
+        call(HttpMethod.GET, "/api/activities", null, null, 401);
     }
 
     @Test

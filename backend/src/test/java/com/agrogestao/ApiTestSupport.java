@@ -32,7 +32,7 @@ public abstract class ApiTestSupport {
     protected ObjectMapper objectMapper;
 
     /** Usuário autenticado e, opcionalmente, a propriedade em uso (header X-Property-Id). */
-    protected record Session(String token, String email, Long propertyId) {
+    public record Session(String token, String email, Long propertyId) {
         public Session on(Long otherPropertyId) {
             return new Session(token, email, otherPropertyId);
         }

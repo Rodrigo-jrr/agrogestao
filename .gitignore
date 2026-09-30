@@ -1,5 +1,7 @@
 # Java / Maven
-backend/target/
+backend/target
+backend/target.nosync/
+backend/target_old_icloud/
 *.class
 *.jar
 !.mvn/wrapper/maven-wrapper.jar

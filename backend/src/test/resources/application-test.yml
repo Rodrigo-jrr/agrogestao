@@ -12,3 +12,7 @@ spring:
 logging:
   level:
     com.agrogestao: WARN
+
+agrogestao:
+  admin:
+    emails: admin@plataforma.test
