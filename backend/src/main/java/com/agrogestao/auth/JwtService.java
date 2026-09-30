@@ -34,12 +34,20 @@ public class JwtService {
                 .compact();
     }
 
-    public Long extractUserId(String token) {
+    public record ParsedToken(Long userId, Instant issuedAt) {
+    }
+
+    /** Valida assinatura e expiração; lança exceção se o token for inválido. */
+    public ParsedToken parse(String token) {
         Claims claims = Jwts.parser()
                 .verifyWith((SecretKey) signingKey)
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();
-        return Long.parseLong(claims.getSubject());
+        return new ParsedToken(Long.parseLong(claims.getSubject()), claims.getIssuedAt().toInstant());
+    }
+
+    public Long extractUserId(String token) {
+        return parse(token).userId();
     }
 }

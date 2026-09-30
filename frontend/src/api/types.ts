@@ -176,6 +176,7 @@ export interface MeInfo {
   userId: number
   name: string
   email: string
+  emailVerified: boolean
   platformAdmin: boolean
 }
 

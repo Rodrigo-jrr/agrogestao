@@ -33,7 +33,9 @@ public class PlatformAdminService {
         if (userId == null || adminEmails.isEmpty()) {
             return false;
         }
+        // Exige e-mail confirmado: impede que alguém cadastre o e-mail do admin antes do dono e herde o acesso.
         return userRepository.findById(userId)
+                .filter(User::isEmailVerified)
                 .map(User::getEmail)
                 .map(email -> adminEmails.contains(email.trim().toLowerCase(Locale.ROOT)))
                 .orElse(false);

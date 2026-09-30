@@ -13,5 +13,14 @@ services:
     volumes:
       - agrogestao_mysql_data:/var/lib/mysql
 
+  # Caixa de e-mail falsa para desenvolvimento: SMTP em 1025, interface web em http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: agrogestao-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
 volumes:
   agrogestao_mysql_data:

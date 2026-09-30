@@ -1,5 +1,6 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react'
 import { authApi, meApi } from '../api/endpoints'
+import type { MeInfo } from '../api/types'
 
 interface AuthUser {
   userId: number
@@ -12,6 +13,9 @@ interface AuthContextValue {
   isAuthenticated: boolean
   /** Só controla o que a interface mostra; o servidor valida o acesso de admin em toda requisição. */
   isPlatformAdmin: boolean
+  /** null enquanto ainda não carregou. */
+  emailVerified: boolean | null
+  refreshMe: () => Promise<void>
   login: (email: string, password: string) => Promise<void>
   register: (name: string, email: string, password: string) => Promise<void>
   logout: () => void
@@ -26,20 +30,22 @@ function loadStoredUser(): AuthUser | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(loadStoredUser())
-  const [adminUserId, setAdminUserId] = useState<number | null>(null)
-  const isPlatformAdmin = user !== null && adminUserId === user.userId
+  const [me, setMe] = useState<MeInfo | null>(null)
+  // Ignora dados de outro usuário (ex.: logo após trocar de conta).
+  const currentMe = user && me?.userId === user.userId ? me : null
 
-  useEffect(() => {
+  const refreshMe = useCallback(async () => {
     if (!user) return
-    let active = true
-    meApi
-      .get()
-      .then((me) => active && setAdminUserId(me.platformAdmin ? me.userId : null))
-      .catch(() => active && setAdminUserId(null))
-    return () => {
-      active = false
+    try {
+      setMe(await meApi.get())
+    } catch {
+      setMe(null)
     }
   }, [user])
+
+  useEffect(() => {
+    refreshMe()
+  }, [refreshMe])
 
   function persist(response: { token: string; userId: number; name: string; email: string }) {
     localStorage.setItem('agro.token', response.token)
@@ -66,7 +72,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isPlatformAdmin, login, register, logout }}>
+    <AuthContext.Provider value={{
+        user,
+        isAuthenticated: !!user,
+        isPlatformAdmin: currentMe?.platformAdmin ?? false,
+        emailVerified: currentMe ? currentMe.emailVerified : null,
+        refreshMe,
+        login,
+        register,
+        logout,
+      }}>
       {children}
     </AuthContext.Provider>
   )

@@ -5,14 +5,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.verify;
+
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.mockito.ArgumentCaptor;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -30,6 +40,41 @@ public abstract class ApiTestSupport {
 
     @Autowired
     protected ObjectMapper objectMapper;
+
+    /** E-mails não saem nos testes: são capturados aqui. */
+    @MockBean
+    protected JavaMailSender mailSender;
+
+    private static final Pattern TOKEN_IN_LINK = Pattern.compile("[?&]token=([A-Za-z0-9_-]+)");
+
+    /** Token do último e-mail enviado para {@code email} cujo link contém {@code path}. */
+    protected String lastEmailToken(String email, String path) {
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, atLeast(0)).send(captor.capture());
+        List<SimpleMailMessage> sent = captor.getAllValues();
+        for (int i = sent.size() - 1; i >= 0; i--) {
+            SimpleMailMessage message = sent.get(i);
+            if (message.getTo() != null && email.equalsIgnoreCase(message.getTo()[0]) && message.getText().contains(path)) {
+                Matcher matcher = TOKEN_IN_LINK.matcher(message.getText());
+                if (matcher.find()) {
+                    return matcher.group(1);
+                }
+            }
+        }
+        throw new AssertionError("nenhum e-mail com " + path + " para " + email);
+    }
+
+    protected long emailsSentTo(String email) {
+        ArgumentCaptor<SimpleMailMessage> captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
+        verify(mailSender, atLeast(0)).send(captor.capture());
+        return captor.getAllValues().stream()
+                .filter(m -> m.getTo() != null && email.equalsIgnoreCase(m.getTo()[0])).count();
+    }
+
+    protected void verifyEmailOf(Session session) throws Exception {
+        call(HttpMethod.POST, "/api/auth/verify-email", null,
+                Map.of("token", lastEmailToken(session.email(), "/verificar-email")), 204);
+    }
 
     /** Usuário autenticado e, opcionalmente, a propriedade em uso (header X-Property-Id). */
     public record Session(String token, String email, Long propertyId) {

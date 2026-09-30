@@ -45,7 +45,12 @@ export function LoginPage() {
           className={`mb-4 ${inputClass}`}
         />
 
-        <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-terra">Senha</label>
+        <div className="mb-1 flex items-baseline justify-between">
+          <label htmlFor="login-password" className="block text-sm font-medium text-terra">Senha</label>
+          <Link to="/esqueci-senha" className="text-xs text-terra/60 hover:text-rust hover:underline">
+            Esqueci minha senha
+          </Link>
+        </div>
         <input
           id="login-password"
           type="password"

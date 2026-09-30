@@ -1,8 +1,12 @@
 package com.agrogestao.auth;
 
 import com.agrogestao.auth.dto.AuthResponse;
+import com.agrogestao.auth.dto.ForgotPasswordRequest;
 import com.agrogestao.auth.dto.LoginRequest;
 import com.agrogestao.auth.dto.RegisterRequest;
+import com.agrogestao.auth.dto.ResetPasswordRequest;
+import com.agrogestao.auth.dto.TokenRequest;
+import java.util.Map;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -15,9 +19,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
+    private final AccountService accountService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AccountService accountService) {
         this.authService = authService;
+        this.accountService = accountService;
     }
 
     @PostMapping("/register")
@@ -28,5 +34,25 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(authService.login(request));
+    }
+
+    @PostMapping("/verify-email")
+    public ResponseEntity<Void> verifyEmail(@Valid @RequestBody TokenRequest request) {
+        accountService.verifyEmail(request.token());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Resposta sempre igual, exista ou não a conta. */
+    @PostMapping("/forgot-password")
+    public ResponseEntity<Map<String, String>> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        accountService.requestPasswordReset(request.email());
+        return ResponseEntity.accepted().body(Map.of("message",
+                "Se houver uma conta com este e-mail, enviamos um link para criar uma nova senha."));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<Void> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        accountService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.noContent().build();
     }
 }

@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from './Logo'
 import { NewPropertyModal } from './NewPropertyModal'
+import { VerifyEmailBanner } from './VerifyEmailBanner'
 import { outlineButtonClass } from './ui'
 
 const coreNav = [
@@ -109,6 +110,8 @@ export function Layout() {
             </button>
           </div>
         </header>
+
+        <VerifyEmailBanner />
 
         <main className="flex-1 p-4 md:p-6">
           <Outlet />

@@ -30,10 +30,16 @@ export const authApi = {
     apiClient.post<AuthResponse>('/auth/register', data).then((r) => r.data),
   login: (data: { email: string; password: string }) =>
     apiClient.post<AuthResponse>('/auth/login', data).then((r) => r.data),
+  verifyEmail: (token: string) => apiClient.post<void>('/auth/verify-email', { token }).then((r) => r.data),
+  forgotPassword: (email: string) =>
+    apiClient.post<{ message: string }>('/auth/forgot-password', { email }).then((r) => r.data),
+  resetPassword: (token: string, newPassword: string) =>
+    apiClient.post<void>('/auth/reset-password', { token, newPassword }).then((r) => r.data),
 }
 
 export const meApi = {
   get: () => apiClient.get<MeInfo>('/me').then((r) => r.data),
+  resendVerification: () => apiClient.post<void>('/me/resend-verification').then((r) => r.data),
 }
 
 export const adminApi = {

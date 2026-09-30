@@ -15,6 +15,9 @@ import { SalesPage } from './pages/SalesPage'
 import { ActivitiesPage } from './pages/ActivitiesPage'
 import { MembersPage } from './pages/MembersPage'
 import { AdminPage } from './pages/AdminPage'
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { VerifyEmailPage } from './pages/VerifyEmailPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -30,6 +33,9 @@ export default function App() {
             <Route path="/" element={<RootRedirect />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+            <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
+            <Route path="/verificar-email" element={<VerifyEmailPage />} />
 
             <Route element={<ProtectedRoute />}>
               <Route path="/onboarding" element={<OnboardingPage />} />
