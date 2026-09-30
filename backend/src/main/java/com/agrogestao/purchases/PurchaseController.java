@@ -1,12 +1,15 @@
 package com.agrogestao.purchases;
 
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.purchases.dto.PurchaseDetailResponse;
 import com.agrogestao.purchases.dto.PurchaseRequest;
 import com.agrogestao.purchases.dto.PurchaseResponse;
 import com.agrogestao.purchases.dto.SupplierRequest;
 import com.agrogestao.purchases.dto.SupplierResponse;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,8 +34,13 @@ public class PurchaseController {
     }
 
     @GetMapping
-    public List<PurchaseResponse> list() {
-        return purchaseService.list();
+    public PageResponse<PurchaseResponse> list(
+            @RequestParam(required = false) Long supplierId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return purchaseService.list(supplierId, from, to, PageResponse.pageable(page, size));
     }
 
     @PostMapping

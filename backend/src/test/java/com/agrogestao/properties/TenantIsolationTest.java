@@ -52,8 +52,8 @@ class TenantIsolationTest extends ApiTestSupport {
                 "productName", "Hack", "quantity", 1, "unit", "L", "productionDate", "2026-09-01"), 404);
         call(HttpMethod.DELETE, path, bob, null, 404);
 
-        assertThat(get("/api/production", bob)).isEmpty();
-        assertThat(get("/api/production", alice).get(0).get("productName").asString()).isEqualTo("Leite");
+        assertThat(page("/api/production", bob)).isEmpty();
+        assertThat(page("/api/production", alice).get(0).get("productName").asString()).isEqualTo("Leite");
     }
 
     @Test

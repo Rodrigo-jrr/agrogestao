@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useId, useState, type FormEvent } from 'react'
 import { inventoryApi, purchasesApi, salesApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
-import type { InstallmentInput, InstallmentView, PaymentType, Product, TradeDetailItem } from '../api/types'
+import type { InstallmentInput, InstallmentView, PageResponse, PaymentType, Product, TradeDetailItem } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 import { InstallmentsEditor, installmentsSum } from '../components/InstallmentsEditor'
+import { Pagination } from '../components/Pagination'
 import {
   inputClass,
   linkDangerClass,
@@ -64,7 +65,7 @@ interface TradeConfig {
     createParty: (name: string) => Promise<unknown>
     updateParty: (id: number, name: string) => Promise<unknown>
     removeParty: (id: number) => Promise<unknown>
-    list: () => Promise<TradeRow[]>
+    list: (params: { page: number; partyId?: number }) => Promise<PageResponse<TradeRow>>
     create: (data: NewTrade) => Promise<unknown>
     cancel: (id: number) => Promise<unknown>
     detail: (id: number) => Promise<TradeDetailView>
@@ -91,8 +92,10 @@ const configs: Record<TradeKind, TradeConfig> = {
       createParty: (name) => purchasesApi.createSupplier({ name }),
       updateParty: (id, name) => purchasesApi.updateSupplier(id, { name }),
       removeParty: (id) => purchasesApi.removeSupplier(id),
-      list: () =>
-        purchasesApi.list().then((rows) => rows.map((p) => ({ ...p, partyId: p.supplierId, date: p.purchaseDate }))),
+      list: ({ page, partyId }) =>
+        purchasesApi
+          .list({ page, supplierId: partyId })
+          .then((r) => ({ ...r, content: r.content.map((p) => ({ ...p, partyId: p.supplierId, date: p.purchaseDate })) })),
       create: ({ partyId, date, ...rest }) => purchasesApi.create({ supplierId: partyId, purchaseDate: date, ...rest }),
       cancel: (id) => purchasesApi.cancel(id),
       detail: (id) =>
@@ -118,7 +121,10 @@ const configs: Record<TradeKind, TradeConfig> = {
       createParty: (name) => salesApi.createCustomer({ name }),
       updateParty: (id, name) => salesApi.updateCustomer(id, { name }),
       removeParty: (id) => salesApi.removeCustomer(id),
-      list: () => salesApi.list().then((rows) => rows.map((s) => ({ ...s, partyId: s.customerId, date: s.saleDate }))),
+      list: ({ page, partyId }) =>
+        salesApi
+          .list({ page, customerId: partyId })
+          .then((r) => ({ ...r, content: r.content.map((s) => ({ ...s, partyId: s.customerId, date: s.saleDate })) })),
       create: ({ partyId, date, ...rest }) => salesApi.create({ customerId: partyId, saleDate: date, ...rest }),
       cancel: (id) => salesApi.cancel(id),
       detail: (id) => salesApi.detail(id).then((d) => ({ ...d, partyName: d.customerName })),
@@ -136,25 +142,44 @@ export function TradePage({ kind }: { kind: TradeKind }) {
   const [parties, setParties] = useState<Party[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [rows, setRows] = useState<TradeRow[]>([])
+  const [page, setPage] = useState(0)
+  const [partyFilter, setPartyFilter] = useState('')
+  const [pageInfo, setPageInfo] = useState({ totalPages: 0, totalElements: 0 })
   const [loading, setLoading] = useState(true)
   const [listError, setListError] = useState<string | null>(null)
+  const filterId = useId()
 
-  function loadAll() {
-    setListError(null)
-    Promise.all([config.api.listParties(), inventoryApi.listProducts(), config.api.list()])
-      .then(([partyList, productList, tradeList]) => {
-        setParties(partyList)
-        setProducts(productList)
-        setRows(tradeList)
+  function loadRows() {
+    config.api
+      .list({ page, partyId: partyFilter ? Number(partyFilter) : undefined })
+      .then((result) => {
+        setRows(result.content)
+        setPageInfo({ totalPages: result.totalPages, totalElements: result.totalElements })
       })
       .catch((err) => setListError(apiErrorMessage(err)))
       .finally(() => setLoading(false))
+  }
+
+  function loadAll() {
+    setListError(null)
+    Promise.all([config.api.listParties(), inventoryApi.listProducts()])
+      .then(([partyList, productList]) => {
+        setParties(partyList)
+        setProducts(productList)
+      })
+      .catch((err) => setListError(apiErrorMessage(err)))
+    loadRows()
   }
 
   useEffect(() => {
     if (currentProperty) loadAll()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProperty, kind])
+
+  useEffect(() => {
+    if (currentProperty) loadRows()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, partyFilter])
 
   async function handleCancel(row: TradeRow) {
     if (!window.confirm(config.cancelConfirm(row))) return
@@ -178,7 +203,30 @@ export function TradePage({ kind }: { kind: TradeKind }) {
         </div>
 
         <section className={`${cardClass} lg:col-span-3`}>
-          <h2 className="mb-3 text-sm font-semibold text-terra">{config.history}</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-terra">{config.history}</h2>
+            <div className="flex items-center gap-2">
+              <label htmlFor={filterId} className="text-xs text-terra/60">
+                {config.party}
+              </label>
+              <select
+                id={filterId}
+                value={partyFilter}
+                onChange={(e) => {
+                  setPartyFilter(e.target.value)
+                  setPage(0)
+                }}
+                className={`${inputClass} w-44 py-1`}
+              >
+                <option value="">Todos</option>
+                {parties.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
           {listError && (
             <p role="alert" className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">
               {listError}
@@ -193,6 +241,7 @@ export function TradePage({ kind }: { kind: TradeKind }) {
             canCancel={canManage}
             onCancel={handleCancel}
           />
+          <Pagination page={page} totalPages={pageInfo.totalPages} totalElements={pageInfo.totalElements} onChange={setPage} />
         </section>
       </div>
     </div>

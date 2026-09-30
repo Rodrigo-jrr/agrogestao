@@ -5,6 +5,7 @@ import type { InventoryMovement, MovementType, Product } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
+import { Pagination } from '../components/Pagination'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../lib/format'
 
 const labelClass = 'mb-1 block text-xs font-medium text-terra/70'
@@ -524,6 +525,8 @@ function MovementHistory({
   const { currentProperty } = useProperty()
   const ids = useId()
   const [period, setPeriod] = useState<Period>(() => presetPeriod('last3Months'))
+  const [page, setPage] = useState(0)
+  const [pageInfo, setPageInfo] = useState({ totalPages: 0, totalElements: 0 })
   const [movements, setMovements] = useState<InventoryMovement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -534,14 +537,21 @@ function MovementHistory({
     setLoading(true)
     setError(null)
     inventoryApi
-      .listMovements({ productId: productId ? Number(productId) : undefined, from: period.from, to: period.to })
-      .then((list) => active && setMovements(list))
+      .listMovements({ productId: productId ? Number(productId) : undefined, from: period.from, to: period.to, page })
+      .then((result) => {
+        if (!active) return
+        setMovements(result.content)
+        setPageInfo({ totalPages: result.totalPages, totalElements: result.totalElements })
+      })
       .catch((err) => active && setError(apiErrorMessage(err)))
       .finally(() => active && setLoading(false))
     return () => {
       active = false
     }
-  }, [currentProperty, productId, period, reloadKey])
+  }, [currentProperty, productId, period, page, reloadKey])
+
+  // Filtro novo volta para a primeira página.
+  useEffect(() => setPage(0), [productId, period, reloadKey])
 
   return (
     <>
@@ -613,6 +623,7 @@ function MovementHistory({
           </tbody>
         </table>
       </div>
+      <Pagination page={page} totalPages={pageInfo.totalPages} totalElements={pageInfo.totalElements} onChange={setPage} />
     </>
   )
 }

@@ -15,6 +15,7 @@ import type {
   InventoryMovement,
   MeInfo,
   Product,
+  PageResponse,
   PaymentType,
   ProductionRecord,
   PurchaseDetail,
@@ -23,11 +24,16 @@ import type {
   PropertyMemberInfo,
   PropertyRole,
   Sale,
+  SettlementStatus,
   SaleDetail,
   Supplier,
+  TransactionTotals,
   TransactionType,
   MovementType,
 } from './types'
+
+/** Paginação: page começa em 0. */
+export type PageParams = { page?: number; size?: number }
 
 export const authApi = {
   register: (data: { name: string; email: string; password: string }) =>
@@ -101,15 +107,18 @@ export const financeApi = {
   cashFlow: (from?: string, to?: string) =>
     apiClient.get<CashFlow>('/finance/cash-flow', { params: { from, to } }).then((r) => r.data),
 
-  listTransactions: (from?: string, to?: string) =>
-    apiClient.get<FinancialTransaction[]>('/finance/transactions', { params: { from, to } }).then((r) => r.data),
+  listTransactions: (params: PageParams & { from?: string; to?: string; type?: TransactionType; q?: string }) =>
+    apiClient.get<PageResponse<FinancialTransaction>>('/finance/transactions', { params }).then((r) => r.data),
+  transactionTotals: (from?: string, to?: string) =>
+    apiClient.get<TransactionTotals>('/finance/transactions/totals', { params: { from, to } }).then((r) => r.data),
   createTransaction: (data: TransactionInput) =>
     apiClient.post<FinancialTransaction>('/finance/transactions', data).then((r) => r.data),
   updateTransaction: (id: number, data: TransactionInput) =>
     apiClient.put<FinancialTransaction>(`/finance/transactions/${id}`, data).then((r) => r.data),
   removeTransaction: (id: number) => apiClient.delete<void>(`/finance/transactions/${id}`).then((r) => r.data),
 
-  listPayables: () => apiClient.get<AccountPayable[]>('/finance/payables').then((r) => r.data),
+  listPayables: (params: PageParams & { status?: SettlementStatus; q?: string }) =>
+    apiClient.get<PageResponse<AccountPayable>>('/finance/payables', { params }).then((r) => r.data),
   createPayable: (data: PayableInput) => apiClient.post<AccountPayable>('/finance/payables', data).then((r) => r.data),
   updatePayable: (id: number, data: PayableInput) =>
     apiClient.put<AccountPayable>(`/finance/payables/${id}`, data).then((r) => r.data),
@@ -117,7 +126,8 @@ export const financeApi = {
   payPayable: (id: number) => apiClient.patch<AccountPayable>(`/finance/payables/${id}/pay`).then((r) => r.data),
   unpayPayable: (id: number) => apiClient.patch<AccountPayable>(`/finance/payables/${id}/unpay`).then((r) => r.data),
 
-  listReceivables: () => apiClient.get<AccountReceivable[]>('/finance/receivables').then((r) => r.data),
+  listReceivables: (params: PageParams & { status?: SettlementStatus; q?: string }) =>
+    apiClient.get<PageResponse<AccountReceivable>>('/finance/receivables', { params }).then((r) => r.data),
   createReceivable: (data: ReceivableInput) =>
     apiClient.post<AccountReceivable>('/finance/receivables', data).then((r) => r.data),
   updateReceivable: (id: number, data: ReceivableInput) =>
@@ -148,8 +158,8 @@ export const inventoryApi = {
   archiveProduct: (id: number) => apiClient.post<Product>(`/inventory/products/${id}/archive`).then((r) => r.data),
   unarchiveProduct: (id: number) => apiClient.post<Product>(`/inventory/products/${id}/unarchive`).then((r) => r.data),
   lowStock: () => apiClient.get<Product[]>('/inventory/products/low-stock').then((r) => r.data),
-  listMovements: (params: { productId?: number; from?: string; to?: string }) =>
-    apiClient.get<InventoryMovement[]>('/inventory/movements', { params }).then((r) => r.data),
+  listMovements: (params: PageParams & { productId?: number; from?: string; to?: string }) =>
+    apiClient.get<PageResponse<InventoryMovement>>('/inventory/movements', { params }).then((r) => r.data),
   createMovement: (data: {
     productId: number
     type: MovementType
@@ -161,7 +171,8 @@ export const inventoryApi = {
 }
 
 export const purchasesApi = {
-  list: () => apiClient.get<Purchase[]>('/purchases').then((r) => r.data),
+  list: (params: PageParams & { supplierId?: number; from?: string; to?: string } = {}) =>
+    apiClient.get<PageResponse<Purchase>>('/purchases', { params }).then((r) => r.data),
   create: (data: {
     supplierId: number
     purchaseDate: string
@@ -179,7 +190,8 @@ export const purchasesApi = {
 }
 
 export const salesApi = {
-  list: () => apiClient.get<Sale[]>('/sales').then((r) => r.data),
+  list: (params: PageParams & { customerId?: number; from?: string; to?: string } = {}) =>
+    apiClient.get<PageResponse<Sale>>('/sales', { params }).then((r) => r.data),
   create: (data: {
     customerId: number
     saleDate: string
@@ -205,7 +217,8 @@ type ProductionInput = {
 }
 
 export const productionApi = {
-  list: () => apiClient.get<ProductionRecord[]>('/production').then((r) => r.data),
+  list: (params: PageParams & { from?: string; to?: string; q?: string } = {}) =>
+    apiClient.get<PageResponse<ProductionRecord>>('/production', { params }).then((r) => r.data),
   create: (data: ProductionInput) => apiClient.post<ProductionRecord>('/production', data).then((r) => r.data),
   update: (id: number, data: ProductionInput) =>
     apiClient.put<ProductionRecord>(`/production/${id}`, data).then((r) => r.data),

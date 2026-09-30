@@ -1,5 +1,6 @@
 package com.agrogestao.inventory;
 
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.inventory.dto.InventoryMovementRequest;
 import com.agrogestao.inventory.dto.InventoryMovementResponse;
@@ -69,11 +70,13 @@ public class InventoryController {
     }
 
     @GetMapping("/movements")
-    public List<InventoryMovementResponse> listMovements(
+    public PageResponse<InventoryMovementResponse> listMovements(
             @RequestParam(required = false) Long productId,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return inventoryMovementService.list(productId, Period.resolve(from, to));
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return inventoryMovementService.list(productId, Period.resolve(from, to), PageResponse.pageable(page, size));
     }
 
     @PostMapping("/movements")

@@ -43,7 +43,7 @@ class InventoryValuationTest extends ApiTestSupport {
         purchase(10, 7);
         long sale = sell(5, 12);
 
-        JsonNode out = get("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner).get(0);
+        JsonNode out = page("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner).get(0);
         assertThat(out.get("type").asString()).isEqualTo("OUT");
         assertThat(out.get("unitCost").asDouble()).as("saída registra o custo médio, não o preço de venda")
                 .isEqualTo(6.0);
@@ -80,7 +80,7 @@ class InventoryValuationTest extends ApiTestSupport {
         assertThat(get("/api/inventory/products?includeArchived=true", owner).get(0).get("archived").asBoolean()).isTrue();
         call(HttpMethod.POST, "/api/purchases", owner, Map.of("supplierId", supplierId, "purchaseDate", "2026-09-10",
                 "items", List.of(Map.of("productId", productId, "quantity", 1, "unitPrice", 1))), 422);
-        assertThat(get("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner)).as("histórico continua")
+        assertThat(page("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner)).as("histórico continua")
                 .hasSize(1);
 
         post("/api/inventory/products/" + productId + "/unarchive", owner, null);
@@ -106,9 +106,9 @@ class InventoryValuationTest extends ApiTestSupport {
         post("/api/inventory/movements", owner, Map.of("productId", other, "type", "IN", "quantity", 3,
                 "movementDate", "2026-08-15"));
 
-        assertThat(get("/api/inventory/movements?from=2026-08-01&to=2026-09-30", owner)).hasSize(2);
-        assertThat(get("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner)).hasSize(1);
-        assertThat(get("/api/inventory/movements?productId=" + other + "&from=2026-08-01&to=2026-09-30", owner))
+        assertThat(page("/api/inventory/movements?from=2026-08-01&to=2026-09-30", owner)).hasSize(2);
+        assertThat(page("/api/inventory/movements?from=2026-09-01&to=2026-09-30", owner)).hasSize(1);
+        assertThat(page("/api/inventory/movements?productId=" + other + "&from=2026-08-01&to=2026-09-30", owner))
                 .hasSize(1);
     }
 

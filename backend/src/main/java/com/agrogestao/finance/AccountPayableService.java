@@ -2,6 +2,7 @@ package com.agrogestao.finance;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.AccountPayableRequest;
@@ -12,6 +13,7 @@ import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.SupplierRepository;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -40,9 +42,9 @@ public class AccountPayableService {
         this.auditService = auditService;
     }
 
-    public List<AccountPayableResponse> list() {
-        return accountPayableRepository.findByPropertyIdOrderByDueDateAsc(tenantContext.requirePropertyId())
-                .stream().map(this::toResponse).toList();
+    public PageResponse<AccountPayableResponse> list(SettlementStatus status, String query, Pageable pageable) {
+        return PageResponse.of(accountPayableRepository.search(tenantContext.requirePropertyId(),
+                status.settledFilter(), PageResponse.likePattern(query), pageable), this::toResponse);
     }
 
     public AccountPayableResponse create(AccountPayableRequest request) {

@@ -35,8 +35,8 @@ class PeriodFilterTest extends ApiTestSupport {
 
     @Test
     void transactionsCanBeListedForPastMonths() throws Exception {
-        assertThat(get("/api/finance/transactions?from=2026-08-01&to=2026-08-31", owner)).hasSize(1);
-        assertThat(get("/api/finance/transactions?from=2026-07-01&to=2026-08-31", owner)).hasSize(2);
+        assertThat(page("/api/finance/transactions?from=2026-08-01&to=2026-08-31", owner)).hasSize(1);
+        assertThat(page("/api/finance/transactions?from=2026-07-01&to=2026-08-31", owner)).hasSize(2);
     }
 
     @Test

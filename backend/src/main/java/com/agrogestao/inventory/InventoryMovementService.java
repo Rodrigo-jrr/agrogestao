@@ -2,6 +2,7 @@ package com.agrogestao.inventory;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.inventory.dto.InventoryMovementRequest;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -45,16 +48,16 @@ public class InventoryMovementService {
         this.auditService = auditService;
     }
 
-    public List<InventoryMovementResponse> list(Long productId, Period period) {
+    public PageResponse<InventoryMovementResponse> list(Long productId, Period period, Pageable pageable) {
         Long propertyId = tenantContext.requirePropertyId();
-        List<InventoryMovement> movements = productId != null
+        Page<InventoryMovement> movements = productId != null
                 ? inventoryMovementRepository.findByPropertyIdAndProductIdAndMovementDateBetweenOrderByMovementDateDescIdDesc(
-                        propertyId, productId, period.from(), period.to())
+                        propertyId, productId, period.from(), period.to(), pageable)
                 : inventoryMovementRepository.findByPropertyIdAndMovementDateBetweenOrderByMovementDateDescIdDesc(
-                        propertyId, period.from(), period.to());
+                        propertyId, period.from(), period.to(), pageable);
         Map<Long, Product> products = productRepository.findByPropertyId(propertyId).stream()
                 .collect(Collectors.toMap(Product::getId, Function.identity()));
-        return movements.stream().map(movement -> toResponse(movement, products.get(movement.getProductId()))).toList();
+        return PageResponse.of(movements, movement -> toResponse(movement, products.get(movement.getProductId())));
     }
 
     @Transactional

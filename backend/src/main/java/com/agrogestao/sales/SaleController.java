@@ -1,12 +1,15 @@
 package com.agrogestao.sales;
 
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.sales.dto.CustomerRequest;
 import com.agrogestao.sales.dto.CustomerResponse;
 import com.agrogestao.sales.dto.SaleDetailResponse;
 import com.agrogestao.sales.dto.SaleRequest;
 import com.agrogestao.sales.dto.SaleResponse;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +18,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -30,8 +34,13 @@ public class SaleController {
     }
 
     @GetMapping
-    public List<SaleResponse> list() {
-        return saleService.list();
+    public PageResponse<SaleResponse> list(
+            @RequestParam(required = false) Long customerId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return saleService.list(customerId, from, to, PageResponse.pageable(page, size));
     }
 
     @PostMapping

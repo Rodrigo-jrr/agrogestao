@@ -109,7 +109,10 @@ public abstract class ApiTestSupport {
 
     protected JsonNode call(HttpMethod method, String path, Session session, Object body, int expectedStatus)
             throws Exception {
-        MockHttpServletRequestBuilder builder = request(method, path);
+        // Caminhos já codificados (com %XX) vão como URI, para o MockMvc não codificar de novo.
+        MockHttpServletRequestBuilder builder = path.contains("%")
+                ? request(method, java.net.URI.create(path))
+                : request(method, path);
         if (session != null) {
             builder.header("Authorization", "Bearer " + session.token());
             if (session.propertyId() != null) {
@@ -127,6 +130,11 @@ public abstract class ApiTestSupport {
 
     protected JsonNode get(String path, Session session) throws Exception {
         return call(HttpMethod.GET, path, session, null, 200);
+    }
+
+    /** Conteúdo de um endpoint paginado ({@code {content, page, ...}}). */
+    protected JsonNode page(String path, Session session) throws Exception {
+        return get(path, session).get("content");
     }
 
     protected JsonNode post(String path, Session session, Object body) throws Exception {

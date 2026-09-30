@@ -37,7 +37,7 @@ class InstallmentsTest extends ApiTestSupport {
         assertThat(purchase.get("installmentCount").asInt()).isEqualTo(3);
         assertThat(transactions()).as("a prazo não lança despesa no caixa na hora").isEmpty();
 
-        JsonNode payables = get("/api/finance/payables", owner);
+        JsonNode payables = page("/api/finance/payables", owner);
         assertThat(payables).hasSize(3);
         assertThat(payables.get(0).get("description").asString()).isEqualTo("Compra #" + purchase.get("id") + " — parcela 1/3");
         assertThat(payables.get(0).get("purchaseId").asLong()).isEqualTo(purchase.get("id").asLong());
@@ -52,7 +52,7 @@ class InstallmentsTest extends ApiTestSupport {
     @Test
     void singleDueDateIsOneInstallment() throws Exception {
         JsonNode purchase = purchase(2, 50, installments("2026-10-30", 100));
-        assertThat(get("/api/finance/payables", owner).get(0).get("description").asString())
+        assertThat(page("/api/finance/payables", owner).get(0).get("description").asString())
                 .isEqualTo("Compra #" + purchase.get("id"));
     }
 
@@ -69,7 +69,7 @@ class InstallmentsTest extends ApiTestSupport {
     @Test
     void cancellingRequiresNoSettledInstallmentAndRemovesThem() throws Exception {
         long id = purchase(10, 30, installments("2026-10-10", 150, "2026-11-10", 150)).get("id").asLong();
-        long firstPayable = get("/api/finance/payables", owner).get(0).get("id").asLong();
+        long firstPayable = page("/api/finance/payables", owner).get(0).get("id").asLong();
 
         call(HttpMethod.PATCH, "/api/finance/payables/" + firstPayable + "/pay", owner, null, 200);
         call(HttpMethod.POST, "/api/purchases/" + id + "/cancel", owner, null, 422);
@@ -77,14 +77,14 @@ class InstallmentsTest extends ApiTestSupport {
         call(HttpMethod.PATCH, "/api/finance/payables/" + firstPayable + "/unpay", owner, null, 200);
         post("/api/purchases/" + id + "/cancel", owner, null);
 
-        assertThat(get("/api/finance/payables", owner)).isEmpty();
+        assertThat(page("/api/finance/payables", owner)).isEmpty();
         assertThat(get("/api/inventory/products", owner).get(0).get("currentQuantity").asDouble()).isZero();
     }
 
     @Test
     void installmentCanBeRescheduledButNotResizedOrDeleted() throws Exception {
         purchase(10, 30, installments("2026-10-10", 150, "2026-11-10", 150));
-        JsonNode payable = get("/api/finance/payables", owner).get(0);
+        JsonNode payable = page("/api/finance/payables", owner).get(0);
         String path = "/api/finance/payables/" + payable.get("id").asLong();
 
         call(HttpMethod.PUT, path, owner, Map.of("description", "Parcela renegociada", "amount", 150,
@@ -101,7 +101,7 @@ class InstallmentsTest extends ApiTestSupport {
                 "items", List.of(Map.of("productId", productId, "quantity", 4, "unitPrice", 50)),
                 "paymentType", "INSTALLMENTS", "installments", installments("2026-10-20", 100, "2026-11-20", 100)));
 
-        assertThat(get("/api/finance/receivables", owner)).hasSize(2);
+        assertThat(page("/api/finance/receivables", owner)).hasSize(2);
 
         JsonNode detail = get("/api/sales/" + sale.get("id"), owner);
         assertThat(detail.get("customerName").asString()).isEqualTo("Laticínio");
@@ -130,7 +130,7 @@ class InstallmentsTest extends ApiTestSupport {
 
     private JsonNode transactions() throws Exception {
         LocalDate today = LocalDate.now();
-        return get("/api/finance/transactions?from=" + today.minusYears(1) + "&to=" + today.plusYears(1), owner);
+        return page("/api/finance/transactions?from=" + today.minusYears(1) + "&to=" + today.plusYears(1), owner);
     }
 
     private JsonNode purchase(int quantity, double unitPrice, List<Map<String, Object>> installments) throws Exception {

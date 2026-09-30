@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from 'react'
 import { activitiesApi, financeApi, purchasesApi, salesApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type {
@@ -9,13 +9,18 @@ import type {
   CostCenter,
   Customer,
   FinancialTransaction,
+  SettlementStatus,
   Supplier,
+  TransactionTotals,
   TransactionType,
 } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
 import { formatCurrency, formatDate, todayIso } from '../lib/format'
+import { Pagination } from '../components/Pagination'
+import { usePaged } from '../lib/usePaged'
+import { useDebounced } from '../lib/useDebounced'
 
 type Tab = 'cashFlow' | 'transactions' | 'payables' | 'receivables' | 'costCenters'
 
@@ -23,28 +28,52 @@ export function FinancePage() {
   const { currentProperty } = useProperty()
   const [tab, setTab] = useState<Tab>('transactions')
 
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>([])
-  const [payables, setPayables] = useState<AccountPayable[]>([])
-  const [receivables, setReceivables] = useState<AccountReceivable[]>([])
   const [costCenters, setCostCenters] = useState<CostCenter[]>([])
   const [suppliers, setSuppliers] = useState<Supplier[]>([])
   const [customers, setCustomers] = useState<Customer[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
   const [listError, setListError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>(() => presetPeriod('thisMonth'))
+  const enabled = !!currentProperty
 
-  function loadTransactions() {
-    financeApi
-      .listTransactions(period.from, period.to)
-      .then(setTransactions)
-      .catch((err) => setListError(apiErrorMessage(err)))
-  }
+  const [txType, setTxType] = useState<TransactionType | ''>('')
+  const [txSearch, setTxSearch] = useState('')
+  const txQuery = useDebounced(txSearch)
+  const transactions = usePaged(
+    (page) =>
+      financeApi.listTransactions({ from: period.from, to: period.to, type: txType || undefined, q: txQuery || undefined, page }),
+    [currentProperty, period, txType, txQuery],
+    enabled,
+  )
+  const [totals, setTotals] = useState<TransactionTotals | null>(null)
+  useEffect(() => {
+    if (!enabled) return
+    financeApi.transactionTotals(period.from, period.to).then(setTotals).catch((err) => setListError(apiErrorMessage(err)))
+  }, [enabled, currentProperty, period, transactions.version])
+
+  const [payableStatus, setPayableStatus] = useState<SettlementStatus>('OPEN')
+  const [payableSearch, setPayableSearch] = useState('')
+  const payableQuery = useDebounced(payableSearch)
+  const payables = usePaged(
+    (page) => financeApi.listPayables({ status: payableStatus, q: payableQuery || undefined, page }),
+    [currentProperty, payableStatus, payableQuery],
+    enabled,
+  )
+
+  const [receivableStatus, setReceivableStatus] = useState<SettlementStatus>('OPEN')
+  const [receivableSearch, setReceivableSearch] = useState('')
+  const receivableQuery = useDebounced(receivableSearch)
+  const receivables = usePaged(
+    (page) => financeApi.listReceivables({ status: receivableStatus, q: receivableQuery || undefined, page }),
+    [currentProperty, receivableStatus, receivableQuery],
+    enabled,
+  )
 
   function loadAll() {
     setListError(null)
-    loadTransactions()
-    financeApi.listPayables().then(setPayables).catch((err) => setListError(apiErrorMessage(err)))
-    financeApi.listReceivables().then(setReceivables).catch((err) => setListError(apiErrorMessage(err)))
+    transactions.reload()
+    payables.reload()
+    receivables.reload()
     financeApi.listCostCenters().then(setCostCenters).catch((err) => setListError(apiErrorMessage(err)))
     purchasesApi.listSuppliers().then(setSuppliers).catch((err) => setListError(apiErrorMessage(err)))
     salesApi.listCustomers().then(setCustomers).catch((err) => setListError(apiErrorMessage(err)))
@@ -56,10 +85,6 @@ export function FinancePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProperty])
 
-  useEffect(() => {
-    if (currentProperty) loadTransactions()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [period])
 
   return (
     <div className="space-y-4">
@@ -92,18 +117,57 @@ export function FinancePage() {
 
       {tab === 'transactions' && (
         <TransactionsTab
-          transactions={transactions}
+          transactions={transactions.items}
+          loading={transactions.loading}
+          totals={totals}
           costCenters={costCenters}
           period={period}
           onPeriodChange={setPeriod}
           onChanged={loadAll}
+          toolbar={
+            <ListToolbar search={txSearch} onSearch={setTxSearch} searchLabel="Buscar lançamento">
+              <select
+                aria-label="Tipo de lançamento"
+                value={txType}
+                onChange={(e) => setTxType(e.target.value as TransactionType | '')}
+                className={`${inputClass} w-36 py-1`}
+              >
+                <option value="">Todos os tipos</option>
+                <option value="INCOME">Receitas</option>
+                <option value="EXPENSE">Despesas</option>
+              </select>
+            </ListToolbar>
+          }
+          pagination={<Pagination {...pageProps(transactions)} />}
         />
       )}
       {tab === 'payables' && (
-        <PayablesTab payables={payables} suppliers={suppliers} onChanged={loadAll} />
+        <PayablesTab
+          payables={payables.items}
+          loading={payables.loading}
+          suppliers={suppliers}
+          onChanged={loadAll}
+          toolbar={
+            <ListToolbar search={payableSearch} onSearch={setPayableSearch} searchLabel="Buscar conta">
+              <StatusFilter value={payableStatus} onChange={setPayableStatus} settledLabel="Pagas" />
+            </ListToolbar>
+          }
+          pagination={<Pagination {...pageProps(payables)} />}
+        />
       )}
       {tab === 'receivables' && (
-        <ReceivablesTab receivables={receivables} customers={customers} onChanged={loadAll} />
+        <ReceivablesTab
+          receivables={receivables.items}
+          loading={receivables.loading}
+          customers={customers}
+          onChanged={loadAll}
+          toolbar={
+            <ListToolbar search={receivableSearch} onSearch={setReceivableSearch} searchLabel="Buscar conta">
+              <StatusFilter value={receivableStatus} onChange={setReceivableStatus} settledLabel="Recebidas" />
+            </ListToolbar>
+          }
+          pagination={<Pagination {...pageProps(receivables)} />}
+        />
       )}
       {tab === 'costCenters' && (
         <CostCentersTab costCenters={costCenters} activities={activities} onChanged={loadAll} />
@@ -114,19 +178,27 @@ export function FinancePage() {
 
 function TransactionsTab({
   transactions,
+  loading,
+  totals,
   costCenters,
   period,
   onPeriodChange,
   onChanged,
+  toolbar,
+  pagination,
 }: {
   transactions: FinancialTransaction[]
+  loading: boolean
+  totals: TransactionTotals | null
   costCenters: CostCenter[]
   period: Period
   onPeriodChange: (period: Period) => void
   onChanged: () => void
+  toolbar: ReactNode
+  pagination: ReactNode
 }) {
-  const income = transactions.filter((t) => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
-  const expense = transactions.filter((t) => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
+  const income = totals?.income ?? 0
+  const expense = totals?.expense ?? 0
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [type, setType] = useState<TransactionType>('EXPENSE')
@@ -250,6 +322,7 @@ function TransactionsTab({
         <div className="mb-3 space-y-3">
           <h2 className="text-sm font-semibold text-terra">Lançamentos do período</h2>
           <PeriodFilter value={period} onChange={onPeriodChange} />
+          {toolbar}
           <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
             <div className="flex gap-1.5">
               <dt className="text-terra/55">Receitas</dt>
@@ -300,13 +373,14 @@ function TransactionsTab({
               {transactions.length === 0 && (
                 <tr>
                   <td colSpan={5} className="py-4 text-center text-terra/40">
-                    Nenhum lançamento neste período.
+                    {loading ? 'Carregando…' : 'Nenhum lançamento encontrado. Experimente outro período ou filtro.'}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {pagination}
       </div>
     </div>
   )
@@ -314,12 +388,18 @@ function TransactionsTab({
 
 function PayablesTab({
   payables,
+  loading,
   suppliers,
   onChanged,
+  toolbar,
+  pagination,
 }: {
   payables: AccountPayable[]
+  loading: boolean
   suppliers: Supplier[]
   onChanged: () => void
+  toolbar: ReactNode
+  pagination: ReactNode
 }) {
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -435,6 +515,7 @@ function PayablesTab({
       </form>
 
       <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
+        <div className="mb-3">{toolbar}</div>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-terra/50">
@@ -472,12 +553,13 @@ function PayablesTab({
             {payables.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-4 text-center text-terra/40">
-                  Nenhuma conta a pagar.
+                  {loading ? 'Carregando…' : 'Nenhuma conta encontrada com esses filtros.'}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {pagination}
       </div>
     </div>
   )
@@ -485,12 +567,18 @@ function PayablesTab({
 
 function ReceivablesTab({
   receivables,
+  loading,
   customers,
   onChanged,
+  toolbar,
+  pagination,
 }: {
   receivables: AccountReceivable[]
+  loading: boolean
   customers: Customer[]
   onChanged: () => void
+  toolbar: ReactNode
+  pagination: ReactNode
 }) {
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -608,6 +696,7 @@ function ReceivablesTab({
       </form>
 
       <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
+        <div className="mb-3">{toolbar}</div>
         <table className="w-full text-sm">
           <thead>
             <tr className="text-left text-terra/50">
@@ -645,12 +734,13 @@ function ReceivablesTab({
             {receivables.length === 0 && (
               <tr>
                 <td colSpan={5} className="py-4 text-center text-terra/40">
-                  Nenhuma conta a receber.
+                  {loading ? 'Carregando…' : 'Nenhuma conta encontrada com esses filtros.'}
                 </td>
               </tr>
             )}
           </tbody>
         </table>
+        {pagination}
       </div>
     </div>
   )
@@ -935,6 +1025,73 @@ function Bar({ realized, pending, max, color }: { realized: number; pending: num
     <div className="my-0.5 flex h-2 w-full overflow-hidden rounded-full bg-terra/5">
       <div className={color} style={{ width: `${(realized / max) * 100}%` }} />
       <div className="bg-terra/15" style={{ width: `${(pending / max) * 100}%` }} />
+    </div>
+  )
+}
+
+function pageProps(list: { page: number; totalPages: number; totalElements: number; setPage: (page: number) => void }) {
+  return { page: list.page, totalPages: list.totalPages, totalElements: list.totalElements, onChange: list.setPage }
+}
+
+function ListToolbar({
+  search,
+  onSearch,
+  searchLabel,
+  children,
+}: {
+  search: string
+  onSearch: (value: string) => void
+  searchLabel: string
+  children?: ReactNode
+}) {
+  const id = useId()
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      {children}
+      <label htmlFor={id} className="sr-only">
+        {searchLabel}
+      </label>
+      <input
+        id={id}
+        type="search"
+        placeholder="Buscar pela descrição"
+        value={search}
+        onChange={(e) => onSearch(e.target.value)}
+        className={`${inputClass} w-56 py-1`}
+      />
+    </div>
+  )
+}
+
+function StatusFilter({
+  value,
+  onChange,
+  settledLabel,
+}: {
+  value: SettlementStatus
+  onChange: (status: SettlementStatus) => void
+  settledLabel: string
+}) {
+  const options: [SettlementStatus, string][] = [
+    ['OPEN', 'Em aberto'],
+    ['SETTLED', settledLabel],
+    ['ALL', 'Todas'],
+  ]
+  return (
+    <div role="group" aria-label="Situação" className="flex gap-1">
+      {options.map(([key, label]) => (
+        <button
+          key={key}
+          type="button"
+          aria-pressed={value === key}
+          onClick={() => onChange(key)}
+          className={`cursor-pointer rounded-full border px-3 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rust ${
+            value === key ? 'border-rust bg-rust text-terreiro' : 'border-terra/15 text-terra/70 hover:bg-terra/5'
+          }`}
+        >
+          {label}
+        </button>
+      ))}
     </div>
   )
 }

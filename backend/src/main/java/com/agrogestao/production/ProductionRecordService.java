@@ -3,12 +3,16 @@ package com.agrogestao.production;
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
 import com.agrogestao.activities.ActivityRepository;
+import com.agrogestao.common.PageResponse;
+import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.production.dto.ProductionRecordRequest;
 import com.agrogestao.production.dto.ProductionRecordResponse;
 import com.agrogestao.properties.TenantContext;
+import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -30,10 +34,15 @@ public class ProductionRecordService {
         this.auditService = auditService;
     }
 
-    public List<ProductionRecordResponse> list() {
-        return productionRecordRepository
-                .findByPropertyIdOrderByProductionDateDesc(tenantContext.requirePropertyId())
-                .stream().map(this::toResponse).toList();
+    /** Sem datas: todo o histórico. */
+    public PageResponse<ProductionRecordResponse> list(LocalDate from, LocalDate to, String query, Pageable pageable) {
+        if (from != null || to != null) {
+            Period period = Period.resolve(from, to);
+            from = period.from();
+            to = period.to();
+        }
+        return PageResponse.of(productionRecordRepository.search(tenantContext.requirePropertyId(), from, to,
+                PageResponse.likePattern(query), pageable), this::toResponse);
     }
 
     public ProductionRecordResponse create(ProductionRecordRequest request) {

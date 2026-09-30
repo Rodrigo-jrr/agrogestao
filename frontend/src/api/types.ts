@@ -288,3 +288,19 @@ export interface AdminOverview {
   organizations: AdminOrganizationRow[]
   users: AdminUserRow[]
 }
+
+export interface PageResponse<T> {
+  content: T[]
+  page: number
+  size: number
+  totalElements: number
+  totalPages: number
+}
+
+export interface TransactionTotals {
+  income: number
+  expense: number
+  result: number
+}
+
+export type SettlementStatus = 'OPEN' | 'SETTLED' | 'ALL'

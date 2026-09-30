@@ -3,16 +3,20 @@ package com.agrogestao.finance;
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
 import com.agrogestao.auth.SecurityUtils;
+import com.agrogestao.common.PageResponse;
+import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.dto.FinancialTransactionRequest;
 import com.agrogestao.finance.dto.FinancialTransactionResponse;
+import com.agrogestao.finance.dto.TransactionTotals;
 import com.agrogestao.properties.TenantContext;
 import com.agrogestao.purchases.PurchaseRepository;
 import com.agrogestao.sales.SaleRepository;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -46,13 +50,19 @@ public class FinancialTransactionService {
         this.auditService = auditService;
     }
 
-    public List<FinancialTransactionResponse> list(LocalDate from, LocalDate to) {
+    public PageResponse<FinancialTransactionResponse> list(Period period, TransactionType type, String query,
+            Pageable pageable) {
+        return PageResponse.of(financialTransactionRepository.search(tenantContext.requirePropertyId(),
+                period.from(), period.to(), type, PageResponse.likePattern(query), pageable), this::toResponse);
+    }
+
+    public TransactionTotals totals(Period period) {
         Long propertyId = tenantContext.requirePropertyId();
-        return financialTransactionRepository
-                .findByPropertyIdAndTransactionDateBetweenOrderByTransactionDateDesc(propertyId, from, to)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+        BigDecimal income = financialTransactionRepository
+                .sumByPropertyIdAndTypeAndPeriod(propertyId, TransactionType.INCOME, period.from(), period.to());
+        BigDecimal expense = financialTransactionRepository
+                .sumByPropertyIdAndTypeAndPeriod(propertyId, TransactionType.EXPENSE, period.from(), period.to());
+        return new TransactionTotals(income, expense, income.subtract(expense));
     }
 
     public FinancialTransactionResponse create(FinancialTransactionRequest request) {

@@ -51,7 +51,7 @@ class PurchaseSaleCancellationTest extends ApiTestSupport {
         call(HttpMethod.POST, "/api/purchases/" + purchaseId + "/cancel", owner, null, 422);
 
         assertThat(stock()).isEqualTo(7.0);
-        assertThat(get("/api/purchases", owner).get(0).get("canceled").asBoolean()).isFalse();
+        assertThat(page("/api/purchases", owner).get(0).get("canceled").asBoolean()).isFalse();
     }
 
     @Test
@@ -74,7 +74,7 @@ class PurchaseSaleCancellationTest extends ApiTestSupport {
     @Test
     void transactionGeneratedByPurchaseCannotBeEditedOrDeletedDirectly() throws Exception {
         purchase(10);
-        long transactionId = get("/api/finance/transactions?from=2026-01-01&to=2026-12-31", owner).get(0).get("id").asLong();
+        long transactionId = page("/api/finance/transactions?from=2026-01-01&to=2026-12-31", owner).get(0).get("id").asLong();
         call(HttpMethod.DELETE, "/api/finance/transactions/" + transactionId, owner, null, 422);
         call(HttpMethod.PUT, "/api/finance/transactions/" + transactionId, owner, Map.of("type", "EXPENSE",
                 "description", "x", "amount", 1, "transactionDate", "2026-09-10"), 422);
@@ -96,7 +96,7 @@ class PurchaseSaleCancellationTest extends ApiTestSupport {
 
     private List<String> transactionDescriptions() throws Exception {
         List<String> descriptions = new ArrayList<>();
-        get("/api/finance/transactions?from=2026-01-01&to=2026-12-31", owner)
+        page("/api/finance/transactions?from=2026-01-01&to=2026-12-31", owner)
                 .forEach(t -> descriptions.add(t.get("description").asString()));
         return descriptions;
     }

@@ -2,6 +2,8 @@ package com.agrogestao.purchases;
 
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
+import com.agrogestao.common.PageResponse;
+import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
 import com.agrogestao.common.exception.ResourceNotFoundException;
 import com.agrogestao.finance.AccountPayableService;
@@ -26,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -69,9 +72,15 @@ public class PurchaseService {
         this.auditService = auditService;
     }
 
-    public List<PurchaseResponse> list() {
-        return purchaseRepository.findByPropertyIdOrderByPurchaseDateDesc(tenantContext.requirePropertyId())
-                .stream().map(this::toResponse).toList();
+    /** Sem datas: todo o histórico. */
+    public PageResponse<PurchaseResponse> list(Long supplierId, LocalDate from, LocalDate to, Pageable pageable) {
+        if (from != null || to != null) {
+            Period period = Period.resolve(from, to);
+            from = period.from();
+            to = period.to();
+        }
+        return PageResponse.of(purchaseRepository.search(tenantContext.requirePropertyId(), supplierId, from, to, pageable),
+                this::toResponse);
     }
 
     public PurchaseDetailResponse detail(Long id) {

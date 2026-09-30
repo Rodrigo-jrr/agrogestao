@@ -20,7 +20,7 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 - [x] **1.6 Spring Boot 3.3.4 fora do período de suporte.** Atualizado para 4.1.1 (Jackson 3, Flyway como
   módulo, `@MockitoBean`). Aproveitado para remover o usuário padrão que o Spring criava com senha impressa no log.
 
-## Bloco 2 — Funcionalidades essenciais do dia a dia
+## Bloco 2 — Funcionalidades essenciais do dia a dia — concluído em 30/09
 
 - [x] **2.1 Lançamentos presos no mês atual.** A tela do Financeiro não tem filtro de período: não dá para
   ver os lançamentos do mês passado.
@@ -31,7 +31,7 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
   (gerar conta a pagar/receber com vencimento). Também não dá para ver os itens de uma compra/venda.
 - [x] **2.5 Produto usado não pode ser excluído nem arquivado.** Excluir um produto com movimentação dá
   erro genérico; falta "arquivar" (some das listas, mantém o histórico).
-- [ ] **2.6 Nenhuma lista tem paginação ou busca.** Com meses de uso as telas ficam enormes e lentas.
+- [x] **2.6 Nenhuma lista tem paginação ou busca.** Com meses de uso as telas ficam enormes e lentas.
 
 ## Bloco 3 — Usabilidade e acessibilidade
 

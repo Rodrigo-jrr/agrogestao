@@ -1,5 +1,6 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
@@ -10,7 +11,9 @@ import com.agrogestao.finance.dto.CostCenterRequest;
 import com.agrogestao.finance.dto.CostCenterResponse;
 import com.agrogestao.finance.dto.FinancialTransactionRequest;
 import com.agrogestao.finance.dto.FinancialTransactionResponse;
+import com.agrogestao.finance.dto.TransactionTotals;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 import java.time.YearMonth;
 import java.util.List;
@@ -51,11 +54,22 @@ public class FinanceController {
     }
 
     @GetMapping("/transactions")
-    public List<FinancialTransactionResponse> listTransactions(
+    public PageResponse<FinancialTransactionResponse> listTransactions(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) TransactionType type,
+            @RequestParam(required = false) @Size(max = 100) String q,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return financialTransactionService.list(Period.resolve(from, to), type, q, PageResponse.pageable(page, size));
+    }
+
+    /** Receitas, despesas e resultado do período inteiro (independe da página). */
+    @GetMapping("/transactions/totals")
+    public TransactionTotals transactionTotals(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        Period period = Period.resolve(from, to);
-        return financialTransactionService.list(period.from(), period.to());
+        return financialTransactionService.totals(Period.resolve(from, to));
     }
 
     @PostMapping("/transactions")
@@ -87,8 +101,12 @@ public class FinanceController {
     }
 
     @GetMapping("/payables")
-    public List<AccountPayableResponse> listPayables() {
-        return accountPayableService.list();
+    public PageResponse<AccountPayableResponse> listPayables(
+            @RequestParam(defaultValue = "ALL") SettlementStatus status,
+            @RequestParam(required = false) @Size(max = 100) String q,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return accountPayableService.list(status, q, PageResponse.pageable(page, size));
     }
 
     @PostMapping("/payables")
@@ -118,8 +136,12 @@ public class FinanceController {
     }
 
     @GetMapping("/receivables")
-    public List<AccountReceivableResponse> listReceivables() {
-        return accountReceivableService.list();
+    public PageResponse<AccountReceivableResponse> listReceivables(
+            @RequestParam(defaultValue = "ALL") SettlementStatus status,
+            @RequestParam(required = false) @Size(max = 100) String q,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return accountReceivableService.list(status, q, PageResponse.pageable(page, size));
     }
 
     @PostMapping("/receivables")

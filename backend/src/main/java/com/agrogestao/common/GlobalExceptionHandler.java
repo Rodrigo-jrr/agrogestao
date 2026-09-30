@@ -19,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 import tools.jackson.databind.exc.InvalidFormatException;
@@ -100,6 +101,12 @@ public class GlobalExceptionHandler {
             return build(HttpStatus.BAD_REQUEST, "Valor inválido para o campo " + label(field) + ".");
         }
         return build(HttpStatus.BAD_REQUEST, "Não foi possível ler os dados enviados. Verifique o formato.");
+    }
+
+    /** Validação de parâmetros de consulta (ex.: @Size em ?q=). */
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<ApiError> handleMethodValidation(HandlerMethodValidationException ex) {
+        return build(HttpStatus.BAD_REQUEST, "Parâmetro inválido na consulta.");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

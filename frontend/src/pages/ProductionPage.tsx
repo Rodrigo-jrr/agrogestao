@@ -1,13 +1,12 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { activitiesApi, productionApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Activity, ProductionRecord } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
-
-function today() {
-  return new Date().toISOString().slice(0, 10)
-}
+import { Pagination } from '../components/Pagination'
+import { formatDate, formatNumber, todayIso as today } from '../lib/format'
+import { useDebounced } from '../lib/useDebounced'
 
 export function ProductionPage() {
   const { currentProperty } = useProperty()
@@ -15,6 +14,12 @@ export function ProductionPage() {
   const [activities, setActivities] = useState<Activity[]>([])
   const [error, setError] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [search, setSearch] = useState('')
+  const debouncedSearch = useDebounced(search)
+  const [page, setPage] = useState(0)
+  const [pageInfo, setPageInfo] = useState({ totalPages: 0, totalElements: 0 })
+  const searchId = useId()
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [productName, setProductName] = useState('')
@@ -25,13 +30,26 @@ export function ProductionPage() {
 
   function loadRecords() {
     setListError(null)
-    productionApi.list().then(setRecords).catch((err) => setListError(apiErrorMessage(err)))
-    activitiesApi.list().then(setActivities).catch((err) => setListError(apiErrorMessage(err)))
+    productionApi
+      .list({ q: debouncedSearch || undefined, page })
+      .then((result) => {
+        setRecords(result.content)
+        setPageInfo({ totalPages: result.totalPages, totalElements: result.totalElements })
+      })
+      .catch((err) => setListError(apiErrorMessage(err)))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
-    if (currentProperty) loadRecords()
+    if (currentProperty) activitiesApi.list().then(setActivities).catch((err) => setListError(apiErrorMessage(err)))
   }, [currentProperty])
+
+  useEffect(() => {
+    if (currentProperty) loadRecords()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProperty, debouncedSearch, page])
+
+  useEffect(() => setPage(0), [debouncedSearch])
 
   function startEdit(record: ProductionRecord) {
     setEditingId(record.id)
@@ -160,7 +178,20 @@ export function ProductionPage() {
         </form>
 
         <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-terra">Histórico</h2>
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-sm font-semibold text-terra">Histórico</h2>
+            <label htmlFor={searchId} className="sr-only">
+              Buscar produto
+            </label>
+            <input
+              id={searchId}
+              type="search"
+              placeholder="Buscar produto"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className={`${inputClass} w-52 py-1.5`}
+            />
+          </div>
           {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -176,11 +207,11 @@ export function ProductionPage() {
               <tbody>
                 {records.map((r) => (
                   <tr key={r.id} className="border-t border-terra/5">
-                    <td className="py-2 text-terra/50">{r.productionDate}</td>
+                    <td className="py-2 whitespace-nowrap text-terra/50">{formatDate(r.productionDate)}</td>
                     <td className="py-2">{r.productName}</td>
                     <td className="py-2 text-terra/50">{activityName(r.activityId)}</td>
-                    <td className="py-2 text-right">
-                      {r.quantity} {r.unit}
+                    <td className="py-2 text-right tabular-nums">
+                      {formatNumber(r.quantity)} {r.unit}
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">
                       <button onClick={() => startEdit(r)} className={linkNeutralClass}>
@@ -195,13 +226,18 @@ export function ProductionPage() {
                 {records.length === 0 && !listError && (
                   <tr>
                     <td colSpan={5} className="py-4 text-center text-terra/40">
-                      Nenhum registro de produção.
+                      {loading
+                        ? 'Carregando…'
+                        : debouncedSearch
+                          ? 'Nenhum registro encontrado para essa busca.'
+                          : 'Nenhum registro de produção ainda.'}
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={pageInfo.totalPages} totalElements={pageInfo.totalElements} onChange={setPage} />
         </div>
       </div>
     </div>
