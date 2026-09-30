@@ -5,6 +5,7 @@ import { apiErrorMessage } from '../api/client'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from '../components/Logo'
 import { inputClass, primaryButtonClass } from '../components/ui'
+import { activityTypeCode } from '../lib/activityTypes'
 
 interface ActivityRow {
   name: string
@@ -26,7 +27,7 @@ export function OnboardingPage() {
   const [loading, setLoading] = useState(false)
 
   function addActivity(name: string) {
-    setActivities((current) => [...current, { name, type: name.toUpperCase(), areaHa: '' }])
+    setActivities((current) => [...current, { name, type: activityTypeCode(name), areaHa: '' }])
   }
 
   function updateActivity(index: number, field: keyof ActivityRow, value: string) {
@@ -142,6 +143,8 @@ export function OnboardingPage() {
           {activities.map((row, index) => (
             <div key={index} className="flex items-center gap-2">
               <input
+                aria-label={`Nome da atividade ${index + 1}`}
+                required
                 value={row.name}
                 onChange={(e) => updateActivity(index, 'name', e.target.value)}
                 placeholder="Nome da atividade"
@@ -152,12 +155,15 @@ export function OnboardingPage() {
                 step="0.01"
                 value={row.areaHa}
                 onChange={(e) => updateActivity(index, 'areaHa', e.target.value)}
+                aria-label={`Área em hectares da atividade ${index + 1}`}
+                min="0"
                 placeholder="Área (ha)"
                 className="w-28 rounded-md border border-terra/15 bg-white px-3 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
               />
               <button
                 type="button"
                 onClick={() => removeActivity(index)}
+                aria-label={`Remover atividade ${row.name || index + 1}`}
                 className="text-sm text-rust hover:underline"
               >
                 Remover

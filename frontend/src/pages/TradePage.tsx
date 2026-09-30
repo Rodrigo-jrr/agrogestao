@@ -14,6 +14,7 @@ import {
   secondaryButtonClass,
 } from '../components/ui'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../lib/format'
+import { useConfirm } from '../components/ConfirmDialog'
 
 /** Compras e vendas têm o mesmo fluxo; esta página atende as duas a partir de uma configuração. */
 export type TradeKind = 'purchase' | 'sale'
@@ -85,8 +86,8 @@ const configs: Record<TradeKind, TradeConfig> = {
     settledWord: 'paga',
     cancelConfirm: (row) =>
       row.paymentType === 'CASH'
-        ? 'Cancelar esta compra? O estoque dos itens será estornado e o lançamento de despesa removido.'
-        : 'Cancelar esta compra? O estoque será estornado e as parcelas removidas de "A pagar". Só é possível se nenhuma parcela foi paga.',
+        ? 'Os itens saem do estoque e o lançamento de despesa é removido do caixa. A compra continua no histórico como cancelada.'
+        : 'Os itens saem do estoque e as parcelas são removidas de "A pagar". Só é possível se nenhuma parcela foi paga. A compra continua no histórico como cancelada.',
     api: {
       listParties: () => purchasesApi.listSuppliers(),
       createParty: (name) => purchasesApi.createSupplier({ name }),
@@ -114,8 +115,8 @@ const configs: Record<TradeKind, TradeConfig> = {
     settledWord: 'recebida',
     cancelConfirm: (row) =>
       row.paymentType === 'CASH'
-        ? 'Cancelar esta venda? Os itens voltarão ao estoque e o lançamento de receita será removido.'
-        : 'Cancelar esta venda? Os itens voltarão ao estoque e as parcelas serão removidas de "A receber". Só é possível se nenhuma parcela foi recebida.',
+        ? 'Os itens voltam ao estoque e o lançamento de receita é removido do caixa. A venda continua no histórico como cancelada.'
+        : 'Os itens voltam ao estoque e as parcelas são removidas de "A receber". Só é possível se nenhuma parcela foi recebida. A venda continua no histórico como cancelada.',
     api: {
       listParties: () => salesApi.listCustomers(),
       createParty: (name) => salesApi.createCustomer({ name }),
@@ -181,8 +182,17 @@ export function TradePage({ kind }: { kind: TradeKind }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, partyFilter])
 
+  const confirm = useConfirm()
+
   async function handleCancel(row: TradeRow) {
-    if (!window.confirm(config.cancelConfirm(row))) return
+    const noun = kind === 'purchase' ? 'compra' : 'venda'
+    const ok = await confirm({
+      title: `Cancelar a ${noun} de ${formatCurrency(row.totalAmount)} (${formatDate(row.date)})?`,
+      message: config.cancelConfirm(row),
+      confirmLabel: `Cancelar ${noun}`,
+      cancelLabel: 'Manter',
+    })
+    if (!ok) return
     setListError(null)
     try {
       await config.api.cancel(row.id)
@@ -516,8 +526,15 @@ function PartyManager({ config, parties, onChanged }: { config: TradeConfig; par
     }
   }
 
+  const confirm = useConfirm()
+
   async function handleDelete(party: Party) {
-    if (!window.confirm(`Excluir o ${config.partyLower} ${party.name}?`)) return
+    const ok = await confirm({
+      title: `Excluir o ${config.partyLower} ${party.name}?`,
+      message: `Não dá para desfazer. Se já houver operações com este ${config.partyLower}, a exclusão será recusada.`,
+      confirmLabel: `Excluir ${config.partyLower}`,
+    })
+    if (!ok) return
     try {
       await config.api.removeParty(party.id)
       if (editingId === party.id) reset()
@@ -622,7 +639,7 @@ function HistoryTable({
   if (loading) return <p className="py-6 text-center text-sm text-terra/50">Carregando…</p>
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[560px] text-sm">
         <thead>
           <tr className="text-left text-xs text-terra/55">

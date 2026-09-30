@@ -1,9 +1,10 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { membersApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { PropertyMemberInfo, PropertyRole } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-import { inputClass, linkDangerClass, primaryButtonClass } from '../components/ui'
+import { fieldLabelClass, inputClass, linkDangerClass, primaryButtonClass } from '../components/ui'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const roleLabels: Record<PropertyRole, string> = {
   OWNER: 'Proprietário',
@@ -24,6 +25,7 @@ export function MembersPage() {
   const [members, setMembers] = useState<PropertyMemberInfo[]>([])
   const [error, setError] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
   const [email, setEmail] = useState('')
   const [role, setRole] = useState<PropertyRole>('WORKER')
 
@@ -34,7 +36,11 @@ export function MembersPage() {
 
   function loadMembers() {
     setListError(null)
-    membersApi.list().then(setMembers).catch((err) => setListError(apiErrorMessage(err)))
+    membersApi
+      .list()
+      .then(setMembers)
+      .catch((err) => setListError(apiErrorMessage(err)))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -64,8 +70,16 @@ export function MembersPage() {
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleRemove(member: PropertyMemberInfo) {
-    if (!window.confirm(`Remover ${member.name} desta propriedade?`)) return
+    const ok = await confirm({
+      title: `Remover ${member.name} da equipe?`,
+      message: 'A pessoa perde o acesso a esta propriedade na hora. Os registros que ela fez continuam. Você pode adicioná-la de novo depois.',
+      confirmLabel: 'Remover da equipe',
+    })
+    if (!ok) return
     try {
       await membersApi.remove(member.id)
       loadMembers()
@@ -87,27 +101,36 @@ export function MembersPage() {
           <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
             <h2 className="text-sm font-semibold text-terra">Adicionar membro</h2>
             {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-            <input
-              required
-              type="email"
-              aria-label="E-mail da pessoa"
-              placeholder="E-mail da pessoa"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className={inputClass}
-            />
-            <select
-              aria-label="Papel"
-              value={role}
-              onChange={(e) => setRole(e.target.value as PropertyRole)}
-              className={inputClass}
-            >
-              {assignableRoles.map((r) => (
-                <option key={r} value={r}>
-                  {roleLabels[r]}
-                </option>
-              ))}
-            </select>
+            <div>
+              <label htmlFor={`${formId}-e-mail-da-pessoa`} className={fieldLabelClass}>
+                E-mail da pessoa
+              </label>
+              <input
+                required
+                type="email"
+                id={`${formId}-e-mail-da-pessoa`}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor={`${formId}-papel`} className={fieldLabelClass}>
+                Papel
+              </label>
+              <select
+                id={`${formId}-papel`}
+                value={role}
+                onChange={(e) => setRole(e.target.value as PropertyRole)}
+                className={inputClass}
+              >
+                {assignableRoles.map((r) => (
+                  <option key={r} value={r}>
+                    {roleLabels[r]}
+                  </option>
+                ))}
+              </select>
+            </div>
             <p className="text-xs text-terra/50">{roleDescriptions[role]}</p>
             <button className={`w-full ${primaryButtonClass}`}>Adicionar</button>
             <p className="text-xs text-terra/40">
@@ -124,7 +147,7 @@ export function MembersPage() {
         <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-terra">Membros da propriedade</h2>
           {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-terra/50">
@@ -145,6 +168,7 @@ export function MembersPage() {
                     <td className="py-2">
                       {canEdit(m) ? (
                         <select
+                          aria-label={`Papel de ${m.name}`}
                           value={m.role}
                           onChange={(e) => handleRoleChange(m, e.target.value as PropertyRole)}
                           className="rounded-md border border-terra/20 bg-white px-2 py-1 text-sm focus:border-rust focus:outline-none"
@@ -168,6 +192,13 @@ export function MembersPage() {
                     </td>
                   </tr>
                 ))}
+                {loading && members.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-center text-terra/50">
+                      Carregando…
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

@@ -1,15 +1,20 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useId, useState, type FormEvent } from 'react'
 import { activitiesApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Activity } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
+import { fieldLabelClass, inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
+import { activityTypeLabel, activityTypes } from '../lib/activityTypes'
+import { formatNumber } from '../lib/format'
+import { useConfirm } from '../components/ConfirmDialog'
 
 export function ActivitiesPage() {
   const { currentProperty } = useProperty()
   const [activities, setActivities] = useState<Activity[]>([])
   const [error, setError] = useState<string | null>(null)
   const [listError, setListError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const formId = useId()
 
   const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
@@ -18,7 +23,11 @@ export function ActivitiesPage() {
 
   function loadActivities() {
     setListError(null)
-    activitiesApi.list().then(setActivities).catch((err) => setListError(apiErrorMessage(err)))
+    activitiesApi
+      .list()
+      .then(setActivities)
+      .catch((err) => setListError(apiErrorMessage(err)))
+      .finally(() => setLoading(false))
   }
 
   useEffect(() => {
@@ -58,8 +67,16 @@ export function ActivitiesPage() {
     }
   }
 
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir esta atividade?')) return
+    const activity = activities.find((a) => a.id === id)
+    const ok = await confirm({
+      title: `Excluir a atividade ${activity?.name ?? ''}?`,
+      message: 'Esta ação não pode ser desfeita. Se houver produção ou centro de custo ligado a ela, a exclusão será recusada.',
+      confirmLabel: 'Excluir atividade',
+    })
+    if (!ok) return
     try {
       await activitiesApi.remove(id)
       if (editingId === id) cancelEdit()
@@ -77,31 +94,48 @@ export function ActivitiesPage() {
         <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar atividade' : 'Nova atividade'}</h2>
           {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-          <input
-            required
-            aria-label="Nome"
-            placeholder="Nome (ex: Produção de leite)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className={inputClass}
-          />
-          <input
-            required
-            aria-label="Tipo"
-            placeholder="Tipo (ex: PECUARIA, AGRICULTURA)"
-            value={type}
-            onChange={(e) => setType(e.target.value)}
-            className={inputClass}
-          />
-          <input
-            type="number"
-            step="0.01"
-            aria-label="Área (ha)"
-            placeholder="Área (ha)"
-            value={areaHa}
-            onChange={(e) => setAreaHa(e.target.value)}
-            className={inputClass}
-          />
+          <div>
+            <label htmlFor={`${formId}-name`} className={fieldLabelClass}>
+              Nome
+            </label>
+            <input
+              id={`${formId}-name`}
+              required
+              maxLength={150}
+              placeholder="Ex.: Gado de leite, Milho safra"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-type`} className={fieldLabelClass}>
+              Tipo
+            </label>
+            <select id={`${formId}-type`} required value={type} onChange={(e) => setType(e.target.value)} className={inputClass}>
+              <option value="">Selecione</option>
+              {activityTypes.map((t) => (
+                <option key={t.code} value={t.code}>
+                  {t.label}
+                </option>
+              ))}
+              {type && !activityTypes.some((t) => t.code === type) && <option value={type}>{activityTypeLabel(type)}</option>}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`${formId}-area`} className={fieldLabelClass}>
+              Área (ha) <span className="font-normal text-terra/45">(opcional)</span>
+            </label>
+            <input
+              id={`${formId}-area`}
+              type="number"
+              min="0"
+              step="0.01"
+              value={areaHa}
+              onChange={(e) => setAreaHa(e.target.value)}
+              className={inputClass}
+            />
+          </div>
           <div className="flex gap-2">
             <button className={`flex-1 ${primaryButtonClass}`}>
               {editingId ? 'Salvar' : 'Adicionar'}
@@ -117,7 +151,7 @@ export function ActivitiesPage() {
         <div className="rounded-2xl border border-terra/10 bg-white p-4 shadow-sm md:col-span-2">
           <h2 className="mb-3 text-sm font-semibold text-terra">Atividades cadastradas</h2>
           {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-terra/50">
@@ -131,8 +165,8 @@ export function ActivitiesPage() {
                 {activities.map((a) => (
                   <tr key={a.id} className="border-t border-terra/5">
                     <td className="py-2">{a.name}</td>
-                    <td className="py-2 text-terra/50">{a.type}</td>
-                    <td className="py-2 text-right">{a.areaHa ?? '-'}</td>
+                    <td className="py-2 text-terra/60">{activityTypeLabel(a.type)}</td>
+                    <td className="py-2 text-right tabular-nums">{a.areaHa != null ? formatNumber(a.areaHa) : '—'}</td>
                     <td className="py-2 text-right whitespace-nowrap">
                       <button onClick={() => startEdit(a)} className={linkNeutralClass}>
                         Editar
@@ -146,7 +180,7 @@ export function ActivitiesPage() {
                 {activities.length === 0 && !listError && (
                   <tr>
                     <td colSpan={4} className="py-4 text-center text-terra/40">
-                      Nenhuma atividade cadastrada.
+                      {loading ? 'Carregando…' : 'Nenhuma atividade cadastrada ainda.'}
                     </td>
                   </tr>
                 )}

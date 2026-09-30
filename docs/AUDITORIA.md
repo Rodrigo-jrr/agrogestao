@@ -33,19 +33,19 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
   erro genérico; falta "arquivar" (some das listas, mantém o histórico).
 - [x] **2.6 Nenhuma lista tem paginação ou busca.** Com meses de uso as telas ficam enormes e lentas.
 
-## Bloco 3 — Usabilidade e acessibilidade
+## Bloco 3 — Usabilidade e acessibilidade — concluído em 30/09
 
-- [ ] **3.1 Datas no formato técnico** ("2026-09-10") em 6 tabelas; números sem formato brasileiro
+- [x] **3.1 Datas no formato técnico** ("2026-09-10") em 6 tabelas; números sem formato brasileiro
   ("1500.5" em vez de "1.500,5").
-- [ ] **3.2 Formulários sem rótulo:** 8 telas usam só o texto de exemplo (placeholder) como rótulo; ele some
+- [x] **3.2 Formulários sem rótulo:** 8 telas usam só o texto de exemplo (placeholder) como rótulo; ele some
   ao digitar e leitores de tela não o anunciam.
-- [ ] **3.3 Sem indicação de carregamento** nas telas de cadastro: aparece "Nenhum registro" antes dos
+- [x] **3.3 Sem indicação de carregamento** nas telas de cadastro: aparece "Nenhum registro" antes dos
   dados chegarem.
-- [ ] **3.4 Confirmações com a janela nativa do navegador** (12 lugares). Trocar por um diálogo do app que
+- [x] **3.4 Confirmações com a janela nativa do navegador** (12 lugares). Trocar por um diálogo do app que
   explique a consequência (ex.: "o estoque será estornado").
-- [ ] **3.5 Menu no celular** abre sem fundo escurecido e não fecha ao tocar fora.
-- [ ] **3.6 Endereço inexistente** volta para o início sem aviso (falta página "não encontrada").
-- [ ] **3.7 Revisão responsiva tela a tela** (depois dos itens acima).
+- [x] **3.5 Menu no celular** abre sem fundo escurecido e não fecha ao tocar fora.
+- [x] **3.6 Endereço inexistente** volta para o início sem aviso (falta página "não encontrada").
+- [x] **3.7 Revisão responsiva tela a tela** (depois dos itens acima).
 
 ## Bloco 4 — Conta, equipe e controle
 

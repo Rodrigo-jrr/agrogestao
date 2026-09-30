@@ -13,3 +13,6 @@ export const outlineButtonClass =
 export const linkNeutralClass = 'text-terra/60 hover:text-terra hover:underline'
 
 export const linkDangerClass = 'text-rust font-medium hover:underline'
+
+/** Rótulo visível acima de um campo de formulário. */
+export const fieldLabelClass = 'mb-1 block text-xs font-medium text-terra/70'

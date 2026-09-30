@@ -15,12 +15,13 @@ import type {
   TransactionType,
 } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
+import { fieldLabelClass, inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
 import { formatCurrency, formatDate, todayIso } from '../lib/format'
 import { Pagination } from '../components/Pagination'
 import { usePaged } from '../lib/usePaged'
 import { useDebounced } from '../lib/useDebounced'
+import { useConfirm } from '../components/ConfirmDialog'
 
 type Tab = 'cashFlow' | 'transactions' | 'payables' | 'receivables' | 'costCenters'
 
@@ -91,7 +92,7 @@ export function FinancePage() {
       <h1 className="font-serif text-2xl font-semibold text-terra">Financeiro</h1>
       {listError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
 
-      <div className="flex gap-2 border-b border-terra/10">
+      <div role="tablist" aria-label="Seções do financeiro" className="flex gap-2 overflow-x-auto border-b border-terra/10">
         {(
           [
             ['transactions', 'Lançamentos'],
@@ -103,8 +104,10 @@ export function FinancePage() {
         ).map(([key, label]) => (
           <button
             key={key}
+            role="tab"
+            aria-selected={tab === key}
             onClick={() => setTab(key)}
-            className={`px-3 py-2 text-sm font-medium ${
+            className={`shrink-0 cursor-pointer px-3 py-2 text-sm font-medium whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rust ${
               tab === key ? 'border-b-2 border-rust text-rust' : 'text-terra/50'
             }`}
           >
@@ -249,8 +252,19 @@ function TransactionsTab({
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir este lançamento?')) return
+    const transaction = transactions.find((t) => t.id === id)
+    const ok = await confirm({
+      title: 'Excluir lançamento?',
+      message: transaction
+        ? `"${transaction.description}" (${formatCurrency(transaction.amount)}, ${formatDate(transaction.transactionDate)}) sai do caixa e dos relatórios. Não dá para desfazer.`
+        : 'O lançamento sai do caixa e dos relatórios. Não dá para desfazer.',
+      confirmLabel: 'Excluir lançamento',
+    })
+    if (!ok) return
     try {
       await financeApi.removeTransaction(id)
       if (editingId === id) cancelEdit()
@@ -265,49 +279,77 @@ function TransactionsTab({
       <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar lançamento' : 'Novo lançamento'}</h2>
         {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-        <select
-          aria-label="Tipo"
-          value={type}
-          onChange={(e) => setType(e.target.value as TransactionType)}
-          className={inputClass}
-        >
-          <option value="EXPENSE">Despesa</option>
-          <option value="INCOME">Receita</option>
-        </select>
-        <input
-          required
-          aria-label="Descrição"
-          placeholder="Descrição"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="number"
-          step="0.01"
-          aria-label="Valor"
-          placeholder="Valor"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="date"
-          aria-label="Data"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className={inputClass}
-        />
-        <select aria-label="Centro de custo" value={costCenterId} onChange={(e) => setCostCenterId(e.target.value)} className={inputClass}>
-          <option value="">Centro de custo (opcional)</option>
-          {costCenters.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label htmlFor={`${formId}-tipo`} className={fieldLabelClass}>
+            Tipo
+          </label>
+          <select
+            id={`${formId}-tipo`}
+            value={type}
+            onChange={(e) => setType(e.target.value as TransactionType)}
+            className={inputClass}
+          >
+            <option value="EXPENSE">Despesa</option>
+            <option value="INCOME">Receita</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`${formId}-descricao`} className={fieldLabelClass}>
+            Descrição
+          </label>
+          <input
+            required
+            id={`${formId}-descricao`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-valor`} className={fieldLabelClass}>
+            Valor
+          </label>
+          <input
+            required
+            type="number"
+            step="0.01"
+            id={`${formId}-valor`}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-data`} className={fieldLabelClass}>
+            Data
+          </label>
+          <input
+            required
+            type="date"
+            id={`${formId}-data`}
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-centro-de-custo`} className={fieldLabelClass}>
+            Centro de custo <span className="font-normal text-terra/45">(opcional)</span>
+          </label>
+          <select
+            id={`${formId}-centro-de-custo`}
+            value={costCenterId}
+            onChange={(e) => setCostCenterId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Nenhum</option>
+            {costCenters.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex gap-2">
           <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
@@ -340,7 +382,7 @@ function TransactionsTab({
             </div>
           </dl>
         </div>
-        <div className="overflow-x-auto">
+        <div className="relative overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-terra/50">
@@ -447,8 +489,17 @@ function PayablesTab({
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir esta conta a pagar?')) return
+    const payable = payables.find((p) => p.id === id)
+    const ok = await confirm({
+      title: 'Excluir conta a pagar?',
+      message: `${payable ? `"${payable.description}" (${formatCurrency(payable.amount)})` : 'A conta'} deixa de aparecer em "A pagar" e no fluxo de caixa previsto. Não dá para desfazer.`,
+      confirmLabel: 'Excluir conta',
+    })
+    if (!ok) return
     try {
       await financeApi.removePayable(id)
       if (editingId === id) cancelEdit()
@@ -473,37 +524,64 @@ function PayablesTab({
       <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar conta a pagar' : 'Nova conta a pagar'}</h2>
         {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-        <input
-          required
-          placeholder="Descrição"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="number"
-          step="0.01"
-          placeholder="Valor"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className={inputClass}
-        />
-        <select value={supplierId} onChange={(e) => setSupplierId(e.target.value)} className={inputClass}>
-          <option value="">Fornecedor (opcional)</option>
-          {suppliers.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label htmlFor={`${formId}-descricao`} className={fieldLabelClass}>
+            Descrição
+          </label>
+          <input
+            required
+            id={`${formId}-descricao`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-valor`} className={fieldLabelClass}>
+            Valor
+          </label>
+          <input
+            required
+            type="number"
+            step="0.01"
+            min="0.01"
+            id={`${formId}-valor`}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-vencimento`} className={fieldLabelClass}>
+            Vencimento
+          </label>
+          <input
+            required
+            type="date"
+            id={`${formId}-vencimento`}
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-fornecedor`} className={fieldLabelClass}>
+            Fornecedor <span className="font-normal text-terra/45">(opcional)</span>
+          </label>
+          <select
+            id={`${formId}-fornecedor`}
+            value={supplierId}
+            onChange={(e) => setSupplierId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Nenhum</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex gap-2">
           <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
@@ -626,8 +704,17 @@ function ReceivablesTab({
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir esta conta a receber?')) return
+    const receivable = receivables.find((r) => r.id === id)
+    const ok = await confirm({
+      title: 'Excluir conta a receber?',
+      message: `${receivable ? `"${receivable.description}" (${formatCurrency(receivable.amount)})` : 'A conta'} deixa de aparecer em "A receber" e no fluxo de caixa previsto. Não dá para desfazer.`,
+      confirmLabel: 'Excluir conta',
+    })
+    if (!ok) return
     try {
       await financeApi.removeReceivable(id)
       if (editingId === id) cancelEdit()
@@ -654,37 +741,64 @@ function ReceivablesTab({
           {editingId ? 'Editar conta a receber' : 'Nova conta a receber'}
         </h2>
         {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-        <input
-          required
-          placeholder="Descrição"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="number"
-          step="0.01"
-          placeholder="Valor"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="date"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-          className={inputClass}
-        />
-        <select value={customerId} onChange={(e) => setCustomerId(e.target.value)} className={inputClass}>
-          <option value="">Cliente (opcional)</option>
-          {customers.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label htmlFor={`${formId}-descricao`} className={fieldLabelClass}>
+            Descrição
+          </label>
+          <input
+            required
+            id={`${formId}-descricao`}
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-valor`} className={fieldLabelClass}>
+            Valor
+          </label>
+          <input
+            required
+            type="number"
+            step="0.01"
+            min="0.01"
+            id={`${formId}-valor`}
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-vencimento`} className={fieldLabelClass}>
+            Vencimento
+          </label>
+          <input
+            required
+            type="date"
+            id={`${formId}-vencimento`}
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-cliente`} className={fieldLabelClass}>
+            Cliente <span className="font-normal text-terra/45">(opcional)</span>
+          </label>
+          <select
+            id={`${formId}-cliente`}
+            value={customerId}
+            onChange={(e) => setCustomerId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Nenhum</option>
+            {customers.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex gap-2">
           <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
@@ -791,8 +905,17 @@ function CostCentersTab({
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir este centro de custo?')) return
+    const costCenter = costCenters.find((c) => c.id === id)
+    const ok = await confirm({
+      title: `Excluir o centro de custo ${costCenter?.name ?? ''}?`,
+      message: 'Se houver lançamentos ligados a ele, a exclusão será recusada. Não dá para desfazer.',
+      confirmLabel: 'Excluir centro de custo',
+    })
+    if (!ok) return
     try {
       await financeApi.removeCostCenter(id)
       if (editingId === id) cancelEdit()
@@ -809,21 +932,38 @@ function CostCentersTab({
           {editingId ? 'Editar centro de custo' : 'Novo centro de custo'}
         </h2>
         {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-        <input
-          required
-          placeholder="Nome (ex: Pecuária, Leite, Administrativo)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={inputClass}
-        />
-        <select value={activityId} onChange={(e) => setActivityId(e.target.value)} className={inputClass}>
-          <option value="">Atividade vinculada (opcional)</option>
-          {activities.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
+        <div>
+          <label htmlFor={`${formId}-nome`} className={fieldLabelClass}>
+            Nome
+          </label>
+          <input
+            required
+            id={`${formId}-nome`}
+            maxLength={150}
+            placeholder="Ex.: Pecuária, Leite, Administrativo"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor={`${formId}-atividade-vinculada`} className={fieldLabelClass}>
+            Atividade vinculada <span className="font-normal text-terra/45">(opcional)</span>
+          </label>
+          <select
+            id={`${formId}-atividade-vinculada`}
+            value={activityId}
+            onChange={(e) => setActivityId(e.target.value)}
+            className={inputClass}
+          >
+            <option value="">Nenhum</option>
+            {activities.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.name}
+              </option>
+            ))}
+          </select>
+        </div>
         <div className="flex gap-2">
           <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
@@ -951,7 +1091,7 @@ function CashFlowTab() {
                 <span className="inline-block h-2.5 w-2.5 rounded-sm bg-terra/15" /> Em aberto (previsto)
               </span>
             </div>
-            <div className="overflow-x-auto">
+            <div className="relative overflow-x-auto">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="text-left text-terra/50">

@@ -7,6 +7,7 @@ import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, prim
 import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
 import { Pagination } from '../components/Pagination'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../lib/format'
+import { useConfirm } from '../components/ConfirmDialog'
 
 const labelClass = 'mb-1 block text-xs font-medium text-terra/70'
 const cardClass = 'rounded-2xl border border-terra/10 bg-white p-4 shadow-sm'
@@ -68,6 +69,8 @@ export function InventoryPage() {
       setListError(apiErrorMessage(err))
     }
   }
+
+  const confirm = useConfirm()
 
   function showHistory(productId: number) {
     setHistoryProductId(String(productId))
@@ -137,9 +140,13 @@ export function InventoryPage() {
             onHistory={showHistory}
             onArchive={(p) => runAction(() => inventoryApi.archiveProduct(p.id))}
             onUnarchive={(p) => runAction(() => inventoryApi.unarchiveProduct(p.id))}
-            onDelete={(p) => {
-              if (!window.confirm(`Excluir o produto ${p.name}? Esta ação não pode ser desfeita.`)) return
-              runAction(() => inventoryApi.removeProduct(p.id))
+            onDelete={async (p) => {
+              const ok = await confirm({
+                title: `Excluir o produto ${p.name}?`,
+                message: 'Não dá para desfazer. Se o produto já teve entradas ou saídas, use "Arquivar": ele some das listas e o histórico fica guardado.',
+                confirmLabel: 'Excluir produto',
+              })
+              if (ok) runAction(() => inventoryApi.removeProduct(p.id))
             }}
           />
         </section>
@@ -431,7 +438,7 @@ function ProductTable({
   if (loading) return <p className="py-6 text-center text-sm text-terra/50">Carregando produtos…</p>
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto">
       <table className="w-full min-w-[640px] text-sm">
         <thead>
           <tr className="text-left text-xs text-terra/55">
@@ -582,7 +589,7 @@ function MovementHistory({
           {error}
         </p>
       )}
-      <div className="overflow-x-auto" aria-busy={loading}>
+      <div className="relative overflow-x-auto" aria-busy={loading}>
         <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="text-left text-xs text-terra/55">

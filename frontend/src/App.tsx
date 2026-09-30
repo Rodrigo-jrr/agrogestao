@@ -1,6 +1,7 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AuthProvider, useAuth } from './auth/AuthContext'
 import { PropertyProvider } from './property/PropertyContext'
+import { ConfirmProvider } from './components/ConfirmDialog'
 import { ProtectedRoute, RequirePropertyRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 import { LoginPage } from './pages/LoginPage'
@@ -18,6 +19,7 @@ import { AdminPage } from './pages/AdminPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { VerifyEmailPage } from './pages/VerifyEmailPage'
+import { NotFoundPage } from './pages/NotFoundPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -28,6 +30,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
+        <ConfirmProvider>
         <PropertyProvider>
           <Routes>
             <Route path="/" element={<RootRedirect />} />
@@ -55,9 +58,10 @@ export default function App() {
               </Route>
             </Route>
 
-            <Route path="*" element={<Navigate to="/" replace />} />
+            <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </PropertyProvider>
+        </ConfirmProvider>
       </AuthProvider>
     </BrowserRouter>
   )

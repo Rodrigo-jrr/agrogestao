@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from './Logo'
@@ -25,11 +25,31 @@ export function Layout() {
   const { properties, currentProperty, selectProperty, refresh } = useProperty()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showNewProperty, setShowNewProperty] = useState(false)
+  const location = useLocation()
+
+  // No celular o menu é uma gaveta: fecha ao navegar e com Esc.
+  useEffect(() => setMenuOpen(false), [location.pathname])
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setMenuOpen(false)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [menuOpen])
 
   return (
     <div className="flex min-h-screen bg-terreiro font-sans">
       {/* Altura da tela inteira e fixa na rolagem: o rodapé da barra (usuário, propriedade, admin) fica sempre visível. */}
+      {menuOpen && (
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={() => setMenuOpen(false)}
+          className="fixed inset-0 z-10 cursor-default bg-terra/40 md:hidden"
+        />
+      )}
       <aside
+        id="app-sidebar"
+        aria-label="Menu principal"
         className={`${menuOpen ? 'flex' : 'hidden'} fixed inset-y-0 left-0 z-20 w-64 flex-col bg-mata md:sticky md:top-0 md:flex md:h-screen md:shrink-0`}
       >
         <div className="px-4 py-5">
@@ -65,13 +85,17 @@ export function Layout() {
         </div>
       </aside>
 
-      <div className="flex flex-1 flex-col">
+      {/* min-w-0: sem isso, tabelas largas esticam a coluna em vez de rolar dentro do próprio card. */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-terra/10 bg-terreiro px-4 py-3">
           <button
+            type="button"
+            aria-expanded={menuOpen}
+            aria-controls="app-sidebar"
             className={`${outlineButtonClass} md:hidden`}
             onClick={() => setMenuOpen((v) => !v)}
           >
-            Menu
+            {menuOpen ? 'Fechar' : 'Menu'}
           </button>
 
           <select

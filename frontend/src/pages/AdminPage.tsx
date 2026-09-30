@@ -183,7 +183,7 @@ export function AdminPage() {
                 </div>
               </div>
 
-              <div id="admin-panel" role="tabpanel" className="overflow-x-auto">
+              <div id="admin-panel" role="tabpanel" className="relative overflow-x-auto">
                 {tab === 'organizations' ? (
                   <OrganizationsTable rows={organizations} query={query} />
                 ) : (

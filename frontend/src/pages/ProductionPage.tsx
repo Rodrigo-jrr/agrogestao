@@ -3,10 +3,11 @@ import { activitiesApi, productionApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Activity, ProductionRecord } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
+import { fieldLabelClass, inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 import { Pagination } from '../components/Pagination'
 import { formatDate, formatNumber, todayIso as today } from '../lib/format'
 import { useDebounced } from '../lib/useDebounced'
+import { useConfirm } from '../components/ConfirmDialog'
 
 export function ProductionPage() {
   const { currentProperty } = useProperty()
@@ -94,8 +95,19 @@ export function ProductionPage() {
     }
   }
 
+  const formId = useId()
+  const confirm = useConfirm()
+
   async function handleDelete(id: number) {
-    if (!window.confirm('Excluir este registro de produção?')) return
+    const record = records.find((r) => r.id === id)
+    const ok = await confirm({
+      title: 'Excluir registro de produção?',
+      message: record
+        ? `${formatNumber(record.quantity)} ${record.unit} de ${record.productName} em ${formatDate(record.productionDate)} saem do histórico e do dashboard. Não dá para desfazer.`
+        : 'O registro sai do histórico e do dashboard. Não dá para desfazer.',
+      confirmLabel: 'Excluir registro',
+    })
+    if (!ok) return
     try {
       await productionApi.remove(id)
       if (editingId === id) cancelEdit()
@@ -115,56 +127,81 @@ export function ProductionPage() {
         <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
           <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar registro' : 'Novo registro'}</h2>
           {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-          <input
-            required
-            aria-label="Produto"
-            placeholder="Produto (ex: Leite, Ovos, Milho)"
-            value={productName}
-            onChange={(e) => setProductName(e.target.value)}
-            className={inputClass}
-          />
-          <div className="flex gap-2">
+          <div>
+            <label htmlFor={`${formId}-produto`} className={fieldLabelClass}>
+              Produto
+            </label>
             <input
               required
-              type="number"
-              step="0.001"
-              min="0.001"
-              aria-label="Quantidade"
-              placeholder="Quantidade"
-              value={quantity}
-              onChange={(e) => setQuantity(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              required
-              aria-label="Unidade"
-              placeholder="Unidade"
-              value={unit}
-              onChange={(e) => setUnit(e.target.value)}
+              id={`${formId}-produto`}
+              placeholder="Ex.: Leite, Ovos, Milho"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
               className={inputClass}
             />
           </div>
-          <input
-            required
-            type="date"
-            aria-label="Data"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className={inputClass}
-          />
-          <select
-            aria-label="Atividade"
-            value={activityId}
-            onChange={(e) => setActivityId(e.target.value)}
-            className={inputClass}
-          >
-            <option value="">Atividade (opcional)</option>
-            {activities.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.name}
-              </option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label htmlFor={`${formId}-quantidade`} className={fieldLabelClass}>
+                Quantidade
+              </label>
+              <input
+                required
+                type="number"
+                step="0.001"
+                min="0.001"
+                id={`${formId}-quantidade`}
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label htmlFor={`${formId}-unidade`} className={fieldLabelClass}>
+                Unidade
+              </label>
+              <input
+                required
+                id={`${formId}-unidade`}
+                maxLength={20}
+                placeholder="kg, L, dz"
+                value={unit}
+                onChange={(e) => setUnit(e.target.value)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+          <div>
+            <label htmlFor={`${formId}-data`} className={fieldLabelClass}>
+              Data
+            </label>
+            <input
+              required
+              type="date"
+              id={`${formId}-data`}
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor={`${formId}-atividade`} className={fieldLabelClass}>
+              Atividade <span className="font-normal text-terra/45">(opcional)</span>
+            </label>
+            <select
+              id={`${formId}-atividade`}
+              value={activityId}
+              onChange={(e) => setActivityId(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">Nenhuma</option>
+              {activities.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.name}
+                </option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-2">
             <button className={`flex-1 ${primaryButtonClass}`}>
               {editingId ? 'Salvar' : 'Registrar'}
@@ -193,7 +230,7 @@ export function ProductionPage() {
             />
           </div>
           {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
-          <div className="overflow-x-auto">
+          <div className="relative overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-terra/50">
