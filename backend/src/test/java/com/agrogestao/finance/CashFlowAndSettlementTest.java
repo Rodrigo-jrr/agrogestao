@@ -85,6 +85,8 @@ class CashFlowAndSettlementTest extends ApiTestSupport {
     }
 
     private JsonNode allTransactions() throws Exception {
-        return get("/api/finance/transactions?from=2000-01-01&to=2100-12-31", owner);
+        // Baixas são lançadas na data de hoje.
+        java.time.LocalDate today = java.time.LocalDate.now();
+        return get("/api/finance/transactions?from=" + today.minusYears(1) + "&to=" + today.plusYears(1), owner);
     }
 }

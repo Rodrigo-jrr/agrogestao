@@ -1,5 +1,6 @@
 package com.agrogestao.finance;
 
+import com.agrogestao.common.Period;
 import com.agrogestao.finance.dto.AccountPayableRequest;
 import com.agrogestao.finance.dto.AccountPayableResponse;
 import com.agrogestao.finance.dto.AccountReceivableRequest;
@@ -12,7 +13,6 @@ import com.agrogestao.finance.dto.FinancialTransactionResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.time.YearMonth;
-import java.time.temporal.TemporalAdjusters;
 import java.util.List;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -54,9 +54,8 @@ public class FinanceController {
     public List<FinancialTransactionResponse> listTransactions(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        LocalDate effectiveFrom = from != null ? from : LocalDate.now().with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate effectiveTo = to != null ? to : LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
-        return financialTransactionService.list(effectiveFrom, effectiveTo);
+        Period period = Period.resolve(from, to);
+        return financialTransactionService.list(period.from(), period.to());
     }
 
     @PostMapping("/transactions")

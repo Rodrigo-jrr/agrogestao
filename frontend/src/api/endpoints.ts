@@ -199,5 +199,6 @@ export const productionApi = {
 }
 
 export const dashboardApi = {
-  summary: () => apiClient.get<DashboardSummary>('/dashboard/summary').then((r) => r.data),
+  summary: (from?: string, to?: string) =>
+    apiClient.get<DashboardSummary>('/dashboard/summary', { params: { from, to } }).then((r) => r.data),
 }

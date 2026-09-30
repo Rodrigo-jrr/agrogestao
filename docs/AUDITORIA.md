@@ -22,9 +22,9 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 
 ## Bloco 2 — Funcionalidades essenciais do dia a dia
 
-- [ ] **2.1 Lançamentos presos no mês atual.** A tela do Financeiro não tem filtro de período: não dá para
+- [x] **2.1 Lançamentos presos no mês atual.** A tela do Financeiro não tem filtro de período: não dá para
   ver os lançamentos do mês passado.
-- [ ] **2.2 Dashboard fixo no mês atual**, sem escolher período.
+- [x] **2.2 Dashboard fixo no mês atual**, sem escolher período.
 - [ ] **2.3 Estoque sem histórico e sem valor.** O histórico de entradas/saídas existe na API mas não aparece
   na tela; o custo médio (`average_cost`) nunca é calculado, então não há "valor do estoque".
 - [ ] **2.4 Compras e vendas só à vista.** Toda compra/venda vira lançamento pago na hora; falta "a prazo"

@@ -1,5 +1,6 @@
 package com.agrogestao.dashboard;
 
+import com.agrogestao.common.Period;
 import com.agrogestao.dashboard.dto.DashboardSummaryResponse;
 import com.agrogestao.dashboard.dto.ProductionSummaryItem;
 import com.agrogestao.finance.FinancialTransactionRepository;
@@ -10,7 +11,6 @@ import com.agrogestao.production.ProductionRecordRepository;
 import com.agrogestao.properties.TenantContext;
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.temporal.TemporalAdjusters;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,10 +35,10 @@ public class DashboardService {
         this.tenantContext = tenantContext;
     }
 
-    public DashboardSummaryResponse summary() {
+    public DashboardSummaryResponse summary(Period period) {
         Long propertyId = tenantContext.requirePropertyId();
-        LocalDate from = LocalDate.now().with(TemporalAdjusters.firstDayOfMonth());
-        LocalDate to = LocalDate.now().with(TemporalAdjusters.lastDayOfMonth());
+        LocalDate from = period.from();
+        LocalDate to = period.to();
 
         BigDecimal income = financialTransactionRepository
                 .sumByPropertyIdAndTypeAndPeriod(propertyId, TransactionType.INCOME, from, to);

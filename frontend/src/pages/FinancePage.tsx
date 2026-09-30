@@ -14,12 +14,10 @@ import type {
 } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
+import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
+import { formatCurrency, formatDate, todayIso } from '../lib/format'
 
 type Tab = 'cashFlow' | 'transactions' | 'payables' | 'receivables' | 'costCenters'
-
-function formatCurrency(value: number) {
-  return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-}
 
 export function FinancePage() {
   const { currentProperty } = useProperty()
@@ -33,10 +31,18 @@ export function FinancePage() {
   const [customers, setCustomers] = useState<Customer[]>([])
   const [activities, setActivities] = useState<Activity[]>([])
   const [listError, setListError] = useState<string | null>(null)
+  const [period, setPeriod] = useState<Period>(() => presetPeriod('thisMonth'))
+
+  function loadTransactions() {
+    financeApi
+      .listTransactions(period.from, period.to)
+      .then(setTransactions)
+      .catch((err) => setListError(apiErrorMessage(err)))
+  }
 
   function loadAll() {
     setListError(null)
-    financeApi.listTransactions().then(setTransactions).catch((err) => setListError(apiErrorMessage(err)))
+    loadTransactions()
     financeApi.listPayables().then(setPayables).catch((err) => setListError(apiErrorMessage(err)))
     financeApi.listReceivables().then(setReceivables).catch((err) => setListError(apiErrorMessage(err)))
     financeApi.listCostCenters().then(setCostCenters).catch((err) => setListError(apiErrorMessage(err)))
@@ -47,7 +53,13 @@ export function FinancePage() {
 
   useEffect(() => {
     if (currentProperty) loadAll()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentProperty])
+
+  useEffect(() => {
+    if (currentProperty) loadTransactions()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period])
 
   return (
     <div className="space-y-4">
@@ -79,7 +91,13 @@ export function FinancePage() {
       {tab === 'cashFlow' && <CashFlowTab />}
 
       {tab === 'transactions' && (
-        <TransactionsTab transactions={transactions} costCenters={costCenters} onChanged={loadAll} />
+        <TransactionsTab
+          transactions={transactions}
+          costCenters={costCenters}
+          period={period}
+          onPeriodChange={setPeriod}
+          onChanged={loadAll}
+        />
       )}
       {tab === 'payables' && (
         <PayablesTab payables={payables} suppliers={suppliers} onChanged={loadAll} />
@@ -97,18 +115,24 @@ export function FinancePage() {
 function TransactionsTab({
   transactions,
   costCenters,
+  period,
+  onPeriodChange,
   onChanged,
 }: {
   transactions: FinancialTransaction[]
   costCenters: CostCenter[]
+  period: Period
+  onPeriodChange: (period: Period) => void
   onChanged: () => void
 }) {
+  const income = transactions.filter((t) => t.type === 'INCOME').reduce((sum, t) => sum + t.amount, 0)
+  const expense = transactions.filter((t) => t.type === 'EXPENSE').reduce((sum, t) => sum + t.amount, 0)
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [type, setType] = useState<TransactionType>('EXPENSE')
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [date, setDate] = useState(todayIso)
   const [costCenterId, setCostCenterId] = useState('')
 
   function startEdit(t: FinancialTransaction) {
@@ -223,7 +247,26 @@ function TransactionsTab({
       </form>
 
       <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
-        <h2 className="mb-3 text-sm font-semibold text-terra">Lançamentos do mês</h2>
+        <div className="mb-3 space-y-3">
+          <h2 className="text-sm font-semibold text-terra">Lançamentos do período</h2>
+          <PeriodFilter value={period} onChange={onPeriodChange} />
+          <dl className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
+            <div className="flex gap-1.5">
+              <dt className="text-terra/55">Receitas</dt>
+              <dd className="font-medium text-mata">{formatCurrency(income)}</dd>
+            </div>
+            <div className="flex gap-1.5">
+              <dt className="text-terra/55">Despesas</dt>
+              <dd className="font-medium text-rust">{formatCurrency(expense)}</dd>
+            </div>
+            <div className="flex gap-1.5">
+              <dt className="text-terra/55">Resultado</dt>
+              <dd className={`font-semibold ${income - expense < 0 ? 'text-rust' : 'text-terra'}`}>
+                {formatCurrency(income - expense)}
+              </dd>
+            </div>
+          </dl>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -238,7 +281,7 @@ function TransactionsTab({
             <tbody>
               {transactions.map((t) => (
                 <tr key={t.id} className="border-t border-terra/5">
-                  <td className="py-2 text-terra/50">{t.transactionDate}</td>
+                  <td className="py-2 whitespace-nowrap text-terra/50">{formatDate(t.transactionDate)}</td>
                   <td className="py-2">{t.description}</td>
                   <td className="py-2">{t.type === 'INCOME' ? 'Receita' : 'Despesa'}</td>
                   <td className={`py-2 text-right ${t.type === 'INCOME' ? 'text-mata' : 'text-rust'}`}>
@@ -282,7 +325,7 @@ function PayablesTab({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [dueDate, setDueDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dueDate, setDueDate] = useState(todayIso)
   const [supplierId, setSupplierId] = useState('')
 
   function startEdit(p: AccountPayable) {
@@ -405,7 +448,7 @@ function PayablesTab({
           <tbody>
             {payables.map((p) => (
               <tr key={p.id} className="border-t border-terra/5">
-                <td className="py-2 text-terra/50">{p.dueDate}</td>
+                <td className="py-2 whitespace-nowrap text-terra/50">{formatDate(p.dueDate)}</td>
                 <td className="py-2">{p.description}</td>
                 <td className="py-2 text-right">{formatCurrency(p.amount)}</td>
                 <td className="py-2 text-right">{p.paid ? 'Pago' : 'Pendente'}</td>
@@ -451,7 +494,7 @@ function ReceivablesTab({
   const [editingId, setEditingId] = useState<number | null>(null)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
-  const [dueDate, setDueDate] = useState(() => new Date().toISOString().slice(0, 10))
+  const [dueDate, setDueDate] = useState(todayIso)
   const [customerId, setCustomerId] = useState('')
 
   function startEdit(r: AccountReceivable) {
@@ -576,7 +619,7 @@ function ReceivablesTab({
           <tbody>
             {receivables.map((r) => (
               <tr key={r.id} className="border-t border-terra/5">
-                <td className="py-2 text-terra/50">{r.dueDate}</td>
+                <td className="py-2 whitespace-nowrap text-terra/50">{formatDate(r.dueDate)}</td>
                 <td className="py-2">{r.description}</td>
                 <td className="py-2 text-right">{formatCurrency(r.amount)}</td>
                 <td className="py-2 text-right">{r.received ? 'Recebido' : 'Pendente'}</td>
