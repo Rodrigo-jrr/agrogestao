@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthContext'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from './Logo'
 import { NewPropertyModal } from './NewPropertyModal'
+import { outlineButtonClass } from './ui'
 
 const coreNav = [
   { to: '/dashboard', label: 'Dashboard' },
@@ -19,7 +20,7 @@ const coreNav = [
 const comingSoonNav = ['Pecuária', 'Agricultura']
 
 export function Layout() {
-  const { user, logout } = useAuth()
+  const { user, logout, isPlatformAdmin } = useAuth()
   const { properties, currentProperty, selectProperty, refresh } = useProperty()
   const [menuOpen, setMenuOpen] = useState(false)
   const [showNewProperty, setShowNewProperty] = useState(false)
@@ -59,13 +60,21 @@ export function Layout() {
         <div className="absolute bottom-0 w-64 border-t border-terreiro/10 px-4 py-4">
           <p className="text-sm font-medium text-terreiro">{user?.name}</p>
           <p className="text-xs text-terreiro/50">{currentProperty?.name}</p>
+          {isPlatformAdmin && (
+            <NavLink
+              to="/admin"
+              className="mt-2 inline-block rounded-full border border-trigo/60 px-2.5 py-0.5 text-xs font-medium text-trigo hover:bg-trigo/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-trigo"
+            >
+              Administração da plataforma
+            </NavLink>
+          )}
         </div>
       </aside>
 
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-terra/10 bg-terreiro px-4 py-3">
           <button
-            className="rounded-md border border-terra/15 px-3 py-1.5 text-sm md:hidden"
+            className={`${outlineButtonClass} md:hidden`}
             onClick={() => setMenuOpen((v) => !v)}
           >
             Menu
@@ -94,7 +103,7 @@ export function Layout() {
             <span className="hidden sm:inline">{user?.name}</span>
             <button
               onClick={logout}
-              className="rounded-md border border-terra/15 px-3 py-1.5 hover:bg-terra/5"
+              className={outlineButtonClass}
             >
               Sair
             </button>

@@ -14,6 +14,7 @@ import { PurchasesPage } from './pages/PurchasesPage'
 import { SalesPage } from './pages/SalesPage'
 import { ActivitiesPage } from './pages/ActivitiesPage'
 import { MembersPage } from './pages/MembersPage'
+import { AdminPage } from './pages/AdminPage'
 
 function RootRedirect() {
   const { isAuthenticated } = useAuth()
@@ -32,6 +33,7 @@ export default function App() {
 
             <Route element={<ProtectedRoute />}>
               <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/admin" element={<AdminPage />} />
 
               <Route element={<RequirePropertyRoute />}>
                 <Route element={<Layout />}>

@@ -4,6 +4,7 @@ import { onboardingApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import { useProperty } from '../property/PropertyContext'
 import { Logo } from '../components/Logo'
+import { inputClass, primaryButtonClass } from '../components/ui'
 
 interface ActivityRow {
   name: string
@@ -79,42 +80,46 @@ export function OnboardingPage() {
 
         {error && <p className="mb-4 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
 
-        <label className="mb-1 block text-sm font-medium text-terra">Nome da conta/organização</label>
+        <label htmlFor="onboarding-org-name" className="mb-1 block text-sm font-medium text-terra">Nome da conta/organização</label>
         <input
+          id="onboarding-org-name"
           required
           value={organizationName}
           onChange={(e) => setOrganizationName(e.target.value)}
-          className="mb-4 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-4 ${inputClass}`}
         />
 
-        <label className="mb-1 block text-sm font-medium text-terra">Nome da propriedade</label>
+        <label htmlFor="onboarding-property-name" className="mb-1 block text-sm font-medium text-terra">Nome da propriedade</label>
         <input
+          id="onboarding-property-name"
           required
           placeholder="Ex: Fazenda Vista Alegre"
           value={propertyName}
           onChange={(e) => setPropertyName(e.target.value)}
-          className="mb-4 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-4 ${inputClass}`}
         />
 
         <div className="mb-4 grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-terra">Localização</label>
+            <label htmlFor="onboarding-location" className="mb-1 block text-sm font-medium text-terra">Localização</label>
             <input
+              id="onboarding-location"
               placeholder="Cidade, Estado"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
-              className="w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-terra">Área total (ha)</label>
+            <label htmlFor="onboarding-area" className="mb-1 block text-sm font-medium text-terra">Área total (ha)</label>
             <input
+              id="onboarding-area"
               type="number"
               step="0.01"
               placeholder="0"
               value={totalAreaHa}
               onChange={(e) => setTotalAreaHa(e.target.value)}
-              className="w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={inputClass}
             />
           </div>
         </div>
@@ -164,7 +169,7 @@ export function OnboardingPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-rust px-3 py-2.5 text-sm font-semibold text-terreiro hover:bg-rust-dark disabled:opacity-60"
+          className={`w-full ${primaryButtonClass}`}
         >
           {loading ? 'Criando...' : 'Continuar'}
         </button>

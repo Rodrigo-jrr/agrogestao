@@ -13,15 +13,13 @@ import type {
   TransactionType,
 } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
+import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 
 type Tab = 'cashFlow' | 'transactions' | 'payables' | 'receivables' | 'costCenters'
 
 function formatCurrency(value: number) {
   return value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
 }
-
-const inputClass =
-  'w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust'
 
 export function FinancePage() {
   const { currentProperty } = useProperty()
@@ -171,12 +169,18 @@ function TransactionsTab({
       <form onSubmit={handleSubmit} className="space-y-3 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
         <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar lançamento' : 'Novo lançamento'}</h2>
         {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
-        <select value={type} onChange={(e) => setType(e.target.value as TransactionType)} className={inputClass}>
+        <select
+          aria-label="Tipo"
+          value={type}
+          onChange={(e) => setType(e.target.value as TransactionType)}
+          className={inputClass}
+        >
           <option value="EXPENSE">Despesa</option>
           <option value="INCOME">Receita</option>
         </select>
         <input
           required
+          aria-label="Descrição"
           placeholder="Descrição"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -186,13 +190,21 @@ function TransactionsTab({
           required
           type="number"
           step="0.01"
+          aria-label="Valor"
           placeholder="Valor"
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           className={inputClass}
         />
-        <input required type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
-        <select value={costCenterId} onChange={(e) => setCostCenterId(e.target.value)} className={inputClass}>
+        <input
+          required
+          type="date"
+          aria-label="Data"
+          value={date}
+          onChange={(e) => setDate(e.target.value)}
+          className={inputClass}
+        />
+        <select aria-label="Centro de custo" value={costCenterId} onChange={(e) => setCostCenterId(e.target.value)} className={inputClass}>
           <option value="">Centro de custo (opcional)</option>
           {costCenters.map((c) => (
             <option key={c.id} value={c.id}>
@@ -201,15 +213,9 @@ function TransactionsTab({
           ))}
         </select>
         <div className="flex gap-2">
-          <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            {editingId ? 'Salvar' : 'Adicionar'}
-          </button>
+          <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-            >
+            <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
               Cancelar
             </button>
           )}
@@ -218,44 +224,46 @@ function TransactionsTab({
 
       <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
         <h2 className="mb-3 text-sm font-semibold text-terra">Lançamentos do mês</h2>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="text-left text-terra/50">
-              <th className="pb-2">Data</th>
-              <th className="pb-2">Descrição</th>
-              <th className="pb-2">Tipo</th>
-              <th className="pb-2 text-right">Valor</th>
-              <th className="pb-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.map((t) => (
-              <tr key={t.id} className="border-t border-terra/5">
-                <td className="py-2 text-terra/50">{t.transactionDate}</td>
-                <td className="py-2">{t.description}</td>
-                <td className="py-2">{t.type === 'INCOME' ? 'Receita' : 'Despesa'}</td>
-                <td className={`py-2 text-right ${t.type === 'INCOME' ? 'text-mata' : 'text-rust'}`}>
-                  {formatCurrency(t.amount)}
-                </td>
-                <td className="py-2 text-right whitespace-nowrap">
-                  <button onClick={() => startEdit(t)} className="text-rust hover:underline">
-                    Editar
-                  </button>
-                  <button onClick={() => handleDelete(t.id)} className="ml-3 text-rust hover:underline">
-                    Excluir
-                  </button>
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-terra/50">
+                <th className="pb-2">Data</th>
+                <th className="pb-2">Descrição</th>
+                <th className="pb-2">Tipo</th>
+                <th className="pb-2 text-right">Valor</th>
+                <th className="pb-2" />
               </tr>
-            ))}
-            {transactions.length === 0 && (
-              <tr>
-                <td colSpan={5} className="py-4 text-center text-terra/40">
-                  Nenhum lançamento neste período.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {transactions.map((t) => (
+                <tr key={t.id} className="border-t border-terra/5">
+                  <td className="py-2 text-terra/50">{t.transactionDate}</td>
+                  <td className="py-2">{t.description}</td>
+                  <td className="py-2">{t.type === 'INCOME' ? 'Receita' : 'Despesa'}</td>
+                  <td className={`py-2 text-right ${t.type === 'INCOME' ? 'text-mata' : 'text-rust'}`}>
+                    {formatCurrency(t.amount)}
+                  </td>
+                  <td className="py-2 text-right whitespace-nowrap">
+                    <button onClick={() => startEdit(t)} className={linkNeutralClass}>
+                      Editar
+                    </button>
+                    <button onClick={() => handleDelete(t.id)} className={`ml-3 ${linkDangerClass}`}>
+                      Excluir
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {transactions.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="py-4 text-center text-terra/40">
+                    Nenhum lançamento neste período.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )
@@ -374,15 +382,9 @@ function PayablesTab({
           ))}
         </select>
         <div className="flex gap-2">
-          <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            {editingId ? 'Salvar' : 'Adicionar'}
-          </button>
+          <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-            >
+            <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
               Cancelar
             </button>
           )}
@@ -551,15 +553,9 @@ function ReceivablesTab({
           ))}
         </select>
         <div className="flex gap-2">
-          <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            {editingId ? 'Salvar' : 'Adicionar'}
-          </button>
+          <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-            >
+            <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
               Cancelar
             </button>
           )}
@@ -692,15 +688,9 @@ function CostCentersTab({
           ))}
         </select>
         <div className="flex gap-2">
-          <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            {editingId ? 'Salvar' : 'Adicionar'}
-          </button>
+          <button className={`flex-1 ${primaryButtonClass}`}>{editingId ? 'Salvar' : 'Adicionar'}</button>
           {editingId && (
-            <button
-              type="button"
-              onClick={cancelEdit}
-              className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-            >
+            <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
               Cancelar
             </button>
           )}

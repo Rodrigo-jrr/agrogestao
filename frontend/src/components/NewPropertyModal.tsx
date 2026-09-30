@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { propertiesApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
+import { inputClass, outlineButtonClass, primaryButtonClass } from './ui'
 
 interface NewPropertyModalProps {
   organizationId: number
@@ -45,46 +46,49 @@ export function NewPropertyModal({ organizationId, onClose, onCreated }: NewProp
 
         {error && <p className="mb-4 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
 
-        <label className="mb-1 block text-sm font-medium text-terra">Nome da propriedade</label>
+        <label htmlFor="new-property-name" className="mb-1 block text-sm font-medium text-terra">Nome da propriedade</label>
         <input
+          id="new-property-name"
           required
           autoFocus
           placeholder="Ex: Fazenda Vista Alegre"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          className="mb-4 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-4 ${inputClass}`}
         />
 
-        <label className="mb-1 block text-sm font-medium text-terra">Localização</label>
+        <label htmlFor="new-property-location" className="mb-1 block text-sm font-medium text-terra">Localização</label>
         <input
+          id="new-property-location"
           placeholder="Cidade, Estado"
           value={location}
           onChange={(e) => setLocation(e.target.value)}
-          className="mb-4 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-4 ${inputClass}`}
         />
 
-        <label className="mb-1 block text-sm font-medium text-terra">Área total (ha)</label>
+        <label htmlFor="new-property-area" className="mb-1 block text-sm font-medium text-terra">Área total (ha)</label>
         <input
+          id="new-property-area"
           type="number"
           step="0.01"
           min="0"
           placeholder="0"
           value={totalAreaHa}
           onChange={(e) => setTotalAreaHa(e.target.value)}
-          className="mb-6 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-6 ${inputClass}`}
         />
 
         <div className="flex gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
+            className={`flex-1 ${outlineButtonClass}`}
           >
             Cancelar
           </button>
           <button
             disabled={loading}
-            className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-semibold text-white hover:bg-rust-dark disabled:opacity-60"
+            className={`flex-1 ${primaryButtonClass}`}
           >
             {loading ? 'Criando...' : 'Criar'}
           </button>

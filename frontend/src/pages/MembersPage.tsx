@@ -3,9 +3,7 @@ import { membersApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { PropertyMemberInfo, PropertyRole } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-
-const inputClass =
-  'w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust'
+import { inputClass, linkDangerClass, primaryButtonClass } from '../components/ui'
 
 const roleLabels: Record<PropertyRole, string> = {
   OWNER: 'Proprietário',
@@ -92,12 +90,18 @@ export function MembersPage() {
             <input
               required
               type="email"
+              aria-label="E-mail da pessoa"
               placeholder="E-mail da pessoa"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className={inputClass}
             />
-            <select value={role} onChange={(e) => setRole(e.target.value as PropertyRole)} className={inputClass}>
+            <select
+              aria-label="Papel"
+              value={role}
+              onChange={(e) => setRole(e.target.value as PropertyRole)}
+              className={inputClass}
+            >
               {assignableRoles.map((r) => (
                 <option key={r} value={r}>
                   {roleLabels[r]}
@@ -105,9 +109,7 @@ export function MembersPage() {
               ))}
             </select>
             <p className="text-xs text-terra/50">{roleDescriptions[role]}</p>
-            <button className="w-full rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-              Adicionar
-            </button>
+            <button className={`w-full ${primaryButtonClass}`}>Adicionar</button>
             <p className="text-xs text-terra/40">
               A pessoa precisa ter criado uma conta no sistema com este e-mail.
             </p>
@@ -159,7 +161,7 @@ export function MembersPage() {
                     </td>
                     <td className="py-2 pl-2 text-right">
                       {canEdit(m) && (
-                        <button onClick={() => handleRemove(m)} className="text-rust hover:underline">
+                        <button onClick={() => handleRemove(m)} className={linkDangerClass}>
                           Remover
                         </button>
                       )}

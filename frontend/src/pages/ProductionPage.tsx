@@ -3,9 +3,7 @@ import { activitiesApi, productionApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Activity, ProductionRecord } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
-
-const inputClass =
-  'w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust'
+import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 
 function today() {
   return new Date().toISOString().slice(0, 10)
@@ -101,6 +99,7 @@ export function ProductionPage() {
           {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
           <input
             required
+            aria-label="Produto"
             placeholder="Produto (ex: Leite, Ovos, Milho)"
             value={productName}
             onChange={(e) => setProductName(e.target.value)}
@@ -112,6 +111,7 @@ export function ProductionPage() {
               type="number"
               step="0.001"
               min="0.001"
+              aria-label="Quantidade"
               placeholder="Quantidade"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
@@ -119,14 +119,27 @@ export function ProductionPage() {
             />
             <input
               required
+              aria-label="Unidade"
               placeholder="Unidade"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
               className={inputClass}
             />
           </div>
-          <input required type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
-          <select value={activityId} onChange={(e) => setActivityId(e.target.value)} className={inputClass}>
+          <input
+            required
+            type="date"
+            aria-label="Data"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={inputClass}
+          />
+          <select
+            aria-label="Atividade"
+            value={activityId}
+            onChange={(e) => setActivityId(e.target.value)}
+            className={inputClass}
+          >
             <option value="">Atividade (opcional)</option>
             {activities.map((a) => (
               <option key={a.id} value={a.id}>
@@ -135,15 +148,11 @@ export function ProductionPage() {
             ))}
           </select>
           <div className="flex gap-2">
-            <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
+            <button className={`flex-1 ${primaryButtonClass}`}>
               {editingId ? 'Salvar' : 'Registrar'}
             </button>
             {editingId && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-              >
+              <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
                 Cancelar
               </button>
             )}
@@ -174,10 +183,10 @@ export function ProductionPage() {
                       {r.quantity} {r.unit}
                     </td>
                     <td className="py-2 text-right whitespace-nowrap">
-                      <button onClick={() => startEdit(r)} className="text-rust hover:underline">
+                      <button onClick={() => startEdit(r)} className={linkNeutralClass}>
                         Editar
                       </button>
-                      <button onClick={() => handleDelete(r.id)} className="ml-3 text-rust hover:underline">
+                      <button onClick={() => handleDelete(r.id)} className={`ml-3 ${linkDangerClass}`}>
                         Excluir
                       </button>
                     </td>

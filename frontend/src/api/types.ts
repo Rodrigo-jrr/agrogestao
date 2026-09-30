@@ -171,3 +171,52 @@ export interface CashFlow {
   overduePayables: number
   months: CashFlowMonth[]
 }
+
+export interface MeInfo {
+  userId: number
+  name: string
+  email: string
+  platformAdmin: boolean
+}
+
+export interface AdminPropertyRow {
+  id: number
+  name: string
+  location: string | null
+  totalAreaHa: number | null
+  members: number
+  createdAt: string
+  lastActivityAt: string | null
+}
+
+export interface AdminOrganizationRow {
+  id: number
+  name: string
+  ownerName: string | null
+  ownerEmail: string | null
+  createdAt: string
+  lastActivityAt: string | null
+  properties: AdminPropertyRow[]
+}
+
+export interface AdminUserRow {
+  id: number
+  name: string
+  email: string
+  properties: number
+  platformAdmin: boolean
+  createdAt: string
+  lastActivityAt: string | null
+}
+
+export interface AdminOverview {
+  summary: {
+    organizations: number
+    properties: number
+    users: number
+    newUsersLast30Days: number
+    activePropertiesLast30Days: number
+  }
+  organizations: AdminOrganizationRow[]
+  users: AdminUserRow[]
+}

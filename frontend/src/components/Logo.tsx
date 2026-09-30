@@ -33,7 +33,7 @@ export function Logo({ size = 28, variant = 'dark', className = '' }: LogoProps)
     <div className={`flex items-center gap-2 ${className}`}>
       <LogoMark size={size} />
       <span className={`font-serif text-2xl font-semibold ${textColor}`}>
-        Agro<span className="text-rust">Rust</span>
+        Agro<span className="text-rust">Gestão</span>
       </span>
     </div>
   )

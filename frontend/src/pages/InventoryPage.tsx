@@ -3,6 +3,7 @@ import { inventoryApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { MovementType, Product } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
+import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../components/ui'
 
 export function InventoryPage() {
   const { currentProperty } = useProperty()
@@ -106,46 +107,46 @@ export function InventoryPage() {
           <h2 className="text-sm font-semibold text-terra">{editingId ? 'Editar produto' : 'Novo produto'}</h2>
           <input
             required
+            aria-label="Nome"
             placeholder="Nome"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           />
           <input
+            aria-label="Categoria"
             placeholder="Categoria"
             value={category}
             onChange={(e) => setCategory(e.target.value)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           />
           <div className="flex gap-2">
             <input
               required
+              aria-label="Unidade"
               placeholder="Unidade (kg, L, un...)"
               value={unit}
               onChange={(e) => setUnit(e.target.value)}
-              className="w-1/2 rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={`w-1/2 ${inputClass}`}
             />
             <input
               required
               type="number"
               min="0"
               step="0.001"
+              aria-label="Estoque mínimo"
               placeholder="Estoque mínimo"
               value={minStock}
               onChange={(e) => setMinStock(e.target.value)}
-              className="w-1/2 rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={`w-1/2 ${inputClass}`}
             />
           </div>
           <div className="flex gap-2">
-            <button className="flex-1 rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
+            <button className={`flex-1 ${primaryButtonClass}`}>
               {editingId ? 'Salvar' : 'Adicionar'}
             </button>
             {editingId && (
-              <button
-                type="button"
-                onClick={cancelEdit}
-                className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-              >
+              <button type="button" onClick={cancelEdit} className={outlineButtonClass}>
                 Cancelar
               </button>
             )}
@@ -156,9 +157,10 @@ export function InventoryPage() {
           <h2 className="text-sm font-semibold text-terra">Registrar movimentação</h2>
           <select
             required
+            aria-label="Produto"
             value={movementProductId}
             onChange={(e) => setMovementProductId(e.target.value)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           >
             <option value="">Selecione o produto</option>
             {products.map((p) => (
@@ -168,9 +170,10 @@ export function InventoryPage() {
             ))}
           </select>
           <select
+            aria-label="Tipo de movimentação"
             value={movementType}
             onChange={(e) => setMovementType(e.target.value as MovementType)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           >
             <option value="IN">Entrada</option>
             <option value="OUT">Saída</option>
@@ -181,62 +184,64 @@ export function InventoryPage() {
             type="number"
             min="0"
             step="0.001"
+            aria-label="Quantidade"
             placeholder="Quantidade"
             value={movementQuantity}
             onChange={(e) => setMovementQuantity(e.target.value)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           />
           <input
             required
             type="date"
+            aria-label="Data da movimentação"
             value={movementDate}
             onChange={(e) => setMovementDate(e.target.value)}
-            className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+            className={inputClass}
           />
-          <button className="w-full rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-            Registrar
-          </button>
+          <button className={`w-full ${primaryButtonClass}`}>Registrar</button>
         </form>
 
         <div className="rounded-2xl border border-terra/10 bg-white p-4 shadow-sm md:col-span-1">
           <h2 className="mb-3 text-sm font-semibold text-terra">Saldo atual</h2>
           {listError && <p className="mb-3 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{listError}</p>}
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-terra/50">
-                <th className="pb-2">Produto</th>
-                <th className="pb-2 text-right">Saldo</th>
-                <th className="pb-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {products.map((p) => (
-                <tr key={p.id} className="border-t border-terra/5">
-                  <td className="py-2">{p.name}</td>
-                  <td
-                    className={`py-2 text-right ${p.currentQuantity < p.minStock ? 'font-semibold text-trigo-dark' : ''}`}
-                  >
-                    {p.currentQuantity} {p.unit}
-                  </td>
-                  <td className="py-2 text-right whitespace-nowrap">
-                    <button onClick={() => startEdit(p)} className="text-rust hover:underline">
-                      Editar
-                    </button>
-                    <button onClick={() => handleDeleteProduct(p.id)} className="ml-3 text-rust hover:underline">
-                      Excluir
-                    </button>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-terra/50">
+                  <th className="pb-2">Produto</th>
+                  <th className="pb-2 text-right">Saldo</th>
+                  <th className="pb-2" />
                 </tr>
-              ))}
-              {products.length === 0 && !listError && (
-                <tr>
-                  <td colSpan={3} className="py-4 text-center text-terra/40">
-                    Nenhum produto cadastrado.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {products.map((p) => (
+                  <tr key={p.id} className="border-t border-terra/5">
+                    <td className="py-2">{p.name}</td>
+                    <td
+                      className={`py-2 text-right ${p.currentQuantity < p.minStock ? 'font-semibold text-trigo-dark' : ''}`}
+                    >
+                      {p.currentQuantity} {p.unit}
+                    </td>
+                    <td className="py-2 text-right whitespace-nowrap">
+                      <button onClick={() => startEdit(p)} className={linkNeutralClass}>
+                        Editar
+                      </button>
+                      <button onClick={() => handleDeleteProduct(p.id)} className={`ml-3 ${linkDangerClass}`}>
+                        Excluir
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {products.length === 0 && !listError && (
+                  <tr>
+                    <td colSpan={3} className="py-4 text-center text-terra/40">
+                      Nenhum produto cadastrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>

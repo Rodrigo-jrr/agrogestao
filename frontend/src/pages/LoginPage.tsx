@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 import { apiErrorMessage } from '../api/client'
 import { AuthShell } from '../components/AuthShell'
+import { inputClass, primaryButtonClass } from '../components/ui'
 
 export function LoginPage() {
   const { login } = useAuth()
@@ -33,29 +34,31 @@ export function LoginPage() {
       <form onSubmit={handleSubmit}>
         {error && <p className="mb-4 rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
 
-        <label className="mb-1 block text-sm font-medium text-terra">E-mail</label>
+        <label htmlFor="login-email" className="mb-1 block text-sm font-medium text-terra">E-mail</label>
         <input
+          id="login-email"
           type="email"
           required
           placeholder="seu@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="mb-4 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-4 ${inputClass}`}
         />
 
-        <label className="mb-1 block text-sm font-medium text-terra">Senha</label>
+        <label htmlFor="login-password" className="mb-1 block text-sm font-medium text-terra">Senha</label>
         <input
+          id="login-password"
           type="password"
           required
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="mb-6 w-full rounded-md border border-terra/15 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+          className={`mb-6 ${inputClass}`}
         />
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full rounded-md bg-rust px-3 py-2.5 text-sm font-semibold text-terreiro hover:bg-rust-dark disabled:opacity-60"
+          className={`w-full ${primaryButtonClass}`}
         >
           {loading ? 'Entrando...' : 'Entrar'}
         </button>

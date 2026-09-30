@@ -3,6 +3,14 @@ import { inventoryApi, salesApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
 import type { Customer, Product, Sale } from '../api/types'
 import { useProperty } from '../property/PropertyContext'
+import {
+  inputClass,
+  linkDangerClass,
+  linkNeutralClass,
+  outlineButtonClass,
+  primaryButtonClass,
+  secondaryButtonClass,
+} from '../components/ui'
 
 interface ItemRow {
   productId: string
@@ -126,21 +134,18 @@ export function SalesPage() {
             </h2>
             {customerError && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{customerError}</p>}
             <input
+              aria-label="Nome do cliente"
               placeholder="Nome do cliente"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={inputClass}
             />
             <div className="flex gap-2">
-              <button className="flex-1 rounded-md border border-rust px-3 py-2 text-sm font-medium text-rust hover:bg-rust/10">
+              <button className={`flex-1 ${secondaryButtonClass}`}>
                 {editingCustomerId ? 'Salvar' : 'Adicionar cliente'}
               </button>
               {editingCustomerId && (
-                <button
-                  type="button"
-                  onClick={cancelEditCustomer}
-                  className="rounded-md border border-terra/15 px-3 py-2 text-sm text-terra hover:bg-terra/5"
-                >
+                <button type="button" onClick={cancelEditCustomer} className={outlineButtonClass}>
                   Cancelar
                 </button>
               )}
@@ -151,10 +156,10 @@ export function SalesPage() {
                   <li key={c.id} className="flex items-center justify-between py-1.5">
                     <span>{c.name}</span>
                     <span className="whitespace-nowrap">
-                      <button onClick={() => startEditCustomer(c)} className="text-rust hover:underline">
+                      <button onClick={() => startEditCustomer(c)} className={linkNeutralClass}>
                         Editar
                       </button>
-                      <button onClick={() => handleDeleteCustomer(c.id)} className="ml-3 text-rust hover:underline">
+                      <button onClick={() => handleDeleteCustomer(c.id)} className={`ml-3 ${linkDangerClass}`}>
                         Excluir
                       </button>
                     </span>
@@ -169,9 +174,10 @@ export function SalesPage() {
             {error && <p className="rounded-md bg-rust/10 px-3 py-2 text-sm text-rust">{error}</p>}
             <select
               required
+              aria-label="Cliente"
               value={customerId}
               onChange={(e) => setCustomerId(e.target.value)}
-              className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={inputClass}
             >
               <option value="">Cliente</option>
               {customers.map((c) => (
@@ -183,17 +189,19 @@ export function SalesPage() {
             <input
               required
               type="date"
+              aria-label="Data da venda"
               value={saleDate}
               onChange={(e) => setSaleDate(e.target.value)}
-              className="w-full rounded-md border border-terra/20 bg-white px-3 py-2 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+              className={inputClass}
             />
 
             {items.map((row, index) => (
               <div key={index} className="flex gap-1">
                 <select
+                  aria-label="Produto"
                   value={row.productId}
                   onChange={(e) => updateItem(index, 'productId', e.target.value)}
-                  className="flex-1 rounded-md border border-terra/20 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+                  className="flex-1 rounded-md border border-terra/15 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
                 >
                   <option value="">Produto</option>
                   {products.map((p) => (
@@ -205,74 +213,76 @@ export function SalesPage() {
                 <input
                   type="number"
                   step="0.001"
+                  aria-label="Quantidade"
                   placeholder="Qtd"
                   value={row.quantity}
                   onChange={(e) => updateItem(index, 'quantity', e.target.value)}
-                  className="w-16 rounded-md border border-terra/20 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+                  className="w-16 rounded-md border border-terra/15 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
                 />
                 <input
                   type="number"
                   step="0.01"
+                  aria-label="Preço unitário"
                   placeholder="Preço"
                   value={row.unitPrice}
                   onChange={(e) => updateItem(index, 'unitPrice', e.target.value)}
-                  className="w-20 rounded-md border border-terra/20 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
+                  className="w-20 rounded-md border border-terra/15 bg-white px-2 py-1.5 text-sm text-terra placeholder:text-terra/40 focus:border-rust focus:outline-none focus:ring-1 focus:ring-rust"
                 />
               </div>
             ))}
             <button
               type="button"
               onClick={() => setItems((current) => [...current, { productId: '', quantity: '', unitPrice: '' }])}
-              className="text-sm text-rust hover:underline"
+              className={`text-sm ${linkNeutralClass}`}
             >
               + adicionar item
             </button>
 
-            <button className="w-full rounded-md bg-rust px-3 py-2 text-sm font-medium text-white hover:bg-rust-dark">
-              Registrar venda
-            </button>
+            <button className={`w-full ${primaryButtonClass}`}>Registrar venda</button>
           </form>
         </div>
 
         <div className="md:col-span-2 rounded-2xl border border-terra/10 bg-white p-4 shadow-sm">
           <h2 className="mb-3 text-sm font-semibold text-terra">Histórico de vendas</h2>
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="text-left text-terra/50">
-                <th className="pb-2">Data</th>
-                <th className="pb-2">Cliente</th>
-                <th className="pb-2 text-right">Total</th>
-                <th className="pb-2" />
-              </tr>
-            </thead>
-            <tbody>
-              {sales.map((s) => (
-                <tr key={s.id} className={`border-t border-terra/5 ${s.canceled ? 'text-terra/40 line-through' : ''}`}>
-                  <td className="py-2 text-terra/50">{s.saleDate}</td>
-                  <td className="py-2">{customers.find((c) => c.id === s.customerId)?.name ?? s.customerId}</td>
-                  <td className="py-2 text-right">
-                    {s.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                  </td>
-                  <td className="py-2 text-right whitespace-nowrap no-underline">
-                    {s.canceled ? (
-                      <span className="inline-block text-xs text-terra/50 [text-decoration:none]">Cancelada</span>
-                    ) : (
-                      <button onClick={() => handleCancel(s.id)} className="text-rust hover:underline">
-                        Cancelar
-                      </button>
-                    )}
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-terra/50">
+                  <th className="pb-2">Data</th>
+                  <th className="pb-2">Cliente</th>
+                  <th className="pb-2 text-right">Total</th>
+                  <th className="pb-2" />
                 </tr>
-              ))}
-              {sales.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="py-4 text-center text-terra/40">
-                    Nenhuma venda registrada.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {sales.map((s) => (
+                  <tr key={s.id} className={`border-t border-terra/5 ${s.canceled ? 'text-terra/40 line-through' : ''}`}>
+                    <td className="py-2 text-terra/50">{s.saleDate}</td>
+                    <td className="py-2">{customers.find((c) => c.id === s.customerId)?.name ?? s.customerId}</td>
+                    <td className="py-2 text-right">
+                      {s.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </td>
+                    <td className="py-2 text-right whitespace-nowrap no-underline">
+                      {s.canceled ? (
+                        <span className="inline-block text-xs text-terra/50 [text-decoration:none]">Cancelada</span>
+                      ) : (
+                        <button onClick={() => handleCancel(s.id)} className={linkDangerClass}>
+                          Cancelar
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {sales.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-4 text-center text-terra/40">
+                      Nenhuma venda registrada.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
