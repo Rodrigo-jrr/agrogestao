@@ -12,6 +12,9 @@ frontend/node_modules.nosync/
 frontend/node_modules_old_icloud/
 frontend/dist/
 frontend/.vite/
+frontend/test-results/
+frontend/playwright-report/
+frontend/blob-report/
 
 # IDE
 .idea/

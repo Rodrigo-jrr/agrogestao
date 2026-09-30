@@ -61,7 +61,7 @@ reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 
 ## Bloco 6 — Qualidade
 
-- [ ] **6.1 Testes do frontend** (componentes) e **testes de ponta a ponta** no navegador dos fluxos
+- [x] **6.1 Testes do frontend** (componentes) e **testes de ponta a ponta** no navegador dos fluxos
   principais.
 
 ## Para a fase de publicação (anotado, fora do escopo agora)

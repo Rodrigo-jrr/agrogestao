@@ -21,7 +21,10 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // 401 numa rota autenticada = sessão expirada: volta ao login. Nas rotas de /auth (ex.: senha errada no
+    // login) o 401 é a resposta esperada e a tela mostra a mensagem — recarregar a página a apagaria.
+    const isAuthRoute = typeof error.config?.url === 'string' && error.config.url.startsWith('/auth/')
+    if (error.response?.status === 401 && !isAuthRoute) {
       localStorage.removeItem('agro.token')
       localStorage.removeItem('agro.propertyId')
       window.location.href = '/login'
