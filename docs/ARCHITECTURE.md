@@ -74,6 +74,7 @@ tasks, documents, notifications, analytics, ai
 - Compras/vendas guardam o lançamento financeiro gerado (`financial_transaction_id`); o cancelamento estorna o estoque e remove o lançamento. Lançamentos gerados por compra/venda/baixa de conta não podem ser editados ou excluídos diretamente.
 - Painel da plataforma (`/admin`, API `/api/admin/**`): somente leitura, visão de todas as organizações, propriedades e usuários. Acesso definido por `PLATFORM_ADMIN_EMAILS` e verificado no servidor a cada requisição (regra de rota + `@PreAuthorize`, via `PlatformAdminService`); nada disso vai no JWT. Não dá acesso aos dados internos das propriedades. Cada acesso é auditado (`AuditAction.VIEW`).
 - Respostas de erro de segurança: sem token/token inválido → 401; sem permissão → 403 em JSON (sem `sendError`, que viraria 401 no redirecionamento para `/error`).
+- Conta: o cadastro envia um link de confirmação de e-mail (24h); "esqueci minha senha" envia um link de redefinição (1h). Links de uso único; no banco fica só o SHA-256 do token (`user_tokens`). A resposta de "esqueci minha senha" é igual exista ou não a conta, com limite de 3 envios/hora. Redefinir a senha confirma o e-mail e invalida JWTs emitidos antes (`users.password_changed_at`). O app funciona sem e-mail confirmado (aviso não bloqueante); o painel de admin exige confirmação.
 - Testes de integração em `backend/src/test` (H2 em modo MySQL + migrations Flyway), rodados no CI.
 
 ## Como rodar

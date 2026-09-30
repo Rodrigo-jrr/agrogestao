@@ -23,7 +23,7 @@ Esta é a base do projeto: fundação (autenticação, multi-propriedade, segura
 docker compose up -d
 ```
 
-Isso sobe um MySQL 8 na porta **3307** do host (mapeada para não colidir com outros containers MySQL que já estejam usando a porta padrão 3306). Usuário/senha/banco: `agrogestao` / `agrogestao` / `agrogestao`.
+Isso sobe também o **Mailpit**, uma caixa de e-mail falsa: os e-mails de confirmação e de recuperação de senha enviados em desenvolvimento aparecem em http://localhost:8025. O MySQL 8 fica na porta **3307** do host (mapeada para não colidir com outros containers MySQL que já estejam usando a porta padrão 3306). Usuário/senha/banco: `agrogestao` / `agrogestao` / `agrogestao`.
 
 Se preferir usar outra porta ou um MySQL já existente, ajuste as variáveis de ambiente `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` ao rodar o backend.
 
