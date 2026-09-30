@@ -3,8 +3,6 @@ package com.agrogestao;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.verify;
@@ -16,16 +14,18 @@ import org.mockito.ArgumentCaptor;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Base para testes de API ponta a ponta: HTTP real (JWT + filtro de tenant) sobre H2 com as migrations Flyway. */
 @SpringBootTest
@@ -42,7 +42,7 @@ public abstract class ApiTestSupport {
     protected ObjectMapper objectMapper;
 
     /** E-mails não saem nos testes: são capturados aqui. */
-    @MockBean
+    @MockitoBean
     protected JavaMailSender mailSender;
 
     private static final Pattern TOKEN_IN_LINK = Pattern.compile("[?&]token=([A-Za-z0-9_-]+)");
@@ -87,7 +87,7 @@ public abstract class ApiTestSupport {
         String email = name.toLowerCase().replace(' ', '.') + SEQ.incrementAndGet() + "@teste.dev";
         JsonNode auth = call(HttpMethod.POST, "/api/auth/register", null,
                 Map.of("name", name, "email", email, "password", "senha1234"), 200);
-        return new Session(auth.get("token").asText(), email, null);
+        return new Session(auth.get("token").asString(), email, null);
     }
 
     /** Registra um usuário e cria organização + propriedade com ele como OWNER. */

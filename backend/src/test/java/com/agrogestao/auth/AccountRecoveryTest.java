@@ -3,11 +3,11 @@ package com.agrogestao.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.TestPropertySource;
+import tools.jackson.databind.JsonNode;
 
 @TestPropertySource(properties = "agrogestao.admin.emails=admin@plataforma.test,dono.admin@teste.dev")
 class AccountRecoveryTest extends ApiTestSupport {
@@ -63,7 +63,7 @@ class AccountRecoveryTest extends ApiTestSupport {
         call(HttpMethod.POST, "/api/auth/login", null, Map.of("email", user.email(), "password", "senha1234"), 401);
         Thread.sleep(1100);
         JsonNode login = post("/api/auth/login", null, Map.of("email", user.email(), "password", "novaSenha123"));
-        Session fresh = new Session(login.get("token").asText(), user.email(), null);
+        Session fresh = new Session(login.get("token").asString(), user.email(), null);
         assertThat(get("/api/me", fresh).get("emailVerified").asBoolean()).isTrue();
 
         call(HttpMethod.POST, "/api/auth/reset-password", null, Map.of("token", token, "newPassword", "outraSenha1"), 422);
@@ -91,7 +91,7 @@ class AccountRecoveryTest extends ApiTestSupport {
     void adminAccessRequiresConfirmedEmail() throws Exception {
         JsonNode registered = post("/api/auth/register", null,
                 Map.of("name", "Dono", "email", "dono.admin@teste.dev", "password", "senha1234"));
-        Session admin = new Session(registered.get("token").asText(), "dono.admin@teste.dev", null);
+        Session admin = new Session(registered.get("token").asString(), "dono.admin@teste.dev", null);
 
         call(HttpMethod.GET, "/api/admin/overview", admin, null, 403);
         verifyEmailOf(admin);

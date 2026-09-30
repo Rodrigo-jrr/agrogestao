@@ -3,12 +3,12 @@ package com.agrogestao.properties;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import tools.jackson.databind.JsonNode;
 
 /** Garante que um usuário nunca lê nem altera dados de propriedades das quais não é membro. */
 class TenantIsolationTest extends ApiTestSupport {
@@ -53,7 +53,7 @@ class TenantIsolationTest extends ApiTestSupport {
         call(HttpMethod.DELETE, path, bob, null, 404);
 
         assertThat(get("/api/production", bob)).isEmpty();
-        assertThat(get("/api/production", alice).get(0).get("productName").asText()).isEqualTo("Leite");
+        assertThat(get("/api/production", alice).get(0).get("productName").asString()).isEqualTo("Leite");
     }
 
     @Test

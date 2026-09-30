@@ -3,13 +3,13 @@ package com.agrogestao.purchases;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import tools.jackson.databind.JsonNode;
 
 /** Compras e vendas movimentam estoque e caixa; o cancelamento precisa desfazer os dois. */
 class PurchaseSaleCancellationTest extends ApiTestSupport {
@@ -97,7 +97,7 @@ class PurchaseSaleCancellationTest extends ApiTestSupport {
     private List<String> transactionDescriptions() throws Exception {
         List<String> descriptions = new ArrayList<>();
         get("/api/finance/transactions?from=2026-01-01&to=2026-12-31", owner)
-                .forEach(t -> descriptions.add(t.get("description").asText()));
+                .forEach(t -> descriptions.add(t.get("description").asString()));
         return descriptions;
     }
 }

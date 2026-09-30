@@ -3,11 +3,11 @@ package com.agrogestao.auth;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.test.context.TestPropertySource;
+import tools.jackson.databind.JsonNode;
 
 @TestPropertySource(properties = "agrogestao.security.login.max-failures-per-account=3")
 class LoginProtectionTest extends ApiTestSupport {
@@ -21,7 +21,7 @@ class LoginProtectionTest extends ApiTestSupport {
 
         JsonNode blocked = login(user.email(), "senha1234", 429);
 
-        assertThat(blocked.get("message").asText()).contains("Muitas tentativas").contains("Esqueci minha senha");
+        assertThat(blocked.get("message").asString()).contains("Muitas tentativas").contains("Esqueci minha senha");
     }
 
     @Test

@@ -54,7 +54,7 @@ public class EmailService {
     }
 
     private String link(String path, String token) {
-        return UriComponentsBuilder.fromHttpUrl(appBaseUrl + path).queryParam("token", token).toUriString();
+        return UriComponentsBuilder.fromUriString(appBaseUrl + path).queryParam("token", token).toUriString();
     }
 
     private void send(String to, String subject, String body) {

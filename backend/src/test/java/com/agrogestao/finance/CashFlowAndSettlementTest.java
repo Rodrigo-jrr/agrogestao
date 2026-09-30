@@ -3,11 +3,11 @@ package com.agrogestao.finance;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import tools.jackson.databind.JsonNode;
 
 class CashFlowAndSettlementTest extends ApiTestSupport {
 
@@ -36,7 +36,7 @@ class CashFlowAndSettlementTest extends ApiTestSupport {
         assertThat(cashFlow.get("overduePayables").asDouble()).isEqualTo(50.0);
         JsonNode months = cashFlow.get("months");
         assertThat(months).hasSize(4);
-        assertThat(months.get(0).get("month").asText()).isEqualTo("2026-08");
+        assertThat(months.get(0).get("month").asString()).isEqualTo("2026-08");
         assertThat(months.get(0).get("net").asDouble()).isEqualTo(700.0);
         assertThat(months.get(0).get("balance").asDouble()).isEqualTo(1200.0);
         assertThat(months.get(0).get("projectedBalance").asDouble()).isEqualTo(1150.0);
@@ -59,8 +59,8 @@ class CashFlowAndSettlementTest extends ApiTestSupport {
         call(HttpMethod.PATCH, "/api/finance/payables/" + payableId + "/pay", owner, null, 200);
         JsonNode transactions = allTransactions();
         assertThat(transactions).hasSize(1);
-        assertThat(transactions.get(0).get("type").asText()).isEqualTo("EXPENSE");
-        assertThat(transactions.get(0).get("description").asText()).isEqualTo("Pagamento: Energia");
+        assertThat(transactions.get(0).get("type").asString()).isEqualTo("EXPENSE");
+        assertThat(transactions.get(0).get("description").asString()).isEqualTo("Pagamento: Energia");
 
         long transactionId = transactions.get(0).get("id").asLong();
         call(HttpMethod.DELETE, "/api/finance/transactions/" + transactionId, owner, null, 422);
@@ -81,7 +81,7 @@ class CashFlowAndSettlementTest extends ApiTestSupport {
 
         JsonNode transactions = allTransactions();
         assertThat(transactions).hasSize(1);
-        assertThat(transactions.get(0).get("type").asText()).isEqualTo("INCOME");
+        assertThat(transactions.get(0).get("type").asString()).isEqualTo("INCOME");
     }
 
     private JsonNode allTransactions() throws Exception {

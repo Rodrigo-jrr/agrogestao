@@ -5,12 +5,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.agrogestao.ApiTestSupport;
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditLogRepository;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
+import tools.jackson.databind.JsonNode;
 
 class AdminAccessTest extends ApiTestSupport {
 
@@ -55,7 +55,7 @@ class AdminAccessTest extends ApiTestSupport {
 
         assertThat(overview.toString()).doesNotContainIgnoringCase("password");
         JsonNode org = findByField(overview.get("organizations"), "ownerEmail", owner.email());
-        assertThat(org.get("name").asText()).isEqualTo("Org Cliente");
+        assertThat(org.get("name").asString()).isEqualTo("Org Cliente");
         JsonNode property = org.get("properties").get(0);
         assertThat(property.get("id").asLong()).isEqualTo(owner.propertyId());
         assertThat(property.get("members").asLong()).isEqualTo(1);
@@ -107,18 +107,18 @@ class AdminAccessTest extends ApiTestSupport {
                 .andReturn().getResponse().getContentAsString();
         JsonNode response = objectMapper.readTree(body);
         if (response.has("token")) {
-            return new Session(response.get("token").asText(), ADMIN_EMAIL, null);
+            return new Session(response.get("token").asString(), ADMIN_EMAIL, null);
         }
         JsonNode registered = post("/api/auth/register", null,
                 Map.of("name", "Admin", "email", ADMIN_EMAIL, "password", "senha1234"));
-        Session session = new Session(registered.get("token").asText(), ADMIN_EMAIL, null);
+        Session session = new Session(registered.get("token").asString(), ADMIN_EMAIL, null);
         verifyEmailOf(session);
         return session;
     }
 
     private static JsonNode findByField(JsonNode array, String field, String value) {
         for (JsonNode node : array) {
-            if (value.equals(node.get(field).asText())) {
+            if (value.equals(node.get(field).asString())) {
                 return node;
             }
         }

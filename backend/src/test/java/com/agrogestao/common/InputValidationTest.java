@@ -4,13 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import tools.jackson.databind.JsonNode;
 
 /** Erros de quem usa a API devem voltar como 4xx com mensagem clara, nunca como erro interno. */
 class InputValidationTest extends ApiTestSupport {
@@ -35,7 +35,7 @@ class InputValidationTest extends ApiTestSupport {
     void invalidEnumNamesTheField() throws Exception {
         JsonNode error = call(HttpMethod.POST, "/api/finance/transactions", owner, Map.of("type", "XYZ",
                 "description", "x", "amount", 1, "transactionDate", "2026-09-01"), 400);
-        assertThat(error.get("message").asText()).isEqualTo("Valor inválido para o campo Tipo.");
+        assertThat(error.get("message").asString()).isEqualTo("Valor inválido para o campo Tipo.");
     }
 
     @Test
@@ -48,7 +48,7 @@ class InputValidationTest extends ApiTestSupport {
     void textLongerThanColumnIsRejectedWithFieldLabel() throws Exception {
         JsonNode error = call(HttpMethod.POST, "/api/activities", owner,
                 Map.of("name", "x".repeat(151), "type", "PECUARIA"), 400);
-        assertThat(error.get("message").asText()).startsWith("Nome:");
+        assertThat(error.get("message").asString()).startsWith("Nome:");
     }
 
     @Test

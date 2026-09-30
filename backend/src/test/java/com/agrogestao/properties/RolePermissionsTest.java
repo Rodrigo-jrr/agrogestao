@@ -3,11 +3,11 @@ package com.agrogestao.properties;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.agrogestao.ApiTestSupport;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import tools.jackson.databind.JsonNode;
 
 /** Papéis na propriedade: VIEWER só lê, WORKER cria/edita, OWNER/MANAGER excluem e gerenciam a equipe. */
 class RolePermissionsTest extends ApiTestSupport {
@@ -94,7 +94,7 @@ class RolePermissionsTest extends ApiTestSupport {
 
     private long memberIdOf(Session session, String email) throws Exception {
         for (JsonNode member : get("/api/properties/current/members", session)) {
-            if (email.equals(member.get("email").asText())) {
+            if (email.equals(member.get("email").asString())) {
                 return member.get("id").asLong();
             }
         }

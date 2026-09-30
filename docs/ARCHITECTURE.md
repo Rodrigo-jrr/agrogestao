@@ -6,7 +6,7 @@ Este documento registra as decisões técnicas concretas tomadas para a primeira
 
 | Camada     | Tecnologia |
 |------------|------------|
-| Backend    | Java 21, Spring Boot 3.3, Spring Web, Spring Security, Spring Data JPA, Flyway, Maven |
+| Backend    | Java 21, Spring Boot 4.1 (Jackson 3), Spring Web, Spring Security, Spring Data JPA, Flyway, Maven |
 | Banco      | MySQL 8 |
 | Frontend   | React 18, TypeScript, Vite, React Router, Tailwind CSS |
 | Autenticação | JWT stateless (access token) |

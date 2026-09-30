@@ -6,7 +6,7 @@ Esta é a base do projeto: fundação (autenticação, multi-propriedade, segura
 
 ## Stack
 
-- **Backend:** Java 21, Spring Boot 3.3, Maven
+- **Backend:** Java 21, Spring Boot 4.1, Maven
 - **Frontend:** React 19, TypeScript, Vite, Tailwind CSS
 - **Banco:** MySQL 8
 

@@ -3,22 +3,22 @@
 Objetivo: deixar o app "100%" antes de publicar. Cada item foi verificado no código e, quando possível,
 reproduzido no servidor local. Marque `[x]` ao concluir e anote o commit.
 
-## Bloco 1 — Correções e segurança (bugs reais)
+## Bloco 1 — Correções e segurança (bugs reais) — concluído em 30/09 (`0e24d8a` e seguinte)
 
-- [ ] **1.1 Erros do usuário viram "erro interno" (500).** JSON malformado, valor de lista inválido
+- [x] **1.1 Erros do usuário viram "erro interno" (500).** JSON malformado, valor de lista inválido
   (ex.: tipo de lançamento "XYZ"), id não numérico na URL e rota inexistente respondem 500 em vez de
   400/404, e ainda aparecem no log como erro do servidor. *Reproduzido.*
-- [ ] **1.2 Textos longos e valores enormes geram mensagem enganosa.** Nenhum campo tem limite de
+- [x] **1.2 Textos longos e valores enormes geram mensagem enganosa.** Nenhum campo tem limite de
   tamanho/dígitos na validação: um nome com 300 caracteres ou um valor de 20 dígitos cai no banco e volta
   como "existem registros relacionados" (409). *Reproduzido.*
-- [ ] **1.3 Números negativos aceitos** onde não fazem sentido (área da atividade, custo unitário).
+- [x] **1.3 Números negativos aceitos** onde não fazem sentido (área da atividade, custo unitário).
   *Reproduzido (área -50 aceita).*
-- [ ] **1.4 Senha longa truncada em silêncio.** O cadastro aceita senha de 100 caracteres, mas o BCrypt só
+- [x] **1.4 Senha longa truncada em silêncio.** O cadastro aceita senha de 100 caracteres, mas o BCrypt só
   considera os primeiros 72 bytes. (A redefinição de senha já limita a 72.) *Reproduzido.*
-- [ ] **1.5 Login sem limite de tentativas.** 20 tentativas erradas seguidas são aceitas sem bloqueio nem
+- [x] **1.5 Login sem limite de tentativas.** 20 tentativas erradas seguidas são aceitas sem bloqueio nem
   atraso: permite adivinhar senhas. *Reproduzido.*
-- [ ] **1.6 Spring Boot 3.3.4 fora do período de suporte.** Atualizar para uma versão suportada (correções
-  de segurança).
+- [x] **1.6 Spring Boot 3.3.4 fora do período de suporte.** Atualizado para 4.1.1 (Jackson 3, Flyway como
+  módulo, `@MockitoBean`). Aproveitado para remover o usuário padrão que o Spring criava com senha impressa no log.
 
 ## Bloco 2 — Funcionalidades essenciais do dia a dia
 

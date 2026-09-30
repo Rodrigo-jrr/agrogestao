@@ -7,7 +7,6 @@ import com.agrogestao.common.exception.TooManyRequestsException;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
+import tools.jackson.databind.exc.InvalidFormatException;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -96,7 +96,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HttpMessageNotReadableException.class)
     public ResponseEntity<ApiError> handleUnreadable(HttpMessageNotReadableException ex) {
         if (ex.getCause() instanceof InvalidFormatException invalid && !invalid.getPath().isEmpty()) {
-            String field = invalid.getPath().get(invalid.getPath().size() - 1).getFieldName();
+            String field = invalid.getPath().get(invalid.getPath().size() - 1).getPropertyName();
             return build(HttpStatus.BAD_REQUEST, "Valor inválido para o campo " + label(field) + ".");
         }
         return build(HttpStatus.BAD_REQUEST, "Não foi possível ler os dados enviados. Verifique o formato.");
