@@ -239,6 +239,7 @@ public class LivestockTradeService {
                 animalRepository.save(animal);
                 support.saveEvent(propertyId, AnimalEventType.SAIDA, request.tradeDate(), animal, null, null, null,
                         trade.getId(), shares.get(i), "Venda para " + customer.getName());
+                support.closeOpenPregnanciesWithoutBirth(animal.getId());
             }
         } else {
             if (request.batchId() == null) {
