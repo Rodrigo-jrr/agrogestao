@@ -39,6 +39,10 @@ public class AccountPayable extends BaseEntity {
     @Column(name = "purchase_id")
     private Long purchaseId;
 
+    /** Parcela de compra de animais a prazo (pecuária). */
+    @Column(name = "livestock_trade_id")
+    private Long livestockTradeId;
+
     @Column(name = "installment_number")
     private Integer installmentNumber;
 

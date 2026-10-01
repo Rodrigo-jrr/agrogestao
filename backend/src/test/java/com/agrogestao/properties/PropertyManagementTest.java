@@ -110,5 +110,22 @@ class PropertyManagementTest extends ApiTestSupport {
                 "supplierId", supplierId));
         post("/api/finance/receivables", session, Map.of("description", "Leite", "amount", 40, "dueDate", nextMonth,
                 "customerId", customerId));
+        // Rebanho: lote, mãe e cria (auto-referência), compra e venda a prazo e lote por contagem.
+        Long batchId = post("/api/livestock/batches", session, Map.of("name", "Vacas", "species", "BOVINO",
+                "tracking", "INDIVIDUAL", "activityId", activityId)).get("id").asLong();
+        Long cowId = post("/api/livestock/animals", session, Map.of("tag", "1", "species", "BOVINO", "sex", "FEMEA",
+                "batchId", batchId, "birthDate", "2020-01-01")).get("id").asLong();
+        post("/api/livestock/animals", session, Map.of("tag", "2", "species", "BOVINO", "sex", "MACHO",
+                "origin", "NASCIMENTO", "birthDate", today, "motherId", cowId));
+        post("/api/livestock/purchases", session, Map.of("supplierId", supplierId, "tradeDate", today, "totalAmount", 500,
+                "batchId", batchId, "paymentType", "INSTALLMENTS",
+                "installments", List.of(Map.of("dueDate", nextMonth, "amount", 500)),
+                "animals", List.of(Map.of("tag", "3", "sex", "MACHO"))));
+        post("/api/livestock/sales", session, Map.of("customerId", customerId, "tradeDate", today, "totalAmount", 800,
+                "animalIds", List.of(cowId), "paymentType", "INSTALLMENTS",
+                "installments", List.of(Map.of("dueDate", nextMonth, "amount", 800))));
+        Long flock = post("/api/livestock/batches", session, Map.of("name", "Galinhas", "species", "AVE",
+                "tracking", "AGGREGATE")).get("id").asLong();
+        post("/api/livestock/batches/" + flock + "/entries", session, Map.of("headCount", 30, "date", today));
     }
 }

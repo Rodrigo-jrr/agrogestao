@@ -57,7 +57,7 @@ export default defineConfig({
       url: `http://localhost:${FRONTEND_PORT}`,
       reuseExistingServer: !CI,
       timeout: 60_000,
-      env: { VITE_API_PROXY: `http://localhost:${BACKEND_PORT}` },
+      env: { VITE_API_PROXY: `http://localhost:${BACKEND_PORT}`, VITE_CACHE_DIR: 'node_modules/.vite-e2e' },
     },
   ],
 })

@@ -16,6 +16,7 @@ public class AccountPayableResponse {
     private final Long supplierId;
     private final boolean paid;
     private final Long purchaseId;
+    private final Long livestockTradeId;
     private final Integer installmentNumber;
     private final Integer installmentCount;
 }

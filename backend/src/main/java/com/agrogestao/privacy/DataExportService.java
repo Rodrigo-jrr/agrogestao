@@ -59,6 +59,10 @@ public class DataExportService {
         s.put("vendas", "SELECT * FROM sales WHERE property_id = ? ORDER BY sale_date, id");
         s.put("itensDeVenda", "SELECT i.* FROM sale_items i JOIN sales v ON v.id = i.sale_id "
                 + "WHERE v.property_id = ? ORDER BY i.id");
+        s.put("lotesDeAnimais", "SELECT * FROM animal_batches WHERE property_id = ? ORDER BY id");
+        s.put("animais", "SELECT * FROM animals WHERE property_id = ? ORDER BY id");
+        s.put("comprasEVendasDeAnimais", "SELECT * FROM livestock_trades WHERE property_id = ? ORDER BY trade_date, id");
+        s.put("eventosDoRebanho", "SELECT * FROM animal_events WHERE property_id = ? ORDER BY event_date, id");
         s.put("producao", "SELECT * FROM production_records WHERE property_id = ? ORDER BY production_date, id");
         s.put("equipe", "SELECT u.name, u.email, m.role, m.created_at FROM property_members m "
                 + "JOIN users u ON u.id = m.user_id WHERE m.property_id = ? ORDER BY m.id");

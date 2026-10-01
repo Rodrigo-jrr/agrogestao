@@ -620,7 +620,7 @@ function PayablesTab({
                       Editar
                     </button>
                   )}
-                  {p.purchaseId == null && (
+                  {p.purchaseId == null && p.livestockTradeId == null && (
                     <button onClick={() => handleDelete(p.id)} className="ml-3 text-rust hover:underline">
                       Excluir
                     </button>
@@ -837,7 +837,7 @@ function ReceivablesTab({
                       Editar
                     </button>
                   )}
-                  {r.saleId == null && (
+                  {r.saleId == null && r.livestockTradeId == null && (
                     <button onClick={() => handleDelete(r.id)} className="ml-3 text-rust hover:underline">
                       Excluir
                     </button>

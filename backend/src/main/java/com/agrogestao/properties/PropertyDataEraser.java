@@ -15,10 +15,16 @@ public class PropertyDataEraser {
     private static final List<String> STATEMENTS = List.of(
             "DELETE FROM purchase_items WHERE purchase_id IN (SELECT id FROM purchases WHERE property_id = ?)",
             "DELETE FROM sale_items WHERE sale_id IN (SELECT id FROM sales WHERE property_id = ?)",
+            "DELETE FROM animal_events WHERE property_id = ?",
             "DELETE FROM accounts_payable WHERE property_id = ?",
             "DELETE FROM accounts_receivable WHERE property_id = ?",
             "DELETE FROM purchases WHERE property_id = ?",
             "DELETE FROM sales WHERE property_id = ?",
+            "DELETE FROM livestock_trades WHERE property_id = ?",
+            // animals.mother_id aponta para a própria tabela: solta o vínculo antes de apagar.
+            "UPDATE animals SET mother_id = NULL WHERE property_id = ?",
+            "DELETE FROM animals WHERE property_id = ?",
+            "DELETE FROM animal_batches WHERE property_id = ?",
             "DELETE FROM financial_transactions WHERE property_id = ?",
             "DELETE FROM inventory_movements WHERE property_id = ?",
             "DELETE FROM inventory_items WHERE property_id = ?",

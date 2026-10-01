@@ -24,6 +24,9 @@ const entityLabels: Record<string, string> = {
   PropertyMember: 'Membro da equipe',
   PropertyInvitation: 'Convite',
   Property: 'Propriedade',
+  Animal: 'Animal',
+  AnimalBatch: 'Lote de animais',
+  LivestockTrade: 'Compra/venda de animais',
 }
 
 const areas: { key: string; label: string; entities: string[] }[] = [
@@ -32,6 +35,7 @@ const areas: { key: string; label: string; entities: string[] }[] = [
   { key: 'purchases', label: 'Compras', entities: ['Purchase', 'Supplier'] },
   { key: 'sales', label: 'Vendas', entities: ['Sale', 'Customer'] },
   { key: 'production', label: 'Produção', entities: ['ProductionRecord'] },
+  { key: 'livestock', label: 'Pecuária', entities: ['Animal', 'AnimalBatch', 'LivestockTrade'] },
   { key: 'activities', label: 'Atividades', entities: ['Activity'] },
   { key: 'team', label: 'Equipe', entities: ['PropertyMember', 'PropertyInvitation'] },
   { key: 'property', label: 'Propriedade', entities: ['Property'] },

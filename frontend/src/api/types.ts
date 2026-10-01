@@ -49,6 +49,8 @@ export interface AccountPayable {
   supplierId: number | null
   paid: boolean
   purchaseId: number | null
+  /** Parcela de compra de animais (pecuária). */
+  livestockTradeId: number | null
   installmentNumber: number | null
   installmentCount: number | null
 }
@@ -61,6 +63,8 @@ export interface AccountReceivable {
   customerId: number | null
   received: boolean
   saleId: number | null
+  /** Parcela de venda de animais (pecuária). */
+  livestockTradeId: number | null
   installmentNumber: number | null
   installmentCount: number | null
 }
@@ -363,4 +367,134 @@ export interface DeletionPreview {
   toDelete: PropertyRef[]
   toLeave: PropertyRef[]
   blocking: PropertyRef[]
+}
+
+// Pecuária
+
+export type Species = 'BOVINO' | 'BUBALINO' | 'OVINO' | 'CAPRINO' | 'SUINO' | 'EQUINO' | 'AVE' | 'PEIXE' | 'OUTRO'
+export type Sex = 'MACHO' | 'FEMEA'
+export type AnimalOrigin = 'NASCIMENTO' | 'COMPRA' | 'OUTRA'
+export type AnimalStatus = 'ATIVO' | 'VENDIDO' | 'MORTO' | 'DESCARTADO'
+export type BatchTracking = 'INDIVIDUAL' | 'AGGREGATE'
+export type ExitType = 'MORTE' | 'DESCARTE' | 'OUTRA'
+export type AnimalEventType = 'ENTRADA' | 'MUDANCA_LOTE' | 'SAIDA'
+export type TradeKind = 'PURCHASE' | 'SALE'
+
+export interface AnimalBatch {
+  id: number
+  name: string
+  species: Species
+  tracking: BatchTracking
+  headCount: number
+  activityId: number | null
+  activityName: string | null
+  notes: string | null
+  archived: boolean
+}
+
+export interface BatchInput {
+  name: string
+  species: Species
+  tracking: BatchTracking
+  activityId: number | null
+  notes: string | null
+}
+
+export interface Animal {
+  id: number
+  tag: string
+  name: string | null
+  species: Species
+  breed: string | null
+  sex: Sex
+  birthDate: string | null
+  birthDateEstimated: boolean
+  origin: AnimalOrigin
+  entryDate: string
+  motherId: number | null
+  motherTag: string | null
+  sire: string | null
+  batchId: number | null
+  batchName: string | null
+  status: AnimalStatus
+  exitDate: string | null
+  exitReason: string | null
+  currentWeight: number | null
+  notes: string | null
+}
+
+export interface AnimalInput {
+  tag: string
+  name: string | null
+  species: Species
+  breed: string | null
+  sex: Sex
+  birthDate: string | null
+  birthDateEstimated: boolean
+  origin?: AnimalOrigin
+  entryDate?: string | null
+  motherId: number | null
+  sire: string | null
+  batchId?: number | null
+  weight?: number | null
+  notes: string | null
+}
+
+export interface AnimalEvent {
+  id: number
+  type: AnimalEventType
+  date: string
+  animalId: number | null
+  animalTag: string | null
+  batchId: number | null
+  batchName: string | null
+  headCount: number | null
+  weight: number | null
+  fromBatchName: string | null
+  toBatchName: string | null
+  tradeId: number | null
+  amount: number | null
+  description: string | null
+}
+
+export interface AnimalDetail {
+  animal: Animal
+  events: AnimalEvent[]
+  offspring: Animal[]
+}
+
+export interface NewAnimalInput {
+  tag: string
+  name?: string | null
+  sex: Sex
+  breed?: string | null
+  birthDate?: string | null
+  weight?: number | null
+}
+
+export interface LivestockTrade {
+  id: number
+  kind: TradeKind
+  partyId: number
+  partyName: string
+  tradeDate: string
+  headCount: number
+  totalAmount: number
+  paymentType: PaymentType
+  installmentCount: number
+  batchId: number | null
+  batchName: string | null
+  notes: string | null
+  canceled: boolean
+}
+
+export interface LivestockTradeDetail {
+  trade: LivestockTrade
+  animals: Animal[]
+  installments: InstallmentView[]
+}
+
+export interface HerdSummary {
+  totalHeads: number
+  bySpecies: { species: Species; heads: number }[]
 }

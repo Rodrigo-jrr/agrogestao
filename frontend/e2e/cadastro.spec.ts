@@ -5,6 +5,7 @@ test('cadastro com aceite dos termos, criação da propriedade e novo login', as
   const email = uniqueEmail('cadastro')
 
   await page.goto('/register')
+  await page.waitForLoadState('networkidle')
   await page.getByLabel('Nome').fill('Joana Cadastro')
   await page.getByLabel('E-mail').fill(email)
   await page.getByLabel('Senha').fill(PASSWORD)
