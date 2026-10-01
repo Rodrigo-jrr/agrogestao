@@ -94,6 +94,16 @@ Faça em ordem, **uma entrega por PR**, parando para o usuário revisar entre el
 
 ### 1. Pecuária — Entrega 3: reprodução e indicadores (próxima)
 Base: documento-base, seções 14 e 43. O que já existe está em `livestock/` e na seção Pecuária do ARCHITECTURE.
+
+**Pré-requisito concluído (01/10/2026):** o enum fixo `Species` foi substituído por um catálogo de espécies
+por propriedade (tabela `species`, migration V11; endpoint `/api/livestock/species`; aba "Minhas espécies" no
+frontend). Cada propriedade cadastra livremente as espécies que usa, sem nenhuma pré-cadastrada pelo sistema.
+Decisões já confirmadas com o usuário para esta entrega:
+- Reprodução só fica disponível para espécies com `allowsIndividual = true` no catálogo.
+- Diagnóstico de prenhez é obrigatório antes de registrar o parto.
+- Custos gerais da atividade são rateados por animal nos indicadores, igualmente por cabeça (mesmo padrão de
+  `HealthService`), não por peso.
+
 - **Eventos reprodutivos** por fêmea: cio, cobertura (touro/reprodutor), inseminação (sêmen), diagnóstico de
   prenhez (positivo/negativo, data prevista do parto), parto e aborto.
 - **Parto** que já cadastra a cria (ou crias) com mãe, pai, nascimento e lote, e encerra a gestação.
@@ -104,11 +114,6 @@ Base: documento-base, seções 14 e 43. O que já existe está em `livestock/` e
   - intervalo entre partos;
   - GMD médio por lote;
   - custo por animal e por kg: compra + sanidade rateada + parte dos lançamentos ligados à atividade/centro de custo.
-- **Decisões a confirmar com o usuário antes de começar:**
-  - quais espécies entram na reprodução;
-  - se o diagnóstico de prenhez é obrigatório antes do parto;
-  - como ratear custos gerais da atividade por animal.
-
 ### 2. Agricultura (Fase 2, documento-base seções 15 e 49)
 Pacotes `crops` e `fields` existem vazios.
 - **Talhões:** nome, área (ha), localização e solo.
