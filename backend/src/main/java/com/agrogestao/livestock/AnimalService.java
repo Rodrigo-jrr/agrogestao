@@ -204,6 +204,7 @@ public class AnimalService {
         animal.setExitReason(reason);
         animalRepository.save(animal);
         support.saveEvent(propertyId, AnimalEventType.SAIDA, request.date(), animal, null, null, null, null, null, reason);
+        support.closeOpenPregnanciesWithoutBirth(animal.getId());
         auditService.record("Animal", animal.getId(), AuditAction.UPDATE, animal.getTag() + " — " + reason);
         return support.toResponse(propertyId, animal);
     }

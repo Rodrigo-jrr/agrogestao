@@ -58,7 +58,8 @@ export const reproductiveStatusLabels: Record<ReproductiveStatus, string> = {
 
 /**
  * Situação reprodutiva atual da fêmea, derivada do histórico: prenhe se há diagnóstico positivo sem parto/aborto
- * que o encerre; coberta se o evento mais recente é cobertura/inseminação sem diagnóstico ainda; vazia nos demais casos.
+ * nem saída do rebanho que o encerre (closedWithoutBirthAt); coberta se o evento mais recente é cobertura/inseminação
+ * sem diagnóstico ainda; vazia nos demais casos.
  */
 export function reproductiveStatus(
   events: ReproductiveEvent[],
@@ -72,7 +73,13 @@ export function reproductiveStatus(
   )
   const openPregnancy = [...sorted]
     .reverse()
-    .find((e) => e.kind === 'DIAGNOSTICO_PRENHEZ' && e.pregnancyResult === 'POSITIVO' && !closedDiagnosisIds.has(e.id))
+    .find(
+      (e) =>
+        e.kind === 'DIAGNOSTICO_PRENHEZ' &&
+        e.pregnancyResult === 'POSITIVO' &&
+        e.closedWithoutBirthAt == null &&
+        !closedDiagnosisIds.has(e.id),
+    )
   if (openPregnancy) {
     return { status: 'PRENHE', expectedCalvingDate: openPregnancy.expectedCalvingDate, since: openPregnancy.date }
   }

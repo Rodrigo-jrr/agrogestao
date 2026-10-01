@@ -7,6 +7,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -51,6 +52,13 @@ public class ReproductiveEvent extends BaseEntity {
     /** No parto/aborto, o diagnóstico de prenhez (positivo) que esta gestação encerra. */
     @Column(name = "diagnosis_event_id")
     private Long diagnosisEventId;
+
+    /**
+     * Preenchido no próprio diagnóstico quando a gestação termina sem parto/aborto — o animal saiu do
+     * rebanho (venda, morte, descarte) antes disso. A saída já é o evento auditado; isto só fecha a gestação.
+     */
+    @Column(name = "closed_without_birth_at")
+    private LocalDateTime closedWithoutBirthAt;
 
     /** No parto: quantas crias nasceram (os cadastros das crias ficam em Animal). */
     @Column(name = "offspring_count")

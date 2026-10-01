@@ -24,13 +24,27 @@ public class LivestockSupport {
     private final AnimalBatchRepository batchRepository;
     private final AnimalEventRepository eventRepository;
     private final SpeciesCatalogRepository speciesRepository;
+    private final ReproductiveEventRepository reproductiveEventRepository;
 
     public LivestockSupport(AnimalRepository animalRepository, AnimalBatchRepository batchRepository,
-            AnimalEventRepository eventRepository, SpeciesCatalogRepository speciesRepository) {
+            AnimalEventRepository eventRepository, SpeciesCatalogRepository speciesRepository,
+            ReproductiveEventRepository reproductiveEventRepository) {
         this.animalRepository = animalRepository;
         this.batchRepository = batchRepository;
         this.eventRepository = eventRepository;
         this.speciesRepository = speciesRepository;
+        this.reproductiveEventRepository = reproductiveEventRepository;
+    }
+
+    /**
+     * Fecha, sem nascimento, qualquer gestação em aberto deste animal — chamar depois que a saída (venda,
+     * morte, descarte) for confirmada. Não gera evento na linha do tempo nem auditoria própria: a saída em
+     * si já é o evento auditado.
+     */
+    public void closeOpenPregnanciesWithoutBirth(Long animalId) {
+        LocalDateTime now = LocalDateTime.now();
+        reproductiveEventRepository.findOpenPregnanciesByAnimal(animalId)
+                .forEach(pregnancy -> pregnancy.setClosedWithoutBirthAt(now));
     }
 
     /** Espécie ativa do catálogo da propriedade — para cadastrar um animal ou lote novo. */

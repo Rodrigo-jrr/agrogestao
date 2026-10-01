@@ -264,7 +264,7 @@ public class ReproductiveEventService {
     private static ReproductiveEventResponse toResponse(ReproductiveEvent e, String animalTag, List<Long> offspringIds) {
         return new ReproductiveEventResponse(e.getId(), e.getAnimalId(), animalTag, e.getKind(), e.getEventDate(),
                 e.getSire(), e.getPregnancyResult(), e.getExpectedCalvingDate(), e.getDiagnosisEventId(),
-                e.getOffspringCount(), offspringIds, e.getNotes());
+                e.getOffspringCount(), offspringIds, e.getNotes(), e.getClosedWithoutBirthAt());
     }
 
     private static String describe(ReproductiveEvent e) {

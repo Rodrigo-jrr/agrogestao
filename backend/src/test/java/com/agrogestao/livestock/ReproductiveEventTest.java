@@ -184,4 +184,33 @@ class ReproductiveEventTest extends ApiTestSupport {
         assertThat(filtered).hasSize(1);
         assertThat(filtered.get(0).get("animalId").asLong()).isEqualTo(cow);
     }
+
+    @Test
+    void deathClosesTheOpenPregnancyAndDropsItFromAlerts() throws Exception {
+        JsonNode diagnosis = post("/api/livestock/reproduction", owner, Map.of("animalId", cow, "kind", "DIAGNOSTICO_PRENHEZ",
+                "date", TODAY.toString(), "pregnancyResult", "POSITIVO", "expectedCalvingDate", TODAY.plusDays(3).toString()));
+        assertThat(diagnosis.get("closedWithoutBirthAt").isNull()).isTrue();
+        assertThat(get("/api/livestock/alerts", owner).get("upcomingCalvings")).hasSize(1);
+
+        post("/api/livestock/animals/" + cow + "/exit", owner, Map.of("type", "MORTE", "date", TODAY.toString()));
+
+        assertThat(get("/api/livestock/alerts", owner).get("upcomingCalvings")).isEmpty();
+        JsonNode closed = page("/api/livestock/reproduction?animalId=" + cow, owner).get(0);
+        assertThat(closed.get("closedWithoutBirthAt").isNull()).isFalse();
+    }
+
+    @Test
+    void individualSaleClosesTheOpenPregnancyAndDropsItFromAlerts() throws Exception {
+        post("/api/livestock/reproduction", owner, Map.of("animalId", cow, "kind", "DIAGNOSTICO_PRENHEZ",
+                "date", TODAY.toString(), "pregnancyResult", "POSITIVO", "expectedCalvingDate", TODAY.plusDays(3).toString()));
+        assertThat(get("/api/livestock/alerts", owner).get("upcomingCalvings")).hasSize(1);
+
+        long customerId = post("/api/sales/customers", owner, Map.of("name", "Frigorífico")).get("id").asLong();
+        post("/api/livestock/sales", owner, Map.of("customerId", customerId, "tradeDate", TODAY.toString(),
+                "totalAmount", 1000, "animalIds", List.of(cow)));
+
+        assertThat(get("/api/livestock/alerts", owner).get("upcomingCalvings")).isEmpty();
+        JsonNode closed = page("/api/livestock/reproduction?animalId=" + cow, owner).get(0);
+        assertThat(closed.get("closedWithoutBirthAt").isNull()).isFalse();
+    }
 }
