@@ -24,20 +24,27 @@ public interface ReproductiveEventRepository extends JpaRepository<ReproductiveE
 
     boolean existsByDiagnosisEventId(Long diagnosisEventId);
 
-    /** Gestação (diagnóstico positivo) em aberto desta fêmea, se houver — no máximo uma por vez. */
+    /**
+     * Gestação (diagnóstico positivo) em aberto desta fêmea, se houver — no máximo uma por vez. Encerrada por
+     * um parto/aborto que aponte pra ela (diagnosisEventId) ou, sem nascimento, pelo animal sair do rebanho
+     * (closedWithoutBirthAt — venda, morte, descarte).
+     */
     @Query("SELECT d FROM ReproductiveEvent d WHERE d.propertyId = :propertyId AND d.animalId = :animalId "
             + "AND d.kind = com.agrogestao.livestock.ReproductiveEventKind.DIAGNOSTICO_PRENHEZ "
             + "AND d.pregnancyResult = com.agrogestao.livestock.PregnancyResult.POSITIVO "
+            + "AND d.closedWithoutBirthAt IS NULL "
             + "AND NOT EXISTS (SELECT 1 FROM ReproductiveEvent closing WHERE closing.diagnosisEventId = d.id)")
     Optional<ReproductiveEvent> findOpenPregnancy(@Param("propertyId") Long propertyId, @Param("animalId") Long animalId);
 
     /**
-     * Diagnósticos de prenhez positivos ainda em aberto (sem parto/aborto que os encerre) — a gestação
-     * atual de cada fêmea prenhe. Base para a situação reprodutiva e para o alerta de partos previstos.
+     * Diagnósticos de prenhez positivos ainda em aberto (sem parto/aborto, e sem o animal ter saído do
+     * rebanho) — a gestação atual de cada fêmea prenhe. Base para a situação reprodutiva e para o alerta
+     * de partos previstos.
      */
     @Query("SELECT d FROM ReproductiveEvent d WHERE d.propertyId = :propertyId "
             + "AND d.kind = com.agrogestao.livestock.ReproductiveEventKind.DIAGNOSTICO_PRENHEZ "
             + "AND d.pregnancyResult = com.agrogestao.livestock.PregnancyResult.POSITIVO "
+            + "AND d.closedWithoutBirthAt IS NULL "
             + "AND NOT EXISTS (SELECT 1 FROM ReproductiveEvent closing WHERE closing.diagnosisEventId = d.id)")
     List<ReproductiveEvent> findOpenPregnancies(@Param("propertyId") Long propertyId);
 
@@ -45,7 +52,16 @@ public interface ReproductiveEventRepository extends JpaRepository<ReproductiveE
     @Query("SELECT d FROM ReproductiveEvent d WHERE d.propertyId = :propertyId "
             + "AND d.kind = com.agrogestao.livestock.ReproductiveEventKind.DIAGNOSTICO_PRENHEZ "
             + "AND d.pregnancyResult = com.agrogestao.livestock.PregnancyResult.POSITIVO "
+            + "AND d.closedWithoutBirthAt IS NULL "
             + "AND d.expectedCalvingDate IS NOT NULL AND d.expectedCalvingDate <= :until "
             + "AND NOT EXISTS (SELECT 1 FROM ReproductiveEvent closing WHERE closing.diagnosisEventId = d.id)")
     List<ReproductiveEvent> findUpcomingCalvings(@Param("propertyId") Long propertyId, @Param("until") LocalDate until);
+
+    /** Gestações em aberto de um animal — para fechá-las sem nascimento quando ele sai do rebanho. */
+    @Query("SELECT d FROM ReproductiveEvent d WHERE d.animalId = :animalId "
+            + "AND d.kind = com.agrogestao.livestock.ReproductiveEventKind.DIAGNOSTICO_PRENHEZ "
+            + "AND d.pregnancyResult = com.agrogestao.livestock.PregnancyResult.POSITIVO "
+            + "AND d.closedWithoutBirthAt IS NULL "
+            + "AND NOT EXISTS (SELECT 1 FROM ReproductiveEvent closing WHERE closing.diagnosisEventId = d.id)")
+    List<ReproductiveEvent> findOpenPregnanciesByAnimal(@Param("animalId") Long animalId);
 }
