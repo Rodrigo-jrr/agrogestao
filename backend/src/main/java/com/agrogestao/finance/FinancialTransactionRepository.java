@@ -27,6 +27,13 @@ public interface FinancialTransactionRepository extends JpaRepository<FinancialT
     List<FinancialTransaction> findByPropertyIdAndTransactionDateBetweenOrderByTransactionDateDesc(
             Long propertyId, LocalDate from, LocalDate to);
 
+    /** Despesas gerais dos centros de custo informados no período — base do rateio nos indicadores da pecuária. */
+    @Query("SELECT t FROM FinancialTransaction t WHERE t.propertyId = :propertyId "
+            + "AND t.type = com.agrogestao.finance.TransactionType.EXPENSE AND t.costCenterId IN :costCenterIds "
+            + "AND t.transactionDate BETWEEN :from AND :to")
+    List<FinancialTransaction> findExpensesByCostCenters(@Param("propertyId") Long propertyId,
+            @Param("costCenterIds") List<Long> costCenterIds, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
     @Query("SELECT COALESCE(SUM(t.amount), 0) FROM FinancialTransaction t "
             + "WHERE t.propertyId = :propertyId AND t.type = :type "
             + "AND t.transactionDate BETWEEN :from AND :to")

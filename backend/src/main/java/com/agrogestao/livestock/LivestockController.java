@@ -13,6 +13,7 @@ import com.agrogestao.livestock.dto.HealthApplicationRequest;
 import com.agrogestao.livestock.dto.HealthApplicationResponse;
 import com.agrogestao.livestock.dto.HerdSummary;
 import com.agrogestao.livestock.dto.LivestockAlerts;
+import com.agrogestao.livestock.dto.LivestockIndicators;
 import com.agrogestao.livestock.dto.WeighingRequest;
 import com.agrogestao.livestock.dto.LivestockPurchaseRequest;
 import com.agrogestao.livestock.dto.LivestockSaleRequest;
@@ -24,6 +25,7 @@ import com.agrogestao.livestock.dto.SpeciesResponse;
 import com.agrogestao.livestock.dto.TradeDetailResponse;
 import com.agrogestao.livestock.dto.TradeResponse;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -48,10 +50,12 @@ public class LivestockController {
     private final HealthService healthService;
     private final SpeciesCatalogService speciesService;
     private final ReproductiveEventService reproductiveEventService;
+    private final LivestockIndicatorsService indicatorsService;
 
     public LivestockController(AnimalBatchService batchService, AnimalService animalService,
             LivestockTradeService tradeService, WeighingService weighingService, HealthService healthService,
-            SpeciesCatalogService speciesService, ReproductiveEventService reproductiveEventService) {
+            SpeciesCatalogService speciesService, ReproductiveEventService reproductiveEventService,
+            LivestockIndicatorsService indicatorsService) {
         this.batchService = batchService;
         this.animalService = animalService;
         this.tradeService = tradeService;
@@ -59,6 +63,7 @@ public class LivestockController {
         this.healthService = healthService;
         this.speciesService = speciesService;
         this.reproductiveEventService = reproductiveEventService;
+        this.indicatorsService = indicatorsService;
     }
 
     @GetMapping("/summary")
@@ -281,5 +286,15 @@ public class LivestockController {
     public ResponseEntity<Void> deleteReproduction(@PathVariable Long id) {
         reproductiveEventService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    // Indicadores
+
+    @GetMapping("/indicators")
+    public LivestockIndicators indicators(
+            @RequestParam(required = false) Long batchId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to) {
+        return indicatorsService.get(batchId, from, to);
     }
 }

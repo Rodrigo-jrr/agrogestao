@@ -23,6 +23,11 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     List<Animal> findByPropertyIdAndIdIn(Long propertyId, List<Long> ids);
 
+    /** Todo animal da propriedade, qualquer situação — para indicadores (período pode olhar para trás no tempo). */
+    List<Animal> findByPropertyId(Long propertyId);
+
+    List<Animal> findByPropertyIdAndBatchId(Long propertyId, Long batchId);
+
     /** [batchId, cabeças ativas] dos lotes individuais. */
     @Query("SELECT a.batchId, COUNT(a) FROM Animal a WHERE a.propertyId = :propertyId "
             + "AND a.status = com.agrogestao.livestock.AnimalStatus.ATIVO AND a.batchId IS NOT NULL GROUP BY a.batchId")
