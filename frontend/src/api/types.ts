@@ -614,6 +614,8 @@ export interface ReproductiveEvent {
   offspringCount: number | null
   offspringAnimalIds: number[]
   notes: string | null
+  /** Gestação encerrada sem parto/aborto — animal saiu do rebanho (venda, morte, descarte). */
+  closedWithoutBirthAt: string | null
 }
 
 export interface ReproductiveEventInput {

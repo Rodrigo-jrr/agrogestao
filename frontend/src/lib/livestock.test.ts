@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { formatAge, healthTitle, overallDailyGain, parseTagList, relativeDay, weightHistory } from './livestock'
+import type { ReproductiveEvent } from '../api/types'
+import { formatAge, healthTitle, overallDailyGain, parseTagList, relativeDay, reproductiveStatus, weightHistory } from './livestock'
 
 describe('formatAge', () => {
   const today = new Date(2026, 9, 1) // 01/10/2026
@@ -87,5 +88,33 @@ describe('healthTitle', () => {
     expect(healthTitle('VACINA', 'Vacina Aftosa')).toBe('Vacina Aftosa')
     expect(healthTitle('VACINA', 'Raiva')).toBe('vacina Raiva')
     expect(healthTitle('MEDICAMENTO', 'Ivermectina', true)).toBe('Medicamento Ivermectina')
+  })
+})
+
+describe('reproductiveStatus', () => {
+  const diagnosis = (patch: Partial<ReproductiveEvent> = {}): ReproductiveEvent => ({
+    id: 1,
+    animalId: 1,
+    animalTag: '1',
+    kind: 'DIAGNOSTICO_PRENHEZ',
+    date: '2026-08-01',
+    sire: null,
+    pregnancyResult: 'POSITIVO',
+    expectedCalvingDate: '2027-05-01',
+    diagnosisEventId: null,
+    offspringCount: null,
+    offspringAnimalIds: [],
+    notes: null,
+    closedWithoutBirthAt: null,
+    ...patch,
+  })
+
+  it('prenhe com diagnóstico positivo em aberto', () => {
+    expect(reproductiveStatus([diagnosis()]).status).toBe('PRENHE')
+  })
+
+  it('vazia quando a gestação encerra sem parto nem aborto (animal saiu do rebanho)', () => {
+    const status = reproductiveStatus([diagnosis({ closedWithoutBirthAt: '2026-09-10T12:00:00' })])
+    expect(status.status).toBe('VAZIA')
   })
 })
