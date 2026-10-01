@@ -13,6 +13,8 @@ import type {
   AuditAuthor,
   BatchInput,
   ExitType,
+  Field,
+  FieldInput,
   HealthApplication,
   HealthApplicationInput,
   HerdSummary,
@@ -161,6 +163,14 @@ export const activitiesApi = {
   update: (id: number, data: ActivityInput) =>
     apiClient.put<Activity>(`/activities/${id}`, data).then((r) => r.data),
   remove: (id: number) => apiClient.delete<void>(`/activities/${id}`).then((r) => r.data),
+}
+
+export const fieldsApi = {
+  list: (includeArchived = false) => apiClient.get<Field[]>('/fields', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: FieldInput) => apiClient.post<Field>('/fields', data).then((r) => r.data),
+  update: (id: number, data: FieldInput) => apiClient.put<Field>(`/fields/${id}`, data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<Field>(`/fields/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<Field>(`/fields/${id}/unarchive`).then((r) => r.data),
 }
 
 type PartyInput = { name: string; document?: string; phone?: string; email?: string }

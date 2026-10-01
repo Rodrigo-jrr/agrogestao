@@ -38,6 +38,7 @@ public class PropertyDataEraser {
             "DELETE FROM production_records WHERE property_id = ?",
             "DELETE FROM cost_centers WHERE property_id = ?",
             "DELETE FROM activities WHERE property_id = ?",
+            "DELETE FROM fields WHERE property_id = ?",
             "DELETE FROM suppliers WHERE property_id = ?",
             "DELETE FROM customers WHERE property_id = ?",
             "DELETE FROM property_invitations WHERE property_id = ?",

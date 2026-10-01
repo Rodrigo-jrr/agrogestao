@@ -14,6 +14,7 @@ const coreNav = [
   { to: '/producao', label: 'Produção' },
   { to: '/compras', label: 'Compras' },
   { to: '/vendas', label: 'Vendas' },
+  { to: '/agricultura', label: 'Agricultura' },
   { to: '/pecuaria', label: 'Pecuária' },
   { to: '/atividades', label: 'Atividades' },
   { to: '/equipe', label: 'Equipe' },
@@ -22,8 +23,6 @@ const coreNav = [
 
 /** Só proprietários consultam o histórico (o servidor também bloqueia). */
 const ownerNav = [{ to: '/historico', label: 'Histórico' }]
-
-const comingSoonNav = ['Agricultura']
 
 export function Layout() {
   const { user, logout, isPlatformAdmin } = useAuth()
@@ -75,13 +74,6 @@ export function Layout() {
               {item.label}
             </NavLink>
           ))}
-          <div className="mt-4 border-t border-terreiro/10 pt-3">
-            {comingSoonNav.map((label) => (
-              <div key={label} className="cursor-not-allowed rounded-md px-3 py-2 text-sm text-terreiro/35">
-                {label} <span className="text-xs">(em breve)</span>
-              </div>
-            ))}
-          </div>
         </nav>
 
         <div className="border-t border-terreiro/10 px-4 py-4">
