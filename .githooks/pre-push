@@ -1,0 +1,14 @@
+#!/bin/sh
+# Bloqueia envio direto para a main: toda mudança entra por PR, com o CI passando.
+# (A proteção de branch do GitHub exige plano pago em repositório privado; esta trava vale nesta máquina.)
+# Ativar uma vez por clone:  git config core.hooksPath .githooks
+# Emergência (evite):         git push --no-verify
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ]; then
+    echo "Envio direto para a main bloqueado." >&2
+    echo "Crie uma branch (git switch -c minha-mudanca), envie-a e abra um PR: gh pr create" >&2
+    exit 1
+  fi
+done
+exit 0
