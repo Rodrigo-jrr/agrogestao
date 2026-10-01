@@ -369,6 +369,24 @@ export interface DeletionPreview {
   blocking: PropertyRef[]
 }
 
+// Agricultura
+
+export interface Field {
+  id: number
+  name: string
+  areaHa: number
+  location: string | null
+  soilType: string | null
+  archived: boolean
+}
+
+export interface FieldInput {
+  name: string
+  areaHa: number
+  location?: string | null
+  soilType?: string | null
+}
+
 // Pecuária
 
 /** Espécie cadastrada livremente pela propriedade. Depois de usada, allowsIndividual não muda. */
