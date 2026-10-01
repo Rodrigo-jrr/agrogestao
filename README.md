@@ -65,6 +65,11 @@ Todas as variáveis estão documentadas em [.env.example](.env.example).
 > Depois de `npm install`/`npm ci`, o npm troca o link por uma pasta comum: mova-a de volta
 > (`rm -rf node_modules.nosync && mv node_modules node_modules.nosync && ln -s node_modules.nosync node_modules`).
 
+## Próximos passos
+
+O que falta implementar, em ordem, e as instruções para quem continuar o desenvolvimento estão em
+[docs/PROXIMOS_PASSOS.md](docs/PROXIMOS_PASSOS.md).
+
 ## Fluxo de trabalho (Git)
 
 Repositório: [github.com/Rodrigo-jrr/agrogestao](https://github.com/Rodrigo-jrr/agrogestao) (privado).
