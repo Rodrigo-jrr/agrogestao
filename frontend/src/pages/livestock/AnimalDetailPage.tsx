@@ -10,12 +10,26 @@ import { useProperty } from '../../property/PropertyContext'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
 import { eventLabels, exitLabels, formatAge, originLabels, sexLabels, speciesLabels, statusLabels } from '../../lib/livestock'
 import { AnimalForm } from './AnimalForm'
-import { cardClass, labelClass } from './shared'
+import { WithdrawalBadge, cardClass, labelClass } from './shared'
+import { WeightSection } from './WeightSection'
 
 function describeEvent(e: AnimalEvent) {
   if (e.type === 'MUDANCA_LOTE') return `${e.fromBatchName ?? 'Sem lote'} → ${e.toBatchName ?? 'sem lote'}`
-  const parts = [e.description, e.weight != null ? `${formatNumber(e.weight)} kg` : null, e.amount != null ? formatCurrency(e.amount) : null]
+  const parts = [
+    e.description,
+    e.weight != null ? `${formatNumber(e.weight)} kg` : null,
+    e.amount != null ? formatCurrency(e.amount) : null,
+    e.withdrawalUntil ? `carência até ${formatDate(e.withdrawalUntil)}` : null,
+  ]
   return parts.filter(Boolean).join(' · ')
+}
+
+const dotColor: Record<AnimalEvent['type'], string> = {
+  ENTRADA: 'bg-mata',
+  SAIDA: 'bg-rust',
+  MUDANCA_LOTE: 'bg-trigo-dark',
+  PESAGEM: 'bg-terra/40',
+  SANIDADE: 'bg-trigo',
 }
 
 /** Saída sem venda (morte, descarte...): diálogo com motivo e data. */
@@ -146,6 +160,22 @@ export function AnimalDetailPage() {
 
   const a = detail.animal
 
+  async function removeWeighing(e: AnimalEvent) {
+    const ok = await confirm({
+      title: `Excluir a pesagem de ${formatDate(e.date)}?`,
+      message: `O peso de ${formatNumber(e.weight ?? 0)} kg sai do histórico; o peso atual volta a ser o da pesagem anterior.`,
+      confirmLabel: 'Excluir pesagem',
+    })
+    if (!ok) return
+    setError(null)
+    try {
+      await livestockApi.deleteWeighing(e.id)
+      load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    }
+  }
+
   async function reactivate() {
     setError(null)
     try {
@@ -177,7 +207,6 @@ export function AnimalDetailPage() {
     ['Nascimento', a.birthDate ? `${formatDate(a.birthDate)}${a.birthDateEstimated ? ' (aprox.)' : ''} · ${formatAge(a.birthDate)}` : '—'],
     ['Origem', `${originLabels[a.origin]} em ${formatDate(a.entryDate)}`],
     ['Lote', a.batchName ?? '—'],
-    ['Peso', a.currentWeight != null ? `${formatNumber(a.currentWeight)} kg` : '—'],
     ['Mãe', a.motherTag ?? '—'],
     ['Pai', a.sire ?? '—'],
   ]
@@ -197,6 +226,7 @@ export function AnimalDetailPage() {
             {statusLabels[a.status]}
             {a.exitDate && ` em ${formatDate(a.exitDate)}`}
             {a.exitReason && ` — ${a.exitReason}`}
+            {a.status === 'ATIVO' && <WithdrawalBadge until={a.withdrawalUntil} />}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -220,7 +250,8 @@ export function AnimalDetailPage() {
       <FormMessage error={error} />
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <section className={`${cardClass} min-w-0 lg:col-span-1`}>
+        <div className="min-w-0 space-y-4 lg:col-span-1">
+        <section className={`${cardClass} min-w-0`}>
           <h2 className="mb-3 text-sm font-semibold text-terra">Dados</h2>
           {editing ? (
             <AnimalForm
@@ -252,6 +283,8 @@ export function AnimalDetailPage() {
             </>
           )}
         </section>
+        <WeightSection animalId={a.id} events={detail.events} canWrite={canWrite && a.status === 'ATIVO'} onSaved={load} />
+        </div>
 
         <section className={`${cardClass} min-w-0 lg:col-span-2`}>
           <h2 className="mb-3 text-sm font-semibold text-terra">Linha do tempo</h2>
@@ -260,13 +293,20 @@ export function AnimalDetailPage() {
               <li key={e.id} className="relative">
                 <span
                   aria-hidden="true"
-                  className={`absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${
-                    e.type === 'SAIDA' ? 'bg-rust' : e.type === 'ENTRADA' ? 'bg-mata' : 'bg-trigo-dark'
-                  }`}
+                  className={`absolute -left-[1.6rem] top-1.5 h-2.5 w-2.5 rounded-full ring-4 ring-white ${dotColor[e.type]}`}
                 />
                 <p className="text-xs text-terra/55 tabular-nums">{formatDate(e.date)}</p>
                 <p className="text-sm font-medium text-terra">{eventLabels[e.type]}</p>
                 {describeEvent(e) && <p className="text-sm text-terra/70">{describeEvent(e)}</p>}
+                {canManage && e.type === 'PESAGEM' && (
+                  <button
+                    onClick={() => removeWeighing(e)}
+                    aria-label={`Excluir pesagem de ${formatDate(e.date)}`}
+                    className={`cursor-pointer text-xs ${linkDangerClass}`}
+                  >
+                    Excluir pesagem
+                  </button>
+                )}
               </li>
             ))}
           </ol>

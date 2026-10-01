@@ -20,7 +20,8 @@ import { inputClass, linkDangerClass, linkNeutralClass, primaryButtonClass } fro
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
 import { individualSpecies, parseTagList, sexLabels, speciesLabels } from '../../lib/livestock'
 import { usePaged } from '../../lib/usePaged'
-import { PartySelect, PaymentFields, cardClass, labelClass } from './shared'
+import { AnimalPicker, PartySelect, PaymentFields, cardClass, labelClass } from './shared'
+import { useSelection } from './useSelection'
 
 type Mode = 'individual' | 'aggregate'
 type Party = { id: number; name: string }
@@ -255,8 +256,7 @@ function SaleForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: () =>
   const [date, setDate] = useState(todayIso)
   const [mode, setMode] = useState<Mode>('individual')
   const [active, setActive] = useState<Animal[]>([])
-  const [filter, setFilter] = useState('')
-  const [chosen, setChosen] = useState<Set<number>>(new Set())
+  const selection = useSelection()
   const [batchId, setBatchId] = useState('')
   const [headCount, setHeadCount] = useState('')
   const [total, setTotal] = useState('')
@@ -276,27 +276,14 @@ function SaleForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: () =>
       .catch(() => setActive([]))
   }, [version])
 
-  const shown = active.filter((a) => {
-    const term = filter.trim().toLowerCase()
-    return !term || a.tag.toLowerCase().includes(term) || (a.name ?? '').toLowerCase().includes(term) || (a.batchName ?? '').toLowerCase().includes(term)
-  })
   const totalValue = Number(total) || 0
   const aggregateBatches = batches.filter((b) => !b.archived && b.tracking === 'AGGREGATE' && b.headCount > 0)
-  const heads = mode === 'individual' ? chosen.size : Number(headCount) || 0
-
-  function toggle(id: number) {
-    setChosen((current) => {
-      const next = new Set(current)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
+  const heads = mode === 'individual' ? selection.chosen.size : Number(headCount) || 0
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setResult({})
-    if (mode === 'individual' && chosen.size === 0) {
+    if (mode === 'individual' && selection.chosen.size === 0) {
       setResult({ error: 'Marque os animais vendidos.' })
       return
     }
@@ -312,10 +299,10 @@ function SaleForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: () =>
         totalAmount: totalValue,
         paymentType,
         installments: paymentType === 'INSTALLMENTS' ? installments : undefined,
-        ...(mode === 'individual' ? { animalIds: [...chosen] } : { batchId: Number(batchId), headCount: Number(headCount) }),
+        ...(mode === 'individual' ? { animalIds: [...selection.chosen] } : { batchId: Number(batchId), headCount: Number(headCount) }),
       })
       setResult({ success: `Venda de ${trade.headCount === 1 ? '1 cabeça' : `${trade.headCount} cabeças`} registrada.` })
-      setChosen(new Set())
+      selection.clear()
       setHeadCount('')
       setTotal('')
       setPaymentType('CASH')
@@ -353,38 +340,14 @@ function SaleForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: () =>
       <ModeToggle mode={mode} name={`${ids}-mode`} onChange={setMode} />
 
       {mode === 'individual' ? (
-        <fieldset>
-          <legend className={labelClass}>
-            Animais vendidos {chosen.size > 0 && <span className="font-normal">({chosen.size === 1 ? '1 marcado' : `${chosen.size} marcados`})</span>}
-          </legend>
-          <input
-            type="search"
-            aria-label="Filtrar animais por brinco, nome ou lote"
-            placeholder="Filtrar por brinco, nome ou lote"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            className={`${inputClass} mb-2`}
-          />
-          <div className="max-h-56 overflow-y-auto rounded-md border border-terra/10">
-            {shown.length === 0 ? (
-              <p className="p-3 text-sm text-terra/50">{active.length === 0 ? 'Nenhum animal ativo.' : 'Nenhum animal com esse filtro.'}</p>
-            ) : (
-              <ul>
-                {shown.map((a) => (
-                  <li key={a.id} className="border-b border-terra/5 last:border-b-0">
-                    <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-terra/5">
-                      <input type="checkbox" checked={chosen.has(a.id)} onChange={() => toggle(a.id)} className="accent-rust" />
-                      <span className="font-medium text-terra">{a.tag}</span>
-                      <span className="truncate text-terra/55">
-                        {[a.name, speciesLabels[a.species], sexLabels[a.sex], a.batchName].filter(Boolean).join(' · ')}
-                      </span>
-                    </label>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </fieldset>
+        <>
+          <AnimalPicker legend="Animais vendidos" animals={active} chosen={selection.chosen} onToggle={selection.toggle} />
+          {active.some((a) => selection.chosen.has(a.id) && a.withdrawalUntil) && (
+            <p role="status" className="rounded-md bg-trigo/15 px-3 py-2 text-xs text-terra">
+              Há animais marcados em carência: não podem ir para abate até o fim do prazo.
+            </p>
+          )}
+        </>
       ) : (
         <div className="grid gap-3 sm:grid-cols-2">
           <div>

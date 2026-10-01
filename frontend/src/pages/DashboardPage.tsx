@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
-import { dashboardApi } from '../api/endpoints'
+import { Link } from 'react-router-dom'
+import { dashboardApi, livestockApi } from '../api/endpoints'
 import { apiErrorMessage } from '../api/client'
-import type { DashboardSummary } from '../api/types'
+import type { DashboardSummary, HerdSummary, LivestockAlerts } from '../api/types'
+import { HealthAgenda } from './livestock/HealthTab'
 import { useProperty } from '../property/PropertyContext'
 import { PeriodFilter, presetPeriod, type Period } from '../components/PeriodFilter'
 import { formatCurrency, formatDate, formatNumber } from '../lib/format'
@@ -17,6 +19,24 @@ export function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [period, setPeriod] = useState<Period>(() => presetPeriod('thisMonth'))
+  const [herd, setHerd] = useState<HerdSummary | null>(null)
+  const [herdAlerts, setHerdAlerts] = useState<LivestockAlerts | null>(null)
+
+  // Pecuária: só aparece para quem tem rebanho ou algo pendente (falha aqui não derruba o painel).
+  useEffect(() => {
+    if (!currentProperty) return
+    Promise.all([livestockApi.summary(), livestockApi.alerts()])
+      .then(([summaryResult, alertsResult]) => {
+        setHerd(summaryResult)
+        setHerdAlerts(alertsResult)
+      })
+      .catch(() => {
+        setHerd(null)
+        setHerdAlerts(null)
+      })
+  }, [currentProperty])
+  const showHerd =
+    !!herd && !!herdAlerts && (herd.totalHeads > 0 || herdAlerts.followUps.length > 0 || herdAlerts.withdrawals.length > 0)
 
   function load() {
     if (!currentProperty) return
@@ -136,6 +156,23 @@ export function DashboardPage() {
           )}
         </div>
       </div>
+
+      {showHerd && (
+        <div className="rounded-2xl border border-terra/10 bg-white p-5 shadow-sm">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-base font-semibold text-terra">
+              Pecuária{' '}
+              <span className="text-sm font-normal text-terra/55">
+                · {formatNumber(herd!.totalHeads)} {herd!.totalHeads === 1 ? 'cabeça' : 'cabeças'}
+              </span>
+            </h2>
+            <Link to="/pecuaria?aba=sanidade" className="text-sm text-rust hover:underline">
+              Ver sanidade
+            </Link>
+          </div>
+          <HealthAgenda alerts={herdAlerts} canWrite={false} />
+        </div>
+      )}
     </div>
   )
 }

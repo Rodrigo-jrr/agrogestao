@@ -16,6 +16,7 @@ public class PropertyDataEraser {
             "DELETE FROM purchase_items WHERE purchase_id IN (SELECT id FROM purchases WHERE property_id = ?)",
             "DELETE FROM sale_items WHERE sale_id IN (SELECT id FROM sales WHERE property_id = ?)",
             "DELETE FROM animal_events WHERE property_id = ?",
+            "DELETE FROM health_applications WHERE property_id = ?",
             "DELETE FROM accounts_payable WHERE property_id = ?",
             "DELETE FROM accounts_receivable WHERE property_id = ?",
             "DELETE FROM purchases WHERE property_id = ?",

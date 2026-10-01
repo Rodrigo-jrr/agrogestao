@@ -64,6 +64,13 @@ public class AnimalEvent {
     @Column(length = 255)
     private String description;
 
+    @Column(name = "application_id")
+    private Long applicationId;
+
+    /** Fim da carência causada por este evento (aplicação sanitária). */
+    @Column(name = "withdrawal_until")
+    private java.time.LocalDate withdrawalUntil;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }

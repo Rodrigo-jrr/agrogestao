@@ -127,5 +127,10 @@ class PropertyManagementTest extends ApiTestSupport {
         Long flock = post("/api/livestock/batches", session, Map.of("name", "Galinhas", "species", "AVE",
                 "tracking", "AGGREGATE")).get("id").asLong();
         post("/api/livestock/batches/" + flock + "/entries", session, Map.of("headCount", 30, "date", today));
+        // Manejo: peso médio do lote e vacina do estoque (liga aplicação a produto e movimentação).
+        post("/api/livestock/weighings", session, Map.of("date", today, "batchId", flock, "averageWeight", 2,
+                "sampleSize", 5));
+        post("/api/livestock/health", session, Map.of("kind", "VACINA", "date", today, "batchId", flock,
+                "productId", productId, "dose", 0.1, "withdrawalDays", 10, "nextDate", nextMonth));
     }
 }

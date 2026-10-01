@@ -11,7 +11,7 @@ import { formatAge, individualSpecies, sexLabels, speciesLabels, statusLabels } 
 import { useDebounced } from '../../lib/useDebounced'
 import { usePaged } from '../../lib/usePaged'
 import { AnimalForm } from './AnimalForm'
-import { cardClass, labelClass } from './shared'
+import { WithdrawalBadge, cardClass, labelClass } from './shared'
 
 export function HerdTab({
   batches,
@@ -281,6 +281,7 @@ export function HerdTab({
                       {a.tag}
                     </Link>
                     {a.name && <span className="ml-1 text-terra/55">{a.name}</span>}
+                    {a.status === 'ATIVO' && <WithdrawalBadge until={a.withdrawalUntil} />}
                   </td>
                   <td className="py-2 pr-3">
                     {speciesLabels[a.species]}

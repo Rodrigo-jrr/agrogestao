@@ -1,7 +1,8 @@
 import { useId, useState } from 'react'
-import type { InstallmentInput, PaymentType } from '../../api/types'
+import type { Animal, InstallmentInput, PaymentType } from '../../api/types'
 import { InstallmentsEditor } from '../../components/InstallmentsEditor'
 import { inputClass } from '../../components/ui'
+import { sexLabels, speciesLabels } from '../../lib/livestock'
 
 export const cardClass = 'rounded-2xl border border-terra/10 bg-white p-4 shadow-sm'
 export const labelClass = 'mb-1 block text-xs font-medium text-terra/70'
@@ -144,5 +145,82 @@ export function PartySelect({
       )}
       {error && <p className="mt-1 text-xs text-rust">{error}</p>}
     </div>
+  )
+}
+
+/** Etiqueta "em carência até dd/mm" (o animal não deve ir para abate nem ordenha comercial). */
+export function WithdrawalBadge({ until }: { until: string | null | undefined }) {
+  if (!until) return null
+  const [, m, d] = until.split('-')
+  return (
+    <span
+      title={`Em carência até ${d}/${m}`}
+      className="ml-1 inline-block rounded-full bg-trigo/20 px-1.5 py-0.5 text-[11px] font-medium whitespace-nowrap text-trigo-dark"
+    >
+      carência até {d}/{m}
+    </span>
+  )
+}
+
+/** Lista de animais ativos com filtro e caixas de seleção (venda, aplicação sanitária...). */
+export function AnimalPicker({
+  legend,
+  animals,
+  chosen,
+  onToggle,
+  emptyText = 'Nenhum animal ativo.',
+}: {
+  legend: string
+  animals: Animal[]
+  chosen: Set<number>
+  onToggle: (id: number) => void
+  emptyText?: string
+}) {
+  const [filter, setFilter] = useState('')
+  const term = filter.trim().toLowerCase()
+  const shown = animals.filter(
+    (a) =>
+      !term ||
+      a.tag.toLowerCase().includes(term) ||
+      (a.name ?? '').toLowerCase().includes(term) ||
+      (a.batchName ?? '').toLowerCase().includes(term),
+  )
+  return (
+    <fieldset>
+      <legend className={labelClass}>
+        {legend}{' '}
+        {chosen.size > 0 && (
+          <span className="font-normal">({chosen.size === 1 ? '1 marcado' : `${chosen.size} marcados`})</span>
+        )}
+      </legend>
+      <input
+        type="search"
+        aria-label="Filtrar animais por brinco, nome ou lote"
+        placeholder="Filtrar por brinco, nome ou lote"
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        className={`${inputClass} mb-2`}
+      />
+      <div className="max-h-56 overflow-y-auto rounded-md border border-terra/10">
+        {shown.length === 0 ? (
+          <p className="p-3 text-sm text-terra/50">{animals.length === 0 ? emptyText : 'Nenhum animal com esse filtro.'}</p>
+        ) : (
+          <ul>
+            {shown.map((a) => (
+              <li key={a.id} className="border-b border-terra/5 last:border-b-0">
+                <label className="flex cursor-pointer items-center gap-3 px-3 py-2 text-sm hover:bg-terra/5">
+                  <input type="checkbox" checked={chosen.has(a.id)} onChange={() => onToggle(a.id)} className="accent-rust" />
+                  <span className="font-medium text-terra">{a.tag}</span>
+                  <span className="min-w-0 truncate text-terra/55">
+                    {[a.name, speciesLabels[a.species], sexLabels[a.sex], a.batchName].filter(Boolean).join(' · ')}
+                  </span>
+                  <WithdrawalBadge until={a.withdrawalUntil} />
+                </label>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </fieldset>
   )
 }

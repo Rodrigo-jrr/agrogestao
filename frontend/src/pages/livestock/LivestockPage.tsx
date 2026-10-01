@@ -10,12 +10,16 @@ import { speciesPlural } from '../../lib/livestock'
 import { BatchesTab } from './BatchesTab'
 import { HerdTab } from './HerdTab'
 import { TradesTab } from './TradesTab'
+import { WeighingTab } from './WeighingTab'
+import { HealthTab } from './HealthTab'
 
-type Tab = 'rebanho' | 'lotes' | 'compras-e-vendas'
+type Tab = 'rebanho' | 'lotes' | 'pesagens' | 'sanidade' | 'compras-e-vendas'
 
 const tabs: [Tab, string][] = [
   ['rebanho', 'Rebanho'],
   ['lotes', 'Lotes'],
+  ['pesagens', 'Pesagens'],
+  ['sanidade', 'Sanidade'],
   ['compras-e-vendas', 'Compras e vendas'],
 ]
 
@@ -85,6 +89,13 @@ export function LivestockPage() {
 
       {tab === 'rebanho' && <HerdTab batches={batches} canWrite={canWrite} onChanged={load} />}
       {tab === 'lotes' && <BatchesTab batches={batches} canWrite={canWrite} canManage={canManage} onChanged={load} />}
+      {tab === 'pesagens' &&
+        (canWrite ? (
+          <WeighingTab batches={batches} onChanged={load} />
+        ) : (
+          <p className="text-sm text-terra/60">Seu papel nesta propriedade só consulta; as pesagens aparecem na ficha de cada animal.</p>
+        ))}
+      {tab === 'sanidade' && <HealthTab batches={batches} canWrite={canWrite} canManage={canManage} onChanged={load} />}
       {tab === 'compras-e-vendas' && <TradesTab batches={batches} canWrite={canWrite} canManage={canManage} onChanged={load} />}
     </div>
   )

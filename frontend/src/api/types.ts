@@ -377,7 +377,8 @@ export type AnimalOrigin = 'NASCIMENTO' | 'COMPRA' | 'OUTRA'
 export type AnimalStatus = 'ATIVO' | 'VENDIDO' | 'MORTO' | 'DESCARTADO'
 export type BatchTracking = 'INDIVIDUAL' | 'AGGREGATE'
 export type ExitType = 'MORTE' | 'DESCARTE' | 'OUTRA'
-export type AnimalEventType = 'ENTRADA' | 'MUDANCA_LOTE' | 'SAIDA'
+export type AnimalEventType = 'ENTRADA' | 'MUDANCA_LOTE' | 'SAIDA' | 'PESAGEM' | 'SANIDADE'
+export type HealthKind = 'VACINA' | 'MEDICAMENTO' | 'PROCEDIMENTO'
 export type TradeKind = 'PURCHASE' | 'SALE'
 
 export interface AnimalBatch {
@@ -390,6 +391,8 @@ export interface AnimalBatch {
   activityName: string | null
   notes: string | null
   archived: boolean
+  /** Lote por contagem em carência até esta data. */
+  withdrawalUntil: string | null
 }
 
 export interface BatchInput {
@@ -421,6 +424,8 @@ export interface Animal {
   exitReason: string | null
   currentWeight: number | null
   notes: string | null
+  /** Em carência até esta data (não vai para abate/ordenha comercial). */
+  withdrawalUntil: string | null
 }
 
 export interface AnimalInput {
@@ -455,6 +460,8 @@ export interface AnimalEvent {
   tradeId: number | null
   amount: number | null
   description: string | null
+  applicationId: number | null
+  withdrawalUntil: string | null
 }
 
 export interface AnimalDetail {
@@ -497,4 +504,52 @@ export interface LivestockTradeDetail {
 export interface HerdSummary {
   totalHeads: number
   bySpecies: { species: Species; heads: number }[]
+}
+
+export interface HealthApplication {
+  id: number
+  kind: HealthKind
+  date: string
+  batchId: number | null
+  batchName: string | null
+  headCount: number
+  animals: { id: number; tag: string }[]
+  /** "lote Vacas", "animal 184" ou "3 animais". */
+  target: string
+  productId: number | null
+  productName: string
+  dose: number | null
+  doseUnit: string | null
+  totalQuantity: number | null
+  totalCost: number | null
+  withdrawalDays: number | null
+  withdrawalUntil: string | null
+  nextDate: string | null
+  nextDescription: string | null
+  followUpDone: boolean
+  responsible: string | null
+  notes: string | null
+}
+
+export interface HealthApplicationInput {
+  kind: HealthKind
+  date: string
+  animalIds?: number[]
+  batchId?: number | null
+  productId?: number | null
+  productName?: string | null
+  dose?: number | null
+  doseUnit?: string | null
+  cost?: number | null
+  withdrawalDays?: number | null
+  nextDate?: string | null
+  nextDescription?: string | null
+  responsible?: string | null
+  notes?: string | null
+  followUpOfId?: number | null
+}
+
+export interface LivestockAlerts {
+  followUps: HealthApplication[]
+  withdrawals: { animalId: number | null; batchId: number | null; label: string; until: string }[]
 }

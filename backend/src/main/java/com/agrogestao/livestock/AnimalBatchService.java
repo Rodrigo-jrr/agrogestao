@@ -27,6 +27,7 @@ public class AnimalBatchService {
     private final AnimalRepository animalRepository;
     private final AnimalEventRepository eventRepository;
     private final LivestockTradeRepository tradeRepository;
+    private final HealthApplicationRepository healthApplicationRepository;
     private final ActivityRepository activityRepository;
     private final LivestockSupport support;
     private final TenantContext tenantContext;
@@ -37,6 +38,7 @@ public class AnimalBatchService {
             AnimalRepository animalRepository,
             AnimalEventRepository eventRepository,
             LivestockTradeRepository tradeRepository,
+            HealthApplicationRepository healthApplicationRepository,
             ActivityRepository activityRepository,
             LivestockSupport support,
             TenantContext tenantContext,
@@ -45,6 +47,7 @@ public class AnimalBatchService {
         this.animalRepository = animalRepository;
         this.eventRepository = eventRepository;
         this.tradeRepository = tradeRepository;
+        this.healthApplicationRepository = healthApplicationRepository;
         this.activityRepository = activityRepository;
         this.support = support;
         this.tenantContext = tenantContext;
@@ -206,16 +209,20 @@ public class AnimalBatchService {
         return batch.getHeadCount() > 0
                 || animalRepository.existsByBatchId(batch.getId())
                 || eventRepository.existsByBatchIdOrFromBatchIdOrToBatchId(batch.getId(), batch.getId(), batch.getId())
-                || tradeRepository.existsByBatchId(batch.getId());
+                || tradeRepository.existsByBatchId(batch.getId())
+                || healthApplicationRepository.existsByBatchId(batch.getId());
     }
 
     private List<BatchResponse> toResponses(Long propertyId, List<AnimalBatch> batches) {
         Map<Long, Integer> heads = support.headCounts(propertyId, batches);
         Map<Long, String> activities = activityRepository.findByPropertyId(propertyId).stream()
                 .collect(Collectors.toMap(Activity::getId, Activity::getName));
+        Map<Long, java.time.LocalDate> withdrawals = new java.util.HashMap<>();
+        eventRepository.batchWithdrawals(propertyId, java.time.LocalDate.now())
+                .forEach(row -> withdrawals.put((Long) row[0], (java.time.LocalDate) row[1]));
         return batches.stream().map(b -> new BatchResponse(b.getId(), b.getName(), b.getSpecies(), b.getTracking(),
                 heads.get(b.getId()), b.getActivityId(), b.getActivityId() != null ? activities.get(b.getActivityId()) : null,
-                b.getNotes(), b.isArchived())).toList();
+                b.getNotes(), b.isArchived(), withdrawals.get(b.getId()))).toList();
     }
 
     private static String describe(AnimalBatch batch) {

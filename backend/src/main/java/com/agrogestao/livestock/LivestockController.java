@@ -8,7 +8,12 @@ import com.agrogestao.livestock.dto.AnimalResponse;
 import com.agrogestao.livestock.dto.BatchCountRequest;
 import com.agrogestao.livestock.dto.BatchRequest;
 import com.agrogestao.livestock.dto.BatchResponse;
+import com.agrogestao.livestock.dto.AnimalEventResponse;
+import com.agrogestao.livestock.dto.HealthApplicationRequest;
+import com.agrogestao.livestock.dto.HealthApplicationResponse;
 import com.agrogestao.livestock.dto.HerdSummary;
+import com.agrogestao.livestock.dto.LivestockAlerts;
+import com.agrogestao.livestock.dto.WeighingRequest;
 import com.agrogestao.livestock.dto.LivestockPurchaseRequest;
 import com.agrogestao.livestock.dto.LivestockSaleRequest;
 import com.agrogestao.livestock.dto.MoveAnimalsRequest;
@@ -35,12 +40,16 @@ public class LivestockController {
     private final AnimalBatchService batchService;
     private final AnimalService animalService;
     private final LivestockTradeService tradeService;
+    private final WeighingService weighingService;
+    private final HealthService healthService;
 
     public LivestockController(AnimalBatchService batchService, AnimalService animalService,
-            LivestockTradeService tradeService) {
+            LivestockTradeService tradeService, WeighingService weighingService, HealthService healthService) {
         this.batchService = batchService;
         this.animalService = animalService;
         this.tradeService = tradeService;
+        this.weighingService = weighingService;
+        this.healthService = healthService;
     }
 
     @GetMapping("/summary")
@@ -170,5 +179,48 @@ public class LivestockController {
     @PostMapping("/trades/{id}/cancel")
     public TradeResponse cancelTrade(@PathVariable Long id) {
         return tradeService.cancel(id);
+    }
+
+    // Pesagens
+
+    @PostMapping("/weighings")
+    public List<AnimalEventResponse> weigh(@Valid @RequestBody WeighingRequest request) {
+        return weighingService.register(request);
+    }
+
+    @DeleteMapping("/weighings/{eventId}")
+    public ResponseEntity<Void> deleteWeighing(@PathVariable Long eventId) {
+        weighingService.delete(eventId);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Sanidade e alertas
+
+    @GetMapping("/health")
+    public PageResponse<HealthApplicationResponse> listHealth(
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size) {
+        return healthService.list(PageResponse.pageable(page, size));
+    }
+
+    @PostMapping("/health")
+    public HealthApplicationResponse applyHealth(@Valid @RequestBody HealthApplicationRequest request) {
+        return healthService.apply(request);
+    }
+
+    @DeleteMapping("/health/{id}")
+    public ResponseEntity<Void> undoHealth(@PathVariable Long id) {
+        healthService.undo(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/health/{id}/follow-up-done")
+    public HealthApplicationResponse dismissFollowUp(@PathVariable Long id) {
+        return healthService.dismissFollowUp(id);
+    }
+
+    @GetMapping("/alerts")
+    public LivestockAlerts alerts() {
+        return healthService.alerts();
     }
 }

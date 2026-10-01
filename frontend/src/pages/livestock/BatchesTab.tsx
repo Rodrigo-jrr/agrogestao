@@ -7,7 +7,7 @@ import { FormMessage } from '../../components/FormMessage'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../../components/ui'
 import { formatNumber, todayIso } from '../../lib/format'
 import { allSpecies, exitLabels, speciesLabels } from '../../lib/livestock'
-import { cardClass, labelClass } from './shared'
+import { WithdrawalBadge, cardClass, labelClass } from './shared'
 
 function BatchForm({
   batch,
@@ -320,6 +320,7 @@ export function BatchesTab({
                         <p className="font-medium text-terra">
                           {b.name}
                           {b.archived && <span className="ml-2 rounded-full bg-terra/5 px-1.5 text-xs font-normal">arquivado</span>}
+                          <WithdrawalBadge until={b.withdrawalUntil} />
                         </p>
                         <p className="text-xs text-terra/55">
                           {speciesLabels[b.species]} · {b.tracking === 'INDIVIDUAL' ? 'animal por animal' : 'só a quantidade'}
