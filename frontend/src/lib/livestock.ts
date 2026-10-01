@@ -1,4 +1,15 @@
-import type { AnimalEvent, AnimalEventType, AnimalOrigin, AnimalStatus, ExitType, HealthKind, Sex } from '../api/types'
+import type {
+  AnimalEvent,
+  AnimalEventType,
+  AnimalOrigin,
+  AnimalStatus,
+  ExitType,
+  HealthKind,
+  PregnancyResult,
+  ReproductiveEvent,
+  ReproductiveEventKind,
+  Sex,
+} from '../api/types'
 
 export const sexLabels: Record<Sex, string> = { MACHO: 'Macho', FEMEA: 'Fêmea' }
 
@@ -23,6 +34,53 @@ export const eventLabels: Record<AnimalEventType, string> = {
   SAIDA: 'Saída',
   PESAGEM: 'Pesagem',
   SANIDADE: 'Sanidade',
+  REPRODUCAO: 'Reprodução',
+}
+
+export const reproductiveKindLabels: Record<ReproductiveEventKind, string> = {
+  CIO: 'Cio',
+  COBERTURA: 'Cobertura',
+  INSEMINACAO: 'Inseminação',
+  DIAGNOSTICO_PRENHEZ: 'Diagnóstico de prenhez',
+  PARTO: 'Parto',
+  ABORTO: 'Aborto',
+}
+
+export const pregnancyResultLabels: Record<PregnancyResult, string> = { POSITIVO: 'Positivo', NEGATIVO: 'Negativo' }
+
+export type ReproductiveStatus = 'VAZIA' | 'COBERTA' | 'PRENHE'
+
+export const reproductiveStatusLabels: Record<ReproductiveStatus, string> = {
+  VAZIA: 'Vazia',
+  COBERTA: 'Coberta',
+  PRENHE: 'Prenhe',
+}
+
+/**
+ * Situação reprodutiva atual da fêmea, derivada do histórico: prenhe se há diagnóstico positivo sem parto/aborto
+ * que o encerre; coberta se o evento mais recente é cobertura/inseminação sem diagnóstico ainda; vazia nos demais casos.
+ */
+export function reproductiveStatus(
+  events: ReproductiveEvent[],
+): { status: ReproductiveStatus; expectedCalvingDate: string | null; since: string | null } {
+  const sorted = [...events].sort((a, b) => (a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1))
+  const closedDiagnosisIds = new Set(
+    sorted
+      .filter((e) => e.kind === 'PARTO' || e.kind === 'ABORTO')
+      .map((e) => e.diagnosisEventId)
+      .filter((id): id is number => id != null),
+  )
+  const openPregnancy = [...sorted]
+    .reverse()
+    .find((e) => e.kind === 'DIAGNOSTICO_PRENHEZ' && e.pregnancyResult === 'POSITIVO' && !closedDiagnosisIds.has(e.id))
+  if (openPregnancy) {
+    return { status: 'PRENHE', expectedCalvingDate: openPregnancy.expectedCalvingDate, since: openPregnancy.date }
+  }
+  const last = sorted[sorted.length - 1]
+  if (last && (last.kind === 'COBERTURA' || last.kind === 'INSEMINACAO')) {
+    return { status: 'COBERTA', expectedCalvingDate: null, since: last.date }
+  }
+  return { status: 'VAZIA', expectedCalvingDate: null, since: null }
 }
 
 export const healthKindLabels: Record<HealthKind, string> = {

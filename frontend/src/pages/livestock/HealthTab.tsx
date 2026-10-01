@@ -30,8 +30,17 @@ export function HealthAgenda({
 }) {
   const today = todayIso()
   if (!alerts) return <p className="text-sm text-terra/50">Carregando…</p>
-  if (alerts.followUps.length === 0 && alerts.withdrawals.length === 0) {
-    return <p className="text-sm text-terra/50">Nada pendente: nenhum reforço nos próximos 7 dias e nenhum animal em carência.</p>
+  if (
+    alerts.followUps.length === 0 &&
+    alerts.withdrawals.length === 0 &&
+    alerts.upcomingCalvings.length === 0 &&
+    alerts.pendingDiagnoses.length === 0
+  ) {
+    return (
+      <p className="text-sm text-terra/50">
+        Nada pendente: nenhum reforço nos próximos 7 dias, nenhum animal em carência, nenhum parto previsto e nenhum diagnóstico de prenhez pendente.
+      </p>
+    )
   }
   return (
     <div className="space-y-4">
@@ -81,6 +90,42 @@ export function HealthAgenda({
                   <span className="font-medium">{w.label}</span>
                 )}{' '}
                 até {formatDate(w.until)}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {alerts.upcomingCalvings.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-terra/70">Partos previstos</p>
+          <ul className="flex flex-wrap gap-2">
+            {alerts.upcomingCalvings.map((c) => {
+              const overdue = c.expectedCalvingDate < today
+              return (
+                <li
+                  key={c.animalId}
+                  className={`rounded-full px-3 py-1 text-xs ${overdue ? 'bg-rust/10 text-rust' : 'bg-mata/15 text-mata'}`}
+                >
+                  <Link to={`/pecuaria/animais/${c.animalId}`} className="font-medium hover:underline">
+                    {c.animalTag}
+                  </Link>{' '}
+                  em {formatDate(c.expectedCalvingDate)} ({overdue ? 'atrasado' : relativeDay(c.expectedCalvingDate, today)})
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+      {alerts.pendingDiagnoses.length > 0 && (
+        <div>
+          <p className="mb-1 text-xs font-medium text-terra/70">Diagnóstico de prenhez pendente</p>
+          <ul className="flex flex-wrap gap-2">
+            {alerts.pendingDiagnoses.map((d) => (
+              <li key={d.animalId} className="rounded-full bg-trigo/20 px-3 py-1 text-xs text-trigo-dark">
+                <Link to={`/pecuaria/animais/${d.animalId}`} className="font-medium hover:underline">
+                  {d.animalTag}
+                </Link>{' '}
+                desde {formatDate(d.since)}
               </li>
             ))}
           </ul>

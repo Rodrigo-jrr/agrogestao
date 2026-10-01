@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { livestockApi, speciesApi } from '../../api/endpoints'
+import { livestockApi, reproductionApi, speciesApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
 import type { AnimalBatch, AnimalDetail, AnimalEvent, ExitType, SpeciesCatalogItem } from '../../api/types'
 import { useConfirm } from '../../components/ConfirmDialog'
@@ -10,6 +10,7 @@ import { useProperty } from '../../property/PropertyContext'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
 import { eventLabels, exitLabels, formatAge, originLabels, sexLabels, statusLabels } from '../../lib/livestock'
 import { AnimalForm } from './AnimalForm'
+import { ReproductionSection } from './ReproductionSection'
 import { WithdrawalBadge, cardClass, labelClass } from './shared'
 import { WeightSection } from './WeightSection'
 
@@ -30,6 +31,7 @@ const dotColor: Record<AnimalEvent['type'], string> = {
   MUDANCA_LOTE: 'bg-trigo-dark',
   PESAGEM: 'bg-terra/40',
   SANIDADE: 'bg-trigo',
+  REPRODUCAO: 'bg-mata-dark',
 }
 
 /** Saída sem venda (morte, descarte...): diálogo com motivo e data. */
@@ -178,6 +180,22 @@ export function AnimalDetailPage() {
     }
   }
 
+  async function removeReproduction(e: AnimalEvent) {
+    const ok = await confirm({
+      title: `Excluir o evento de ${formatDate(e.date)}?`,
+      message: 'Partos e abortos não podem ser excluídos — corrija o cadastro das crias ou registre a saída do animal, se for o caso.',
+      confirmLabel: 'Excluir evento',
+    })
+    if (!ok) return
+    setError(null)
+    try {
+      await reproductionApi.remove(e.reproductiveEventId!)
+      load()
+    } catch (err) {
+      setError(apiErrorMessage(err))
+    }
+  }
+
   async function reactivate() {
     setError(null)
     try {
@@ -310,6 +328,19 @@ export function AnimalDetailPage() {
                     Excluir pesagem
                   </button>
                 )}
+                {canManage &&
+                  e.type === 'REPRODUCAO' &&
+                  e.reproductiveEventId != null &&
+                  !e.description?.startsWith('Parto') &&
+                  !e.description?.startsWith('Aborto') && (
+                    <button
+                      onClick={() => removeReproduction(e)}
+                      aria-label={`Excluir evento de ${formatDate(e.date)}`}
+                      className={`cursor-pointer text-xs ${linkDangerClass}`}
+                    >
+                      Excluir evento
+                    </button>
+                  )}
               </li>
             ))}
           </ol>
@@ -330,6 +361,10 @@ export function AnimalDetailPage() {
           )}
         </section>
       </div>
+
+      {a.sex === 'FEMEA' && (
+        <ReproductionSection animal={a} batches={batches} canWrite={canWrite && a.status === 'ATIVO'} onSaved={load} />
+      )}
 
       <ExitDialog
         open={exiting}

@@ -53,6 +53,7 @@ describe('weightHistory', () => {
     description: null,
     applicationId: null,
     withdrawalUntil: null,
+    reproductiveEventId: null,
   })
 
   it('ordena por data e calcula o ganho médio diário entre pesagens', () => {

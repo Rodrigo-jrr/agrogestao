@@ -19,8 +19,11 @@ import type {
   LivestockAlerts,
   AnimalEvent,
   LivestockTrade,
+  LivestockIndicators,
   LivestockTradeDetail,
   NewAnimalInput,
+  ReproductiveEvent,
+  ReproductiveEventInput,
   SpeciesCatalogItem,
   SpeciesInput,
   TradeKind,
@@ -384,4 +387,17 @@ export const livestockApi = {
   dismissFollowUp: (id: number) =>
     apiClient.post<HealthApplication>(`/livestock/health/${id}/follow-up-done`).then((r) => r.data),
   alerts: () => apiClient.get<LivestockAlerts>('/livestock/alerts').then((r) => r.data),
+}
+
+export const reproductionApi = {
+  list: (params: { animalId?: number } & PageParams) =>
+    apiClient.get<PageResponse<ReproductiveEvent>>('/livestock/reproduction', { params }).then((r) => r.data),
+  register: (data: ReproductiveEventInput) =>
+    apiClient.post<ReproductiveEvent>('/livestock/reproduction', data).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/livestock/reproduction/${id}`).then((r) => r.data),
+}
+
+export const indicatorsApi = {
+  get: (params: { batchId?: number; from?: string; to?: string }) =>
+    apiClient.get<LivestockIndicators>('/livestock/indicators', { params }).then((r) => r.data),
 }
