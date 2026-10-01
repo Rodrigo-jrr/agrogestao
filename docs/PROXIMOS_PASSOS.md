@@ -110,14 +110,17 @@ rateados igualmente por cabeça (mesmo padrão de `HealthService`).
   - custo por animal e por kg: compra + sanidade rateada + parte dos lançamentos ligados à atividade/centro de custo.
 
 ### 2. Agricultura (Fase 2, documento-base seções 15 e 49) (próxima)
-Pacotes `crops` e `fields` existem vazios.
-- **Talhões:** nome, área (ha), localização e solo.
-- **Culturas e safras (ciclos):** cultura, variedade, talhão, plantio e colheita previstos.
-- **Operações agrícolas:** preparo, plantio, adubação, pulverização. Insumos saem do estoque (como a sanidade),
-  com custo, responsável e máquina usada.
-- **Colheita:** quantidade, unidade e destino (estoque, venda).
-- **Indicadores:** custo/ha, produção/ha, receita/ha e margem/ha por safra e talhão.
-- Antes de começar, confirme com o usuário o escopo e a divisão em entregas.
+Pacotes `crops` e `fields` existem vazios. Escopo e divisão em entregas confirmados com o usuário em 01/10/2026:
+
+- **Entrega 1 — Talhões (próxima):** nome, área (ha), localização e solo.
+- **Entrega 2 — Culturas e safras (ciclos):** cultura, variedade, talhão, plantio e colheita previstos.
+  Cultura é um **catálogo livre por propriedade** (nome + variedade opcional), mesmo padrão do catálogo de
+  espécies da pecuária — nenhuma lista fixa do sistema.
+- **Entrega 3 — Operações agrícolas:** preparo, plantio, adubação, pulverização. Insumos saem do estoque
+  (como a sanidade), com custo, responsável e máquina usada **como texto livre por enquanto** (sem vínculo
+  com cadastro de máquina — isso vem quando a entrega 3 do backlog, "Máquinas e manutenção", existir).
+- **Entrega 4 — Colheita + indicadores:** quantidade, unidade e destino (estoque, venda); custo/ha,
+  produção/ha, receita/ha e margem/ha por safra e talhão.
 
 ### 3. Máquinas e manutenção (pacotes `machinery`, `maintenance`)
 - Cadastro de máquinas e implementos, com horímetro ou hodômetro.
