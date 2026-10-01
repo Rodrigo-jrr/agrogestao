@@ -4,5 +4,8 @@ package com.agrogestao.livestock;
 public enum AnimalEventType {
     ENTRADA,
     MUDANCA_LOTE,
-    SAIDA
+    SAIDA,
+    PESAGEM,
+    /** Vacina, medicamento ou procedimento; detalhes em {@link HealthApplication}. */
+    SANIDADE
 }

@@ -140,20 +140,39 @@ public class LivestockSupport {
         List<Long> motherIds = animals.stream().map(Animal::getMotherId).filter(Objects::nonNull).distinct().toList();
         Map<Long, String> motherTags = animalRepository.findAllById(motherIds).stream()
                 .collect(Collectors.toMap(Animal::getId, Animal::getTag));
-        return animals.stream().map(animal -> toResponse(animal, batches, motherTags)).toList();
+        Map<Long, LocalDate> withdrawals = withdrawalsOf(animals.stream().map(Animal::getId).toList());
+        return animals.stream().map(animal -> toResponse(animal, batches, motherTags, withdrawals)).toList();
     }
 
     public AnimalResponse toResponse(Long propertyId, Animal animal) {
         return toResponses(propertyId, List.of(animal)).get(0);
     }
 
-    private static AnimalResponse toResponse(Animal a, Map<Long, AnimalBatch> batches, Map<Long, String> motherTags) {
+    /** Fim da carência de cada animal que ainda está em carência hoje. */
+    public Map<Long, LocalDate> withdrawalsOf(List<Long> animalIds) {
+        Map<Long, LocalDate> result = new HashMap<>();
+        if (!animalIds.isEmpty()) {
+            eventRepository.withdrawalByAnimal(animalIds, LocalDate.now())
+                    .forEach(row -> result.put((Long) row[0], (LocalDate) row[1]));
+        }
+        return result;
+    }
+
+    /** Peso atual = o da pesagem (ou entrada com peso) mais recente; sem nenhuma, fica vazio. */
+    public void refreshCurrentWeight(Animal animal) {
+        animal.setCurrentWeight(eventRepository.findFirstByAnimalIdAndWeightIsNotNullOrderByEventDateDescIdDesc(animal.getId())
+                .map(AnimalEvent::getWeight).orElse(null));
+        animalRepository.save(animal);
+    }
+
+    private static AnimalResponse toResponse(Animal a, Map<Long, AnimalBatch> batches, Map<Long, String> motherTags,
+            Map<Long, LocalDate> withdrawals) {
         AnimalBatch batch = a.getBatchId() != null ? batches.get(a.getBatchId()) : null;
         return new AnimalResponse(a.getId(), a.getTag(), a.getName(), a.getSpecies(), a.getBreed(), a.getSex(),
                 a.getBirthDate(), a.isBirthDateEstimated(), a.getOrigin(), a.getEntryDate(), a.getMotherId(),
                 a.getMotherId() != null ? motherTags.get(a.getMotherId()) : null, a.getSire(), a.getBatchId(),
                 batch != null ? batch.getName() : null, a.getStatus(), a.getExitDate(), a.getExitReason(),
-                a.getCurrentWeight(), a.getNotes());
+                a.getCurrentWeight(), a.getNotes(), withdrawals.get(a.getId()));
     }
 
     public List<AnimalEventResponse> toEventResponses(Long propertyId, List<AnimalEvent> events) {
@@ -165,7 +184,8 @@ public class LivestockSupport {
         return events.stream().map(e -> new AnimalEventResponse(e.getId(), e.getType(), e.getEventDate(),
                 e.getAnimalId(), e.getAnimalId() != null ? tags.get(e.getAnimalId()) : null, e.getBatchId(),
                 batchName.apply(e.getBatchId()), e.getHeadCount(), e.getWeight(), batchName.apply(e.getFromBatchId()),
-                batchName.apply(e.getToBatchId()), e.getTradeId(), e.getAmount(), e.getDescription())).toList();
+                batchName.apply(e.getToBatchId()), e.getTradeId(), e.getAmount(), e.getDescription(),
+                e.getApplicationId(), e.getWithdrawalUntil())).toList();
     }
 
     /** Divide o total em partes iguais em centavos; a sobra do arredondamento vai para a última. */

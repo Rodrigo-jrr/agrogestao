@@ -13,7 +13,11 @@ import type {
   AuditAuthor,
   BatchInput,
   ExitType,
+  HealthApplication,
+  HealthApplicationInput,
   HerdSummary,
+  LivestockAlerts,
+  AnimalEvent,
   LivestockTrade,
   LivestockTradeDetail,
   NewAnimalInput,
@@ -352,4 +356,22 @@ export const livestockApi = {
     notes?: string
   }) => apiClient.post<LivestockTrade>('/livestock/sales', data).then((r) => r.data),
   cancelTrade: (id: number) => apiClient.post<LivestockTrade>(`/livestock/trades/${id}/cancel`).then((r) => r.data),
+
+  weigh: (data: {
+    date: string
+    entries?: { animalId: number; weight: number }[]
+    batchId?: number
+    averageWeight?: number
+    sampleSize?: number
+  }) => apiClient.post<AnimalEvent[]>('/livestock/weighings', data).then((r) => r.data),
+  deleteWeighing: (eventId: number) => apiClient.delete<void>(`/livestock/weighings/${eventId}`).then((r) => r.data),
+
+  listHealth: (params: PageParams) =>
+    apiClient.get<PageResponse<HealthApplication>>('/livestock/health', { params }).then((r) => r.data),
+  applyHealth: (data: HealthApplicationInput) =>
+    apiClient.post<HealthApplication>('/livestock/health', data).then((r) => r.data),
+  undoHealth: (id: number) => apiClient.delete<void>(`/livestock/health/${id}`).then((r) => r.data),
+  dismissFollowUp: (id: number) =>
+    apiClient.post<HealthApplication>(`/livestock/health/${id}/follow-up-done`).then((r) => r.data),
+  alerts: () => apiClient.get<LivestockAlerts>('/livestock/alerts').then((r) => r.data),
 }

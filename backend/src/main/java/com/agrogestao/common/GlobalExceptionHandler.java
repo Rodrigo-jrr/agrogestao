@@ -54,7 +54,10 @@ public class GlobalExceptionHandler {
             Map.entry("weight", "Peso"), Map.entry("tracking", "Tipo de controle"), Map.entry("headCount", "Cabeças"),
             Map.entry("tradeDate", "Data"), Map.entry("totalAmount", "Valor total"), Map.entry("animals", "Animais"),
             Map.entry("animalIds", "Animais"), Map.entry("date", "Data"), Map.entry("reason", "Motivo"),
-            Map.entry("installments", "Parcelas"));
+            Map.entry("installments", "Parcelas"), Map.entry("dose", "Dose"), Map.entry("cost", "Custo"),
+            Map.entry("withdrawalDays", "Carência"), Map.entry("kind", "Tipo"), Map.entry("entries", "Pesagens"),
+            Map.entry("averageWeight", "Peso médio"), Map.entry("sampleSize", "Amostra"),
+            Map.entry("nextDescription", "Próximo passo"), Map.entry("doseUnit", "Unidade da dose"));
 
     /** "items[0].quantity" -> "Quantidade"; campos sem tradução ficam como estão. */
     private static String label(String fieldPath) {

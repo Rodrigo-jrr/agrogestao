@@ -1,4 +1,4 @@
-import type { AnimalEventType, AnimalOrigin, AnimalStatus, ExitType, Sex, Species } from '../api/types'
+import type { AnimalEvent, AnimalEventType, AnimalOrigin, AnimalStatus, ExitType, HealthKind, Sex, Species } from '../api/types'
 
 export const speciesLabels: Record<Species, string> = {
   BOVINO: 'Bovino',
@@ -49,6 +49,71 @@ export const eventLabels: Record<AnimalEventType, string> = {
   ENTRADA: 'Entrada',
   MUDANCA_LOTE: 'Troca de lote',
   SAIDA: 'Saída',
+  PESAGEM: 'Pesagem',
+  SANIDADE: 'Sanidade',
+}
+
+export const healthKindLabels: Record<HealthKind, string> = {
+  VACINA: 'Vacina',
+  MEDICAMENTO: 'Medicamento',
+  PROCEDIMENTO: 'Procedimento',
+}
+
+/** "vacina Raiva", mas só "Vacina Aftosa" quando o nome já diz o tipo. */
+export function healthTitle(kind: HealthKind, productName: string, capitalize = false): string {
+  const label = healthKindLabels[kind]
+  if (productName.toLowerCase().startsWith(label.toLowerCase())) return productName
+  return `${capitalize ? label : label.toLowerCase()} ${productName}`
+}
+
+export interface WeightPoint {
+  date: string
+  weight: number
+  /** Ganho médio diário (kg/dia) desde o peso anterior; null no primeiro. */
+  dailyGain: number | null
+}
+
+/** Pesos do animal (entrada e pesagens) em ordem de data, com o ganho médio diário entre um e outro. */
+export function weightHistory(events: AnimalEvent[]): WeightPoint[] {
+  const points = events
+    .filter((e) => e.weight != null && e.animalId != null)
+    .map((e) => ({ date: e.date, weight: e.weight as number, id: e.id }))
+    .sort((a, b) => (a.date === b.date ? a.id - b.id : a.date < b.date ? -1 : 1))
+  return points.map((p, i) => {
+    const previous = points[i - 1]
+    const days = previous ? daysBetween(previous.date, p.date) : 0
+    return {
+      date: p.date,
+      weight: p.weight,
+      dailyGain: previous && days > 0 ? Math.round(((p.weight - previous.weight) / days) * 1000) / 1000 : null,
+    }
+  })
+}
+
+/** Ganho médio diário entre o primeiro e o último peso (null com menos de dois pesos em datas diferentes). */
+export function overallDailyGain(points: WeightPoint[]): number | null {
+  if (points.length < 2) return null
+  const first = points[0]
+  const last = points[points.length - 1]
+  const days = daysBetween(first.date, last.date)
+  return days > 0 ? Math.round(((last.weight - first.weight) / days) * 1000) / 1000 : null
+}
+
+export function daysBetween(from: string, to: string): number {
+  const toUtc = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  return Math.round((toUtc(to) - toUtc(from)) / 86_400_000)
+}
+
+/** "hoje", "amanhã", "em 3 dias", "há 2 dias". */
+export function relativeDay(iso: string, todayIso: string): string {
+  const days = daysBetween(todayIso, iso)
+  if (days === 0) return 'hoje'
+  if (days === 1) return 'amanhã'
+  if (days === -1) return 'ontem'
+  return days > 0 ? `em ${days} dias` : `há ${-days} dias`
 }
 
 /** Idade a partir do nascimento: "15 dias", "8 meses", "2 anos e 3 meses". */
