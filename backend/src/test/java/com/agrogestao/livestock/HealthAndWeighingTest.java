@@ -16,6 +16,7 @@ class HealthAndWeighingTest extends ApiTestSupport {
 
     private static final LocalDate TODAY = LocalDate.now();
     private Session owner;
+    private long bovino;
     private long batchId;
     private long cow1;
     private long cow2;
@@ -23,14 +24,16 @@ class HealthAndWeighingTest extends ApiTestSupport {
     @BeforeEach
     void setUp() throws Exception {
         owner = registerOwnerWithProperty("Manejo");
-        batchId = post("/api/livestock/batches", owner, Map.of("name", "Recria", "species", "BOVINO",
+        bovino = post("/api/livestock/species", owner, Map.of("name", "Bovino", "allowsIndividual", true))
+                .get("id").asLong();
+        batchId = post("/api/livestock/batches", owner, Map.of("name", "Recria", "speciesId", bovino,
                 "tracking", "INDIVIDUAL")).get("id").asLong();
         cow1 = animal("A1", TODAY.minusDays(60), 200);
         cow2 = animal("A2", TODAY.minusDays(60), 210);
     }
 
     private long animal(String tag, LocalDate entry, double weight) throws Exception {
-        return post("/api/livestock/animals", owner, Map.of("tag", tag, "species", "BOVINO", "sex", "MACHO",
+        return post("/api/livestock/animals", owner, Map.of("tag", tag, "speciesId", bovino, "sex", "MACHO",
                 "batchId", batchId, "entryDate", entry.toString(), "weight", weight)).get("id").asLong();
     }
 
@@ -146,7 +149,9 @@ class HealthAndWeighingTest extends ApiTestSupport {
 
     @Test
     void aggregateBatchGetsBatchLevelHealthAndAverageWeight() throws Exception {
-        long flock = post("/api/livestock/batches", owner, Map.of("name", "Galpão 2", "species", "AVE",
+        long ave = post("/api/livestock/species", owner, Map.of("name", "Ave", "allowsIndividual", false))
+                .get("id").asLong();
+        long flock = post("/api/livestock/batches", owner, Map.of("name", "Galpão 2", "speciesId", ave,
                 "tracking", "AGGREGATE")).get("id").asLong();
         post("/api/livestock/batches/" + flock + "/entries", owner, Map.of("headCount", 1000, "date", TODAY.toString()));
 

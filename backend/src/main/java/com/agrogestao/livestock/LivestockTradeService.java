@@ -132,14 +132,15 @@ public class LivestockTradeService {
 
         if (individual) {
             AnimalBatch batch = null;
-            Species species = request.species();
+            Long speciesId = request.speciesId();
             if (request.batchId() != null) {
-                batch = support.requireIndividualBatch(propertyId, request.batchId(), species);
-                species = batch.getSpecies();
+                batch = support.requireIndividualBatch(propertyId, request.batchId(), speciesId);
+                speciesId = batch.getSpeciesId();
             }
-            if (species == null) {
+            if (speciesId == null) {
                 throw new BusinessException("Informe a espécie dos animais comprados.");
             }
+            SpeciesCatalog species = support.requireActiveSpecies(propertyId, speciesId);
             LivestockSupport.requireIndividualSpecies(species);
             validateNewAnimals(propertyId, request.animals(), request.tradeDate());
             trade.setHeadCount(request.animals().size());
@@ -153,7 +154,7 @@ public class LivestockTradeService {
                 animal.setPropertyId(propertyId);
                 animal.setTag(input.tag().trim());
                 animal.setName(AnimalBatchService.blankToNull(input.name()));
-                animal.setSpecies(species);
+                animal.setSpeciesId(species.getId());
                 animal.setBreed(AnimalBatchService.blankToNull(input.breed()));
                 animal.setSex(input.sex());
                 animal.setBirthDate(input.birthDate());

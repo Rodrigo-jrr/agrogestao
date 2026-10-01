@@ -371,7 +371,19 @@ export interface DeletionPreview {
 
 // Pecuária
 
-export type Species = 'BOVINO' | 'BUBALINO' | 'OVINO' | 'CAPRINO' | 'SUINO' | 'EQUINO' | 'AVE' | 'PEIXE' | 'OUTRO'
+/** Espécie cadastrada livremente pela propriedade. Depois de usada, allowsIndividual não muda. */
+export interface SpeciesCatalogItem {
+  id: number
+  name: string
+  allowsIndividual: boolean
+  archived: boolean
+}
+
+export interface SpeciesInput {
+  name: string
+  allowsIndividual: boolean
+}
+
 export type Sex = 'MACHO' | 'FEMEA'
 export type AnimalOrigin = 'NASCIMENTO' | 'COMPRA' | 'OUTRA'
 export type AnimalStatus = 'ATIVO' | 'VENDIDO' | 'MORTO' | 'DESCARTADO'
@@ -384,7 +396,8 @@ export type TradeKind = 'PURCHASE' | 'SALE'
 export interface AnimalBatch {
   id: number
   name: string
-  species: Species
+  speciesId: number
+  speciesName: string
   tracking: BatchTracking
   headCount: number
   activityId: number | null
@@ -397,7 +410,7 @@ export interface AnimalBatch {
 
 export interface BatchInput {
   name: string
-  species: Species
+  speciesId: number
   tracking: BatchTracking
   activityId: number | null
   notes: string | null
@@ -407,7 +420,8 @@ export interface Animal {
   id: number
   tag: string
   name: string | null
-  species: Species
+  speciesId: number
+  speciesName: string
   breed: string | null
   sex: Sex
   birthDate: string | null
@@ -431,7 +445,7 @@ export interface Animal {
 export interface AnimalInput {
   tag: string
   name: string | null
-  species: Species
+  speciesId: number
   breed: string | null
   sex: Sex
   birthDate: string | null
@@ -503,7 +517,7 @@ export interface LivestockTradeDetail {
 
 export interface HerdSummary {
   totalHeads: number
-  bySpecies: { species: Species; heads: number }[]
+  bySpecies: { speciesId: number; speciesName: string; heads: number }[]
 }
 
 export interface HealthApplication {

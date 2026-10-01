@@ -21,7 +21,8 @@ import type {
   LivestockTrade,
   LivestockTradeDetail,
   NewAnimalInput,
-  Species,
+  SpeciesCatalogItem,
+  SpeciesInput,
   TradeKind,
   AuditEntry,
   AuthResponse,
@@ -300,6 +301,15 @@ export const dashboardApi = {
     apiClient.get<DashboardSummary>('/dashboard/summary', { params: { from, to } }).then((r) => r.data),
 }
 
+export const speciesApi = {
+  list: (includeArchived = false) =>
+    apiClient.get<SpeciesCatalogItem[]>('/livestock/species', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: SpeciesInput) => apiClient.post<SpeciesCatalogItem>('/livestock/species', data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<SpeciesCatalogItem>(`/livestock/species/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<SpeciesCatalogItem>(`/livestock/species/${id}/unarchive`).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/livestock/species/${id}`).then((r) => r.data),
+}
+
 export const livestockApi = {
   summary: () => apiClient.get<HerdSummary>('/livestock/summary').then((r) => r.data),
 
@@ -316,7 +326,7 @@ export const livestockApi = {
   removeHeads: (id: number, data: { headCount: number; date: string; exitType: ExitType; description?: string }) =>
     apiClient.post<AnimalBatch>(`/livestock/batches/${id}/exits`, data).then((r) => r.data),
 
-  listAnimals: (params: { status?: AnimalStatus; batchId?: number; species?: Species; q?: string } & PageParams) =>
+  listAnimals: (params: { status?: AnimalStatus; batchId?: number; speciesId?: number; q?: string } & PageParams) =>
     apiClient.get<PageResponse<Animal>>('/livestock/animals', { params }).then((r) => r.data),
   animal: (id: number) => apiClient.get<AnimalDetail>(`/livestock/animals/${id}`).then((r) => r.data),
   createAnimal: (data: AnimalInput) => apiClient.post<Animal>('/livestock/animals', data).then((r) => r.data),
@@ -339,7 +349,7 @@ export const livestockApi = {
     paymentType: PaymentType
     installments?: InstallmentInput[]
     batchId?: number | null
-    species?: Species
+    speciesId?: number
     animals?: NewAnimalInput[]
     headCount?: number
     notes?: string

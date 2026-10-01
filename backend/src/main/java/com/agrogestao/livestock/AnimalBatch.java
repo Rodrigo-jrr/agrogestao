@@ -24,9 +24,9 @@ public class AnimalBatch extends BaseEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
-    private Species species;
+    /** FK para o catálogo de espécies da propriedade (ver {@link SpeciesCatalog}). */
+    @Column(name = "species_id", nullable = false)
+    private Long speciesId;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 12)

@@ -45,10 +45,10 @@ public class AnimalService {
         this.auditService = auditService;
     }
 
-    public PageResponse<AnimalResponse> search(AnimalStatus status, Long batchId, Species species, String query,
+    public PageResponse<AnimalResponse> search(AnimalStatus status, Long batchId, Long speciesId, String query,
             Pageable pageable) {
         Long propertyId = tenantContext.requirePropertyId();
-        Page<Animal> page = animalRepository.search(propertyId, status, batchId, species,
+        Page<Animal> page = animalRepository.search(propertyId, status, batchId, speciesId,
                 PageResponse.likePattern(query), pageable);
         List<AnimalResponse> content = support.toResponses(propertyId, page.getContent());
         return new PageResponse<>(content, page.getNumber(), page.getSize(), page.getTotalElements(), page.getTotalPages());
@@ -66,7 +66,8 @@ public class AnimalService {
     public AnimalResponse create(AnimalRequest request) {
         tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
-        LivestockSupport.requireIndividualSpecies(request.species());
+        SpeciesCatalog species = support.requireActiveSpecies(propertyId, request.speciesId());
+        LivestockSupport.requireIndividualSpecies(species);
         AnimalOrigin origin = request.origin() != null ? request.origin() : AnimalOrigin.OUTRA;
         if (origin == AnimalOrigin.COMPRA) {
             throw new BusinessException("Animais comprados entram pela compra de animais, que também lança o pagamento.");
@@ -78,12 +79,12 @@ public class AnimalService {
         String tag = request.tag().trim();
         support.requireFreeTag(propertyId, tag, null);
         AnimalBatch batch = request.batchId() != null
-                ? support.requireIndividualBatch(propertyId, request.batchId(), request.species()) : null;
+                ? support.requireIndividualBatch(propertyId, request.batchId(), species.getId()) : null;
 
         Animal animal = new Animal();
         animal.setPropertyId(propertyId);
         animal.setTag(tag);
-        animal.setSpecies(request.species());
+        animal.setSpeciesId(species.getId());
         animal.setOrigin(origin);
         animal.setEntryDate(entryDate);
         animal.setBatchId(batch != null ? batch.getId() : null);
@@ -93,7 +94,7 @@ public class AnimalService {
 
         support.saveEvent(propertyId, AnimalEventType.ENTRADA, entryDate, animal, batch, null, request.weight(),
                 null, null, origin == AnimalOrigin.NASCIMENTO ? "Nascimento" : "Entrada");
-        auditService.record("Animal", animal.getId(), AuditAction.CREATE, describe(animal));
+        auditService.record("Animal", animal.getId(), AuditAction.CREATE, describe(animal, species));
         return support.toResponse(propertyId, animal);
     }
 
@@ -103,7 +104,7 @@ public class AnimalService {
         tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
         Animal animal = support.findAnimal(propertyId, id);
-        if (request.species() != animal.getSpecies()) {
+        if (!animal.getSpeciesId().equals(request.speciesId())) {
             throw new BusinessException("A espécie não pode ser alterada. Se foi um engano, exclua e cadastre de novo.");
         }
         validateBirth(request.birthDate(), animal.getEntryDate());
@@ -117,7 +118,7 @@ public class AnimalService {
         animal.setTag(tag);
         applyEditableFields(propertyId, animal, request);
         animalRepository.save(animal);
-        auditService.record("Animal", animal.getId(), AuditAction.UPDATE, describe(animal));
+        auditService.record("Animal", animal.getId(), AuditAction.UPDATE, describe(animal, support.speciesOf(animal.getSpeciesId())));
         return support.toResponse(propertyId, animal);
     }
 
@@ -135,8 +136,9 @@ public class AnimalService {
         }
         eventRepository.deleteAll(events);
         eventRepository.flush();
+        SpeciesCatalog species = support.speciesOf(animal.getSpeciesId());
         animalRepository.delete(animal);
-        auditService.record("Animal", animal.getId(), AuditAction.DELETE, describe(animal));
+        auditService.record("Animal", animal.getId(), AuditAction.DELETE, describe(animal, species));
     }
 
     @Transactional
@@ -155,10 +157,10 @@ public class AnimalService {
             if (!animal.isActive()) {
                 throw new BusinessException("O animal " + animal.getTag() + " não está ativo.");
             }
-            if (target != null && target.getSpecies() != animal.getSpecies()) {
+            if (target != null && !Objects.equals(target.getSpeciesId(), animal.getSpeciesId())) {
                 throw new BusinessException("O lote " + target.getName() + " é de "
-                        + target.getSpecies().label().toLowerCase() + "s; o animal " + animal.getTag() + " é "
-                        + animal.getSpecies().label().toLowerCase() + ".");
+                        + support.speciesOf(target.getSpeciesId()).getName().toLowerCase() + "s; o animal " + animal.getTag()
+                        + " é " + support.speciesOf(animal.getSpeciesId()).getName().toLowerCase() + ".");
             }
             if (request.date().isBefore(animal.getEntryDate())) {
                 throw new BusinessException("A data é anterior à entrada do animal " + animal.getTag() + ".");
@@ -252,7 +254,7 @@ public class AnimalService {
         Animal mother = animalRepository.findById(motherId)
                 .filter(m -> m.getPropertyId().equals(propertyId))
                 .orElseThrow(() -> new BusinessException("Mãe inválida para esta propriedade"));
-        if (mother.getSex() != Sex.FEMEA || mother.getSpecies() != child.getSpecies()) {
+        if (mother.getSex() != Sex.FEMEA || !Objects.equals(mother.getSpeciesId(), child.getSpeciesId())) {
             throw new BusinessException("A mãe precisa ser uma fêmea da mesma espécie.");
         }
         if (mother.getBirthDate() != null && child.getBirthDate() != null
@@ -269,8 +271,8 @@ public class AnimalService {
         }
     }
 
-    private static String describe(Animal animal) {
-        return "%s (%s, %s)".formatted(animal.getTag(), animal.getSpecies().label().toLowerCase(),
+    private static String describe(Animal animal, SpeciesCatalog species) {
+        return "%s (%s, %s)".formatted(animal.getTag(), species.getName().toLowerCase(),
                 animal.getSex() == Sex.FEMEA ? "fêmea" : "macho");
     }
 }

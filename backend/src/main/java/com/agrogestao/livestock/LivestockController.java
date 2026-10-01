@@ -17,6 +17,8 @@ import com.agrogestao.livestock.dto.WeighingRequest;
 import com.agrogestao.livestock.dto.LivestockPurchaseRequest;
 import com.agrogestao.livestock.dto.LivestockSaleRequest;
 import com.agrogestao.livestock.dto.MoveAnimalsRequest;
+import com.agrogestao.livestock.dto.SpeciesRequest;
+import com.agrogestao.livestock.dto.SpeciesResponse;
 import com.agrogestao.livestock.dto.TradeDetailResponse;
 import com.agrogestao.livestock.dto.TradeResponse;
 import jakarta.validation.Valid;
@@ -42,19 +44,50 @@ public class LivestockController {
     private final LivestockTradeService tradeService;
     private final WeighingService weighingService;
     private final HealthService healthService;
+    private final SpeciesCatalogService speciesService;
 
     public LivestockController(AnimalBatchService batchService, AnimalService animalService,
-            LivestockTradeService tradeService, WeighingService weighingService, HealthService healthService) {
+            LivestockTradeService tradeService, WeighingService weighingService, HealthService healthService,
+            SpeciesCatalogService speciesService) {
         this.batchService = batchService;
         this.animalService = animalService;
         this.tradeService = tradeService;
         this.weighingService = weighingService;
         this.healthService = healthService;
+        this.speciesService = speciesService;
     }
 
     @GetMapping("/summary")
     public HerdSummary summary() {
         return batchService.summary();
+    }
+
+    // Espécies
+
+    @GetMapping("/species")
+    public List<SpeciesResponse> listSpecies(@RequestParam(defaultValue = "false") boolean includeArchived) {
+        return speciesService.list(includeArchived);
+    }
+
+    @PostMapping("/species")
+    public SpeciesResponse createSpecies(@Valid @RequestBody SpeciesRequest request) {
+        return speciesService.create(request);
+    }
+
+    @PostMapping("/species/{id}/archive")
+    public SpeciesResponse archiveSpecies(@PathVariable Long id) {
+        return speciesService.archive(id);
+    }
+
+    @PostMapping("/species/{id}/unarchive")
+    public SpeciesResponse unarchiveSpecies(@PathVariable Long id) {
+        return speciesService.unarchive(id);
+    }
+
+    @DeleteMapping("/species/{id}")
+    public ResponseEntity<Void> deleteSpecies(@PathVariable Long id) {
+        speciesService.delete(id);
+        return ResponseEntity.noContent().build();
     }
 
     // Lotes
@@ -108,11 +141,11 @@ public class LivestockController {
     public PageResponse<AnimalResponse> listAnimals(
             @RequestParam(required = false) AnimalStatus status,
             @RequestParam(required = false) Long batchId,
-            @RequestParam(required = false) Species species,
+            @RequestParam(required = false) Long speciesId,
             @RequestParam(required = false) String q,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer size) {
-        return animalService.search(status, batchId, species, q, PageResponse.pageable(page, size));
+        return animalService.search(status, batchId, speciesId, q, PageResponse.pageable(page, size));
     }
 
     @GetMapping("/animals/{id}")

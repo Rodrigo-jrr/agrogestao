@@ -10,7 +10,7 @@ import type {
   LivestockTradeDetail,
   PaymentType,
   Sex,
-  Species,
+  SpeciesCatalogItem,
 } from '../../api/types'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { FormMessage } from '../../components/FormMessage'
@@ -18,9 +18,9 @@ import { installmentsSum } from '../../components/InstallmentsEditor'
 import { Pagination } from '../../components/Pagination'
 import { inputClass, linkDangerClass, linkNeutralClass, primaryButtonClass } from '../../components/ui'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
-import { individualSpecies, parseTagList, sexLabels, speciesLabels } from '../../lib/livestock'
+import { parseTagList, sexLabels } from '../../lib/livestock'
 import { usePaged } from '../../lib/usePaged'
-import { AnimalPicker, PartySelect, PaymentFields, cardClass, labelClass } from './shared'
+import { AnimalPicker, PartySelect, PaymentFields, SpeciesGuide, cardClass, labelClass } from './shared'
 import { useSelection } from './useSelection'
 
 type Mode = 'individual' | 'aggregate'
@@ -52,13 +52,14 @@ function ModeToggle({ mode, onChange, name }: { mode: Mode; onChange: (mode: Mod
   )
 }
 
-function PurchaseForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: () => void }) {
+function PurchaseForm({ batches, species, onSaved }: { batches: AnimalBatch[]; species: SpeciesCatalogItem[]; onSaved: () => void }) {
   const ids = useId()
   const [suppliers, setSuppliers] = useState<Party[]>([])
   const [supplierId, setSupplierId] = useState('')
   const [date, setDate] = useState(todayIso)
   const [mode, setMode] = useState<Mode>('individual')
-  const [species, setSpecies] = useState<Species>('BOVINO')
+  const individualOptions = species.filter((s) => s.allowsIndividual && !s.archived)
+  const [speciesId, setSpeciesId] = useState(String(individualOptions[0]?.id ?? ''))
   const [batchId, setBatchId] = useState('')
   const [sex, setSex] = useState<Sex>('MACHO')
   const [breed, setBreed] = useState('')
@@ -77,7 +78,9 @@ function PurchaseForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: (
   const parsed = useMemo(() => parseTagList(tags), [tags])
   const totalValue = Number(total) || 0
   const batchOptions = batches.filter(
-    (b) => !b.archived && (mode === 'aggregate' ? b.tracking === 'AGGREGATE' : b.tracking === 'INDIVIDUAL' && b.species === species),
+    (b) =>
+      !b.archived &&
+      (mode === 'aggregate' ? b.tracking === 'AGGREGATE' : b.tracking === 'INDIVIDUAL' && b.speciesId === Number(speciesId)),
   )
   const heads = mode === 'individual' ? parsed.length : Number(headCount) || 0
 
@@ -102,7 +105,7 @@ function PurchaseForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: (
         installments: paymentType === 'INSTALLMENTS' ? installments : undefined,
         batchId: batchId ? Number(batchId) : null,
         ...(mode === 'individual'
-          ? { species, animals: parsed.map((row) => ({ tag: row.tag, name: row.name, sex, breed: breed || null })) }
+          ? { speciesId: Number(speciesId), animals: parsed.map((row) => ({ tag: row.tag, name: row.name, sex, breed: breed || null })) }
           : { headCount: Number(headCount) }),
       })
       setResult({ success: `Compra de ${trade.headCount === 1 ? '1 cabeça' : `${trade.headCount} cabeças`} registrada.` })
@@ -152,13 +155,13 @@ function PurchaseForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: (
               <label htmlFor={`${ids}-species`} className={labelClass}>
                 Espécie
               </label>
-              <select id={`${ids}-species`} value={species} onChange={(e) => {
-                setSpecies(e.target.value as Species)
+              <select id={`${ids}-species`} value={speciesId} onChange={(e) => {
+                setSpeciesId(e.target.value)
                 setBatchId('')
               }} className={inputClass}>
-                {individualSpecies.map((s) => (
-                  <option key={s} value={s}>
-                    {speciesLabels[s]}
+                {individualOptions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
                   </option>
                 ))}
               </select>
@@ -226,7 +229,7 @@ function PurchaseForm({ batches, onSaved }: { batches: AnimalBatch[]; onSaved: (
             {batchOptions.map((b) => (
               <option key={b.id} value={b.id}>
                 {b.name}
-                {mode === 'aggregate' ? ` (${speciesLabels[b.species].toLowerCase()})` : ''}
+                {mode === 'aggregate' ? ` (${b.speciesName.toLowerCase()})` : ''}
               </option>
             ))}
           </select>
@@ -424,11 +427,13 @@ function TradeDetail({ id }: { id: number }) {
 
 export function TradesTab({
   batches,
+  species,
   canWrite,
   canManage,
   onChanged,
 }: {
   batches: AnimalBatch[]
+  species: SpeciesCatalogItem[]
   canWrite: boolean
   canManage: boolean
   onChanged: () => void
@@ -488,7 +493,15 @@ export function TradesTab({
               </button>
             ))}
           </div>
-          {kind === 'purchase' ? <PurchaseForm batches={batches} onSaved={saved} /> : <SaleForm batches={batches} onSaved={saved} />}
+          {kind === 'purchase' ? (
+            species.some((s) => !s.archived) ? (
+              <PurchaseForm batches={batches} species={species} onSaved={saved} />
+            ) : (
+              <SpeciesGuide>Cadastre uma espécie antes de comprar animais.</SpeciesGuide>
+            )
+          ) : (
+            <SaleForm batches={batches} onSaved={saved} />
+          )}
         </section>
       )}
       <section className={`${cardClass} min-w-0 ${canWrite ? 'lg:col-span-3' : 'lg:col-span-5'}`}>

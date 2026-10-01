@@ -10,4 +10,6 @@ public interface AnimalBatchRepository extends JpaRepository<AnimalBatch, Long> 
     boolean existsByPropertyIdAndNameIgnoreCase(Long propertyId, String name);
 
     boolean existsByPropertyIdAndNameIgnoreCaseAndIdNot(Long propertyId, String name, Long id);
+
+    boolean existsBySpeciesId(Long speciesId);
 }

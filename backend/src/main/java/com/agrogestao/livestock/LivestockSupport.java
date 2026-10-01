@@ -23,12 +23,40 @@ public class LivestockSupport {
     private final AnimalRepository animalRepository;
     private final AnimalBatchRepository batchRepository;
     private final AnimalEventRepository eventRepository;
+    private final SpeciesCatalogRepository speciesRepository;
 
     public LivestockSupport(AnimalRepository animalRepository, AnimalBatchRepository batchRepository,
-            AnimalEventRepository eventRepository) {
+            AnimalEventRepository eventRepository, SpeciesCatalogRepository speciesRepository) {
         this.animalRepository = animalRepository;
         this.batchRepository = batchRepository;
         this.eventRepository = eventRepository;
+        this.speciesRepository = speciesRepository;
+    }
+
+    /** Espécie ativa do catálogo da propriedade — para cadastrar um animal ou lote novo. */
+    public SpeciesCatalog requireActiveSpecies(Long propertyId, Long speciesId) {
+        SpeciesCatalog species = speciesRepository.findById(speciesId)
+                .filter(s -> s.getPropertyId().equals(propertyId))
+                .orElseThrow(() -> new BusinessException("Espécie inválida para esta propriedade"));
+        if (species.isArchived()) {
+            throw new BusinessException("A espécie " + species.getName() + " está arquivada.");
+        }
+        return species;
+    }
+
+    /** Espécie do catálogo pelo id, mesmo arquivada — para exibir dados já cadastrados. */
+    public SpeciesCatalog speciesOf(Long speciesId) {
+        return speciesOf(List.of(speciesId)).get(speciesId);
+    }
+
+    /** Mesma busca, em lote (uma consulta para várias respostas). */
+    public Map<Long, SpeciesCatalog> speciesOf(Collection<Long> speciesIds) {
+        List<Long> ids = speciesIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        return speciesRepository.findAllById(ids).stream()
+                .collect(Collectors.toMap(SpeciesCatalog::getId, Function.identity()));
     }
 
     public AnimalBatch requireBatch(Long propertyId, Long batchId) {
@@ -44,7 +72,7 @@ public class LivestockSupport {
     }
 
     /** Lote que recebe animais com brinco: individual, ativo e da mesma espécie. */
-    public AnimalBatch requireIndividualBatch(Long propertyId, Long batchId, Species species) {
+    public AnimalBatch requireIndividualBatch(Long propertyId, Long batchId, Long speciesId) {
         AnimalBatch batch = requireBatch(propertyId, batchId);
         if (batch.isAggregate()) {
             throw new BusinessException("O lote " + batch.getName()
@@ -53,9 +81,10 @@ public class LivestockSupport {
         if (batch.isArchived()) {
             throw new BusinessException("O lote " + batch.getName() + " está arquivado.");
         }
-        if (species != null && batch.getSpecies() != species) {
-            throw new BusinessException("O lote " + batch.getName() + " é de " + batch.getSpecies().label().toLowerCase()
-                    + "s; o animal é " + species.label().toLowerCase() + ".");
+        if (speciesId != null && !Objects.equals(batch.getSpeciesId(), speciesId)) {
+            throw new BusinessException("O lote " + batch.getName() + " é de "
+                    + speciesOf(batch.getSpeciesId()).getName().toLowerCase()
+                    + "s; o animal é " + speciesOf(speciesId).getName().toLowerCase() + ".");
         }
         return batch;
     }
@@ -78,9 +107,9 @@ public class LivestockSupport {
                 .orElseThrow(() -> new ResourceNotFoundException("Animal não encontrado"));
     }
 
-    public static void requireIndividualSpecies(Species species) {
-        if (!species.allowsIndividual()) {
-            throw new BusinessException(species.label() + "s são controlados só por lote (contagem de cabeças).");
+    public static void requireIndividualSpecies(SpeciesCatalog species) {
+        if (!species.isAllowsIndividual()) {
+            throw new BusinessException(species.getName() + "s são controlados só por lote (contagem de cabeças).");
         }
     }
 
@@ -141,7 +170,8 @@ public class LivestockSupport {
         Map<Long, String> motherTags = animalRepository.findAllById(motherIds).stream()
                 .collect(Collectors.toMap(Animal::getId, Animal::getTag));
         Map<Long, LocalDate> withdrawals = withdrawalsOf(animals.stream().map(Animal::getId).toList());
-        return animals.stream().map(animal -> toResponse(animal, batches, motherTags, withdrawals)).toList();
+        Map<Long, SpeciesCatalog> species = speciesOf(animals.stream().map(Animal::getSpeciesId).toList());
+        return animals.stream().map(animal -> toResponse(animal, batches, motherTags, withdrawals, species)).toList();
     }
 
     public AnimalResponse toResponse(Long propertyId, Animal animal) {
@@ -166,12 +196,13 @@ public class LivestockSupport {
     }
 
     private static AnimalResponse toResponse(Animal a, Map<Long, AnimalBatch> batches, Map<Long, String> motherTags,
-            Map<Long, LocalDate> withdrawals) {
+            Map<Long, LocalDate> withdrawals, Map<Long, SpeciesCatalog> species) {
         AnimalBatch batch = a.getBatchId() != null ? batches.get(a.getBatchId()) : null;
-        return new AnimalResponse(a.getId(), a.getTag(), a.getName(), a.getSpecies(), a.getBreed(), a.getSex(),
-                a.getBirthDate(), a.isBirthDateEstimated(), a.getOrigin(), a.getEntryDate(), a.getMotherId(),
-                a.getMotherId() != null ? motherTags.get(a.getMotherId()) : null, a.getSire(), a.getBatchId(),
-                batch != null ? batch.getName() : null, a.getStatus(), a.getExitDate(), a.getExitReason(),
+        SpeciesCatalog animalSpecies = species.get(a.getSpeciesId());
+        return new AnimalResponse(a.getId(), a.getTag(), a.getName(), animalSpecies.getId(), animalSpecies.getName(),
+                a.getBreed(), a.getSex(), a.getBirthDate(), a.isBirthDateEstimated(), a.getOrigin(), a.getEntryDate(),
+                a.getMotherId(), a.getMotherId() != null ? motherTags.get(a.getMotherId()) : null, a.getSire(),
+                a.getBatchId(), batch != null ? batch.getName() : null, a.getStatus(), a.getExitDate(), a.getExitReason(),
                 a.getCurrentWeight(), a.getNotes(), withdrawals.get(a.getId()));
     }
 

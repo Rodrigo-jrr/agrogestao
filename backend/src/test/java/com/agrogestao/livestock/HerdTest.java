@@ -15,13 +15,18 @@ class HerdTest extends ApiTestSupport {
 
     private static final String TODAY = LocalDate.now().toString();
 
-    private long batch(Session s, String name, String species, String tracking) throws Exception {
-        return post("/api/livestock/batches", s, Map.of("name", name, "species", species, "tracking", tracking))
+    private long species(Session s, String name, boolean allowsIndividual) throws Exception {
+        return post("/api/livestock/species", s, Map.of("name", name, "allowsIndividual", allowsIndividual))
                 .get("id").asLong();
     }
 
-    private JsonNode animal(Session s, String tag, String sex, Map<String, Object> extra) throws Exception {
-        Map<String, Object> body = new HashMap<>(Map.of("tag", tag, "species", "BOVINO", "sex", sex));
+    private long batch(Session s, String name, long speciesId, String tracking) throws Exception {
+        return post("/api/livestock/batches", s, Map.of("name", name, "speciesId", speciesId, "tracking", tracking))
+                .get("id").asLong();
+    }
+
+    private JsonNode animal(Session s, String tag, String sex, long speciesId, Map<String, Object> extra) throws Exception {
+        Map<String, Object> body = new HashMap<>(Map.of("tag", tag, "speciesId", speciesId, "sex", sex));
         body.putAll(extra);
         return post("/api/livestock/animals", s, body);
     }
@@ -29,10 +34,11 @@ class HerdTest extends ApiTestSupport {
     @Test
     void registersAnimalsInBatchesWithTimelineAndMother() throws Exception {
         Session owner = registerOwnerWithProperty("Pecuarista");
-        long cows = batch(owner, "Vacas", "BOVINO", "INDIVIDUAL");
-        JsonNode mother = animal(owner, "101", "FEMEA", Map.of("batchId", cows, "weight", 450,
+        long bovino = species(owner, "Bovino", true);
+        long cows = batch(owner, "Vacas", bovino, "INDIVIDUAL");
+        JsonNode mother = animal(owner, "101", "FEMEA", bovino, Map.of("batchId", cows, "weight", 450,
                 "birthDate", "2020-03-01", "breed", "Nelore"));
-        JsonNode calf = animal(owner, "201", "MACHO", Map.of("origin", "NASCIMENTO", "birthDate", TODAY,
+        JsonNode calf = animal(owner, "201", "MACHO", bovino, Map.of("origin", "NASCIMENTO", "birthDate", TODAY,
                 "motherId", mother.get("id").asLong(), "sire", "Touro Valente"));
 
         assertThat(calf.get("motherTag").asString()).isEqualTo("101");
@@ -53,33 +59,37 @@ class HerdTest extends ApiTestSupport {
     @Test
     void enforcesTagSpeciesAndMotherRules() throws Exception {
         Session owner = registerOwnerWithProperty("Regras");
-        long sheepBatch = batch(owner, "Ovelhas", "OVINO", "INDIVIDUAL");
-        JsonNode bull = animal(owner, "1", "MACHO", Map.of());
+        long bovino = species(owner, "Bovino", true);
+        long ovino = species(owner, "Ovino", true);
+        long ave = species(owner, "Ave", false);
+        long sheepBatch = batch(owner, "Ovelhas", ovino, "INDIVIDUAL");
+        JsonNode bull = animal(owner, "1", "MACHO", bovino, Map.of());
 
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", " 1 ", "species", "BOVINO", "sex", "FEMEA"), 422); // brinco repetido
+                Map.of("tag", " 1 ", "speciesId", bovino, "sex", "FEMEA"), 422); // brinco repetido
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", "2", "species", "BOVINO", "sex", "FEMEA", "batchId", sheepBatch), 422); // espécie
+                Map.of("tag", "2", "speciesId", bovino, "sex", "FEMEA", "batchId", sheepBatch), 422); // espécie
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", "3", "species", "BOVINO", "sex", "FEMEA", "motherId", bull.get("id").asLong()), 422);
+                Map.of("tag", "3", "speciesId", bovino, "sex", "FEMEA", "motherId", bull.get("id").asLong()), 422);
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", "4", "species", "AVE", "sex", "FEMEA"), 422); // aves só por lote
+                Map.of("tag", "4", "speciesId", ave, "sex", "FEMEA"), 422); // aves só por lote
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", "5", "species", "BOVINO", "sex", "FEMEA", "origin", "COMPRA"), 422); // compra tem fluxo próprio
+                Map.of("tag", "5", "speciesId", bovino, "sex", "FEMEA", "origin", "COMPRA"), 422); // compra tem fluxo próprio
         call(HttpMethod.POST, "/api/livestock/animals", owner,
-                Map.of("tag", "6", "species", "BOVINO", "sex", "FEMEA",
+                Map.of("tag", "6", "speciesId", bovino, "sex", "FEMEA",
                         "birthDate", LocalDate.now().plusDays(1).toString()), 422);
         call(HttpMethod.POST, "/api/livestock/batches", owner,
-                Map.of("name", "Frangos", "species", "AVE", "tracking", "INDIVIDUAL"), 422);
+                Map.of("name", "Frangos", "speciesId", ave, "tracking", "INDIVIDUAL"), 422);
     }
 
     @Test
     void movesBetweenBatchesAndRecordsExitAndReactivation() throws Exception {
         Session owner = registerOwnerWithProperty("Manejo");
-        long a = batch(owner, "Recria", "BOVINO", "INDIVIDUAL");
-        long b = batch(owner, "Engorda", "BOVINO", "INDIVIDUAL");
-        long id1 = animal(owner, "10", "MACHO", Map.of("batchId", a)).get("id").asLong();
-        long id2 = animal(owner, "11", "MACHO", Map.of("batchId", a)).get("id").asLong();
+        long bovino = species(owner, "Bovino", true);
+        long a = batch(owner, "Recria", bovino, "INDIVIDUAL");
+        long b = batch(owner, "Engorda", bovino, "INDIVIDUAL");
+        long id1 = animal(owner, "10", "MACHO", bovino, Map.of("batchId", a)).get("id").asLong();
+        long id2 = animal(owner, "11", "MACHO", bovino, Map.of("batchId", a)).get("id").asLong();
 
         call(HttpMethod.POST, "/api/livestock/animals/move", owner,
                 Map.of("animalIds", List.of(id1, id2), "toBatchId", b, "date", TODAY), 200);
@@ -95,7 +105,7 @@ class HerdTest extends ApiTestSupport {
         assertThat(page("/api/livestock/animals?status=ATIVO", owner)).hasSize(1);
 
         // Com o 10 fora do rebanho, o brinco pode ser reutilizado — e aí não dá para reativar o antigo.
-        long reused = animal(owner, "10", "FEMEA", Map.of()).get("id").asLong();
+        long reused = animal(owner, "10", "FEMEA", bovino, Map.of()).get("id").asLong();
         call(HttpMethod.POST, "/api/livestock/animals/" + id1 + "/reactivate", owner, null, 422);
         call(HttpMethod.DELETE, "/api/livestock/animals/" + reused, owner, null, 204);
         JsonNode back = post("/api/livestock/animals/" + id1 + "/reactivate", owner, null);
@@ -107,7 +117,8 @@ class HerdTest extends ApiTestSupport {
     @Test
     void aggregateBatchCountsHeadsWithoutTags() throws Exception {
         Session owner = registerOwnerWithProperty("Granja");
-        long chickens = batch(owner, "Galpão 1", "AVE", "AGGREGATE");
+        long ave = species(owner, "Ave", false);
+        long chickens = batch(owner, "Galpão 1", ave, "AGGREGATE");
 
         post("/api/livestock/batches/" + chickens + "/entries", owner,
                 Map.of("headCount", 500, "date", TODAY, "description", "Pintinhos de um dia"));
@@ -125,13 +136,14 @@ class HerdTest extends ApiTestSupport {
     @Test
     void workerRegistersButOnlyManagersDeleteOrReactivate() throws Exception {
         Session owner = registerOwnerWithProperty("Dono");
+        long bovino = species(owner, "Bovino", true);
         Session worker = addMember(owner, registerUser("Vaqueiro"), "WORKER");
         Session viewer = addMember(owner, registerUser("Visita"), "VIEWER");
 
-        long id = post("/api/livestock/animals", worker, Map.of("tag", "7", "species", "BOVINO", "sex", "FEMEA"))
+        long id = post("/api/livestock/animals", worker, Map.of("tag", "7", "speciesId", bovino, "sex", "FEMEA"))
                 .get("id").asLong();
         call(HttpMethod.POST, "/api/livestock/animals", viewer,
-                Map.of("tag", "8", "species", "BOVINO", "sex", "FEMEA"), 403);
+                Map.of("tag", "8", "speciesId", bovino, "sex", "FEMEA"), 403);
         call(HttpMethod.DELETE, "/api/livestock/animals/" + id, worker, null, 403);
         post("/api/livestock/animals/" + id + "/exit", worker, Map.of("type", "DESCARTE", "date", TODAY));
         call(HttpMethod.POST, "/api/livestock/animals/" + id + "/reactivate", worker, null, 403);
@@ -142,16 +154,18 @@ class HerdTest extends ApiTestSupport {
     void herdIsIsolatedByProperty() throws Exception {
         Session owner = registerOwnerWithProperty("Um");
         Session other = registerOwnerWithProperty("Outro");
-        long id = animal(owner, "99", "FEMEA", Map.of()).get("id").asLong();
-        long batchId = batch(owner, "Lote A", "BOVINO", "INDIVIDUAL");
+        long bovino = species(owner, "Bovino", true);
+        long otherBovino = species(other, "Bovino", true);
+        long id = animal(owner, "99", "FEMEA", bovino, Map.of()).get("id").asLong();
+        long batchId = batch(owner, "Lote A", bovino, "INDIVIDUAL");
 
         call(HttpMethod.GET, "/api/livestock/animals/" + id, other, null, 404);
         assertThat(page("/api/livestock/animals", other)).isEmpty();
         call(HttpMethod.POST, "/api/livestock/animals", other,
-                Map.of("tag", "1", "species", "BOVINO", "sex", "FEMEA", "batchId", batchId), 422);
+                Map.of("tag", "1", "speciesId", otherBovino, "sex", "FEMEA", "batchId", batchId), 422);
         call(HttpMethod.POST, "/api/livestock/animals", other,
-                Map.of("tag", "2", "species", "BOVINO", "sex", "MACHO", "motherId", id), 422);
+                Map.of("tag", "2", "speciesId", otherBovino, "sex", "MACHO", "motherId", id), 422);
         // O mesmo brinco pode existir em outra propriedade.
-        animal(other, "99", "FEMEA", Map.of());
+        animal(other, "99", "FEMEA", otherBovino, Map.of());
     }
 }
