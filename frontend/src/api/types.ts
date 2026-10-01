@@ -389,9 +389,11 @@ export type AnimalOrigin = 'NASCIMENTO' | 'COMPRA' | 'OUTRA'
 export type AnimalStatus = 'ATIVO' | 'VENDIDO' | 'MORTO' | 'DESCARTADO'
 export type BatchTracking = 'INDIVIDUAL' | 'AGGREGATE'
 export type ExitType = 'MORTE' | 'DESCARTE' | 'OUTRA'
-export type AnimalEventType = 'ENTRADA' | 'MUDANCA_LOTE' | 'SAIDA' | 'PESAGEM' | 'SANIDADE'
+export type AnimalEventType = 'ENTRADA' | 'MUDANCA_LOTE' | 'SAIDA' | 'PESAGEM' | 'SANIDADE' | 'REPRODUCAO'
 export type HealthKind = 'VACINA' | 'MEDICAMENTO' | 'PROCEDIMENTO'
 export type TradeKind = 'PURCHASE' | 'SALE'
+export type ReproductiveEventKind = 'CIO' | 'COBERTURA' | 'INSEMINACAO' | 'DIAGNOSTICO_PRENHEZ' | 'PARTO' | 'ABORTO'
+export type PregnancyResult = 'POSITIVO' | 'NEGATIVO'
 
 export interface AnimalBatch {
   id: number
@@ -476,6 +478,7 @@ export interface AnimalEvent {
   description: string | null
   applicationId: number | null
   withdrawalUntil: string | null
+  reproductiveEventId: number | null
 }
 
 export interface AnimalDetail {
@@ -566,4 +569,66 @@ export interface HealthApplicationInput {
 export interface LivestockAlerts {
   followUps: HealthApplication[]
   withdrawals: { animalId: number | null; batchId: number | null; label: string; until: string }[]
+  upcomingCalvings: { animalId: number; animalTag: string | null; expectedCalvingDate: string }[]
+  pendingDiagnoses: { animalId: number; animalTag: string | null; since: string }[]
+}
+
+// Reprodução
+
+export interface OffspringInput {
+  tag: string
+  name?: string | null
+  sex: Sex
+  breed?: string | null
+  weight?: number | null
+}
+
+export interface ReproductiveEvent {
+  id: number
+  animalId: number
+  animalTag: string | null
+  kind: ReproductiveEventKind
+  date: string
+  sire: string | null
+  pregnancyResult: PregnancyResult | null
+  expectedCalvingDate: string | null
+  diagnosisEventId: number | null
+  offspringCount: number | null
+  offspringAnimalIds: number[]
+  notes: string | null
+}
+
+export interface ReproductiveEventInput {
+  animalId: number
+  kind: ReproductiveEventKind
+  date: string
+  sire?: string | null
+  pregnancyResult?: PregnancyResult | null
+  expectedCalvingDate?: string | null
+  batchId?: number | null
+  offspring?: OffspringInput[]
+  notes?: string | null
+}
+
+export interface LivestockIndicators {
+  batchId: number | null
+  batchName: string | null
+  from: string
+  to: string
+  headCount: number
+  pregnancyDiagnoses: number
+  positivePregnancyDiagnoses: number
+  pregnancyRate: number | null
+  births: number
+  birthRate: number | null
+  deaths: number
+  mortalityRate: number | null
+  averageCalvingIntervalDays: number | null
+  averageDailyGain: number | null
+  purchaseCost: number
+  healthCost: number
+  generalCost: number
+  totalCost: number
+  costPerAnimal: number | null
+  costPerKg: number | null
 }

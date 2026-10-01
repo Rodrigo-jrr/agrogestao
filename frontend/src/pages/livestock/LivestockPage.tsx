@@ -8,13 +8,14 @@ import { useProperty } from '../../property/PropertyContext'
 import { formatNumber } from '../../lib/format'
 import { BatchesTab } from './BatchesTab'
 import { HerdTab } from './HerdTab'
+import { IndicatorsTab } from './IndicatorsTab'
 import { SpeciesGuide } from './shared'
 import { SpeciesTab } from './SpeciesTab'
 import { TradesTab } from './TradesTab'
 import { WeighingTab } from './WeighingTab'
 import { HealthTab } from './HealthTab'
 
-type Tab = 'rebanho' | 'lotes' | 'pesagens' | 'sanidade' | 'compras-e-vendas' | 'especies'
+type Tab = 'rebanho' | 'lotes' | 'pesagens' | 'sanidade' | 'compras-e-vendas' | 'indicadores' | 'especies'
 
 const tabs: [Tab, string][] = [
   ['rebanho', 'Rebanho'],
@@ -22,6 +23,7 @@ const tabs: [Tab, string][] = [
   ['pesagens', 'Pesagens'],
   ['sanidade', 'Sanidade'],
   ['compras-e-vendas', 'Compras e vendas'],
+  ['indicadores', 'Indicadores'],
   ['especies', 'Minhas espécies'],
 ]
 
@@ -113,6 +115,7 @@ export function LivestockPage() {
       {tab === 'compras-e-vendas' && (
         <TradesTab batches={batches} species={species ?? []} canWrite={canWrite} canManage={canManage} onChanged={load} />
       )}
+      {tab === 'indicadores' && <IndicatorsTab batches={batches} />}
       {tab === 'especies' && <SpeciesTab species={species ?? []} canWrite={canWrite} canManage={canManage} onChanged={load} />}
     </div>
   )

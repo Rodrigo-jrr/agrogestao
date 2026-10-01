@@ -7,5 +7,7 @@ public enum AnimalEventType {
     SAIDA,
     PESAGEM,
     /** Vacina, medicamento ou procedimento; detalhes em {@link HealthApplication}. */
-    SANIDADE
+    SANIDADE,
+    /** Cio, cobertura, inseminação, diagnóstico de prenhez, parto ou aborto; detalhes em {@link ReproductiveEvent}. */
+    REPRODUCAO
 }

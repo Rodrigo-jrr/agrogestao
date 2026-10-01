@@ -64,6 +64,7 @@ public class DataExportService {
         s.put("animais", "SELECT * FROM animals WHERE property_id = ? ORDER BY id");
         s.put("comprasEVendasDeAnimais", "SELECT * FROM livestock_trades WHERE property_id = ? ORDER BY trade_date, id");
         s.put("sanidade", "SELECT * FROM health_applications WHERE property_id = ? ORDER BY application_date, id");
+        s.put("reproducao", "SELECT * FROM reproductive_events WHERE property_id = ? ORDER BY event_date, id");
         s.put("eventosDoRebanho", "SELECT * FROM animal_events WHERE property_id = ? ORDER BY event_date, id");
         s.put("producao", "SELECT * FROM production_records WHERE property_id = ? ORDER BY production_date, id");
         s.put("equipe", "SELECT u.name, u.email, m.role, m.created_at FROM property_members m "

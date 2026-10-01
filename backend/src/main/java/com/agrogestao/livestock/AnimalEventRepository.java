@@ -18,6 +18,12 @@ public interface AnimalEventRepository extends JpaRepository<AnimalEvent, Long> 
 
     List<AnimalEvent> findByApplicationId(Long applicationId);
 
+    List<AnimalEvent> findByReproductiveEventId(Long reproductiveEventId);
+
+    /** Eventos de um tipo no período — base para os indicadores (custo, mortalidade, GMD). */
+    List<AnimalEvent> findByPropertyIdAndTypeAndEventDateBetween(
+            Long propertyId, AnimalEventType type, LocalDate from, LocalDate to);
+
     boolean existsByAnimalIdAndTypeNot(Long animalId, AnimalEventType type);
 
     boolean existsByBatchIdOrFromBatchIdOrToBatchId(Long batchId, Long fromBatchId, Long toBatchId);

@@ -71,6 +71,9 @@ public class AnimalEvent {
     @Column(name = "withdrawal_until")
     private java.time.LocalDate withdrawalUntil;
 
+    @Column(name = "reproductive_event_id")
+    private Long reproductiveEventId;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 }
