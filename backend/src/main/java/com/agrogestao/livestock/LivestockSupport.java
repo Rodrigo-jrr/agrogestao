@@ -216,7 +216,7 @@ public class LivestockSupport {
                 e.getAnimalId(), e.getAnimalId() != null ? tags.get(e.getAnimalId()) : null, e.getBatchId(),
                 batchName.apply(e.getBatchId()), e.getHeadCount(), e.getWeight(), batchName.apply(e.getFromBatchId()),
                 batchName.apply(e.getToBatchId()), e.getTradeId(), e.getAmount(), e.getDescription(),
-                e.getApplicationId(), e.getWithdrawalUntil())).toList();
+                e.getApplicationId(), e.getWithdrawalUntil(), e.getReproductiveEventId())).toList();
     }
 
     /** Divide o total em partes iguais em centavos; a sobra do arredondamento vai para a última. */

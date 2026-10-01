@@ -18,6 +18,8 @@ public interface AnimalEventRepository extends JpaRepository<AnimalEvent, Long> 
 
     List<AnimalEvent> findByApplicationId(Long applicationId);
 
+    List<AnimalEvent> findByReproductiveEventId(Long reproductiveEventId);
+
     boolean existsByAnimalIdAndTypeNot(Long animalId, AnimalEventType type);
 
     boolean existsByBatchIdOrFromBatchIdOrToBatchId(Long batchId, Long fromBatchId, Long toBatchId);

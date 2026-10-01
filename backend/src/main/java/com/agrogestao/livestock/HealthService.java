@@ -227,12 +227,17 @@ public class HealthService {
         return toResponses(propertyId, List.of(application)).get(0);
     }
 
-    public LivestockAlerts alerts() {
+    /** Reforços e fins de tratamento pendentes nos próximos {@link #ALERT_WINDOW_DAYS} dias (e os atrasados). */
+    public List<HealthApplicationResponse> pendingFollowUps() {
+        Long propertyId = tenantContext.requirePropertyId();
+        return toResponses(propertyId,
+                applicationRepository.findPendingFollowUps(propertyId, LocalDate.now().plusDays(ALERT_WINDOW_DAYS)));
+    }
+
+    /** Animais e lotes por contagem ainda em carência hoje. */
+    public List<LivestockAlerts.Withdrawal> withdrawalAlerts() {
         Long propertyId = tenantContext.requirePropertyId();
         LocalDate today = LocalDate.now();
-        List<HealthApplicationResponse> followUps = toResponses(propertyId,
-                applicationRepository.findPendingFollowUps(propertyId, today.plusDays(ALERT_WINDOW_DAYS)));
-
         List<LivestockAlerts.Withdrawal> withdrawals = new ArrayList<>();
         List<Object[]> animalRows = eventRepository.activeWithdrawals(propertyId, today);
         Map<Long, String> tags = animalRepository.findAllById(animalRows.stream().map(r -> (Long) r[0]).toList()).stream()
@@ -247,7 +252,7 @@ public class HealthService {
             }
         });
         withdrawals.sort(Comparator.comparing(LivestockAlerts.Withdrawal::until).thenComparing(LivestockAlerts.Withdrawal::label));
-        return new LivestockAlerts(followUps, withdrawals);
+        return withdrawals;
     }
 
     private static void link(AnimalEvent event, HealthApplication application) {
