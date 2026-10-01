@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 /** Buscas, validações e montagem de respostas comuns a lotes, animais e compras/vendas de animais. */
@@ -23,12 +24,68 @@ public class LivestockSupport {
     private final AnimalRepository animalRepository;
     private final AnimalBatchRepository batchRepository;
     private final AnimalEventRepository eventRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public LivestockSupport(AnimalRepository animalRepository, AnimalBatchRepository batchRepository,
-            AnimalEventRepository eventRepository) {
+            AnimalEventRepository eventRepository, JdbcTemplate jdbcTemplate) {
         this.animalRepository = animalRepository;
         this.batchRepository = batchRepository;
         this.eventRepository = eventRepository;
+        this.jdbcTemplate = jdbcTemplate;
+    }
+
+    /**
+     * species_id do catálogo da propriedade para esta espécie (enum, ainda — ver a classe Species), criando
+     * a linha na primeira vez que a propriedade usa essa espécie. Use ao salvar um Animal/AnimalBatch.
+     */
+    public Long ensureSpeciesId(Long propertyId, Species species) {
+        Long existing = findSpeciesIdOrNull(propertyId, species);
+        if (existing != null) {
+            return existing;
+        }
+        LocalDateTime now = LocalDateTime.now();
+        jdbcTemplate.update(
+                "INSERT INTO species (property_id, name, allows_individual, created_at, updated_at) "
+                        + "VALUES (?, ?, ?, ?, ?)",
+                propertyId, species.label(), species.allowsIndividual(), now, now);
+        return findSpeciesIdOrNull(propertyId, species);
+    }
+
+    /**
+     * species_id para esta espécie nesta propriedade, ou um id que não existe se a propriedade nunca usou essa
+     * espécie — assim um filtro de busca por essa espécie não bate com nada em vez de ignorar o filtro (null
+     * significaria "sem filtro" na query). Não cria a linha: usar só para leitura (busca/validação).
+     */
+    public long findSpeciesId(Long propertyId, Species species) {
+        Long id = findSpeciesIdOrNull(propertyId, species);
+        return id != null ? id : -1L;
+    }
+
+    private Long findSpeciesIdOrNull(Long propertyId, Species species) {
+        List<Long> ids = jdbcTemplate.queryForList(
+                "SELECT id FROM species WHERE property_id = ? AND LOWER(name) = LOWER(?) AND archived_at IS NULL",
+                Long.class, propertyId, species.label());
+        return ids.isEmpty() ? null : ids.get(0);
+    }
+
+    /** Catálogo -> enum Species, enquanto os services ainda falam o enum. */
+    public Species speciesOf(Long speciesId) {
+        return speciesOf(List.of(speciesId)).get(speciesId);
+    }
+
+    /** Mesma tradução, em lote (uma consulta para várias respostas). */
+    public Map<Long, Species> speciesOf(Collection<Long> speciesIds) {
+        List<Long> ids = speciesIds.stream().filter(Objects::nonNull).distinct().toList();
+        if (ids.isEmpty()) {
+            return Map.of();
+        }
+        String placeholders = ids.stream().map(id -> "?").collect(Collectors.joining(","));
+        Map<Long, Species> result = new HashMap<>();
+        jdbcTemplate.query("SELECT id, name FROM species WHERE id IN (" + placeholders + ")",
+                rs -> {
+                    result.put(rs.getLong("id"), Species.fromLabel(rs.getString("name")));
+                }, ids.toArray());
+        return result;
     }
 
     public AnimalBatch requireBatch(Long propertyId, Long batchId) {
@@ -53,8 +110,9 @@ public class LivestockSupport {
         if (batch.isArchived()) {
             throw new BusinessException("O lote " + batch.getName() + " está arquivado.");
         }
-        if (species != null && batch.getSpecies() != species) {
-            throw new BusinessException("O lote " + batch.getName() + " é de " + batch.getSpecies().label().toLowerCase()
+        if (species != null && !Objects.equals(batch.getSpeciesId(), findSpeciesIdOrNull(propertyId, species))) {
+            throw new BusinessException("O lote " + batch.getName() + " é de "
+                    + speciesOf(batch.getSpeciesId()).label().toLowerCase()
                     + "s; o animal é " + species.label().toLowerCase() + ".");
         }
         return batch;
@@ -141,7 +199,8 @@ public class LivestockSupport {
         Map<Long, String> motherTags = animalRepository.findAllById(motherIds).stream()
                 .collect(Collectors.toMap(Animal::getId, Animal::getTag));
         Map<Long, LocalDate> withdrawals = withdrawalsOf(animals.stream().map(Animal::getId).toList());
-        return animals.stream().map(animal -> toResponse(animal, batches, motherTags, withdrawals)).toList();
+        Map<Long, Species> species = speciesOf(animals.stream().map(Animal::getSpeciesId).toList());
+        return animals.stream().map(animal -> toResponse(animal, batches, motherTags, withdrawals, species)).toList();
     }
 
     public AnimalResponse toResponse(Long propertyId, Animal animal) {
@@ -166,9 +225,9 @@ public class LivestockSupport {
     }
 
     private static AnimalResponse toResponse(Animal a, Map<Long, AnimalBatch> batches, Map<Long, String> motherTags,
-            Map<Long, LocalDate> withdrawals) {
+            Map<Long, LocalDate> withdrawals, Map<Long, Species> species) {
         AnimalBatch batch = a.getBatchId() != null ? batches.get(a.getBatchId()) : null;
-        return new AnimalResponse(a.getId(), a.getTag(), a.getName(), a.getSpecies(), a.getBreed(), a.getSex(),
+        return new AnimalResponse(a.getId(), a.getTag(), a.getName(), species.get(a.getSpeciesId()), a.getBreed(), a.getSex(),
                 a.getBirthDate(), a.isBirthDateEstimated(), a.getOrigin(), a.getEntryDate(), a.getMotherId(),
                 a.getMotherId() != null ? motherTags.get(a.getMotherId()) : null, a.getSire(), a.getBatchId(),
                 batch != null ? batch.getName() : null, a.getStatus(), a.getExitDate(), a.getExitReason(),

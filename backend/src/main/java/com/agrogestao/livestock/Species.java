@@ -28,4 +28,14 @@ public enum Species {
     public boolean allowsIndividual() {
         return individual;
     }
+
+    /** Species catalog -> enum, enquanto o backend ainda fala o enum (ver SpeciesConverter). */
+    public static Species fromLabel(String label) {
+        for (Species species : values()) {
+            if (species.label.equalsIgnoreCase(label)) {
+                return species;
+            }
+        }
+        return OUTRO;
+    }
 }

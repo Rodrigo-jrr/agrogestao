@@ -26,6 +26,8 @@ public class PropertyDataEraser {
             "UPDATE animals SET mother_id = NULL WHERE property_id = ?",
             "DELETE FROM animals WHERE property_id = ?",
             "DELETE FROM animal_batches WHERE property_id = ?",
+            // species é referenciado por animals/animal_batches (species_id): apaga depois dos dois.
+            "DELETE FROM species WHERE property_id = ?",
             "DELETE FROM financial_transactions WHERE property_id = ?",
             "DELETE FROM inventory_movements WHERE property_id = ?",
             "DELETE FROM inventory_items WHERE property_id = ?",
