@@ -20,15 +20,15 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
 - Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último merge de funcionalidade
-  foi a "Pecuária, entrega 2" (PR #3).
+  foi a "Pecuária, entrega 3: reprodução e indicadores" (PR #7).
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml test`, com 128 testes no H2;
+  - backend: `mvn -f backend/pom.xml test`, com 145 testes no H2;
   - frontend: `npm --prefix frontend test` (40 testes) e `npm --prefix frontend run lint`;
-  - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (12 testes).
+  - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (13 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V11**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V13**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -92,17 +92,11 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
 
 Faça em ordem, **uma entrega por PR**, parando para o usuário revisar entre elas.
 
-### 1. Pecuária — Entrega 3: reprodução e indicadores (próxima)
-Base: documento-base, seções 14 e 43. O que já existe está em `livestock/` e na seção Pecuária do ARCHITECTURE.
-
-**Pré-requisito concluído (01/10/2026):** o enum fixo `Species` foi substituído por um catálogo de espécies
-por propriedade (tabela `species`, migration V11; endpoint `/api/livestock/species`; aba "Minhas espécies" no
-frontend). Cada propriedade cadastra livremente as espécies que usa, sem nenhuma pré-cadastrada pelo sistema.
-Decisões já confirmadas com o usuário para esta entrega:
-- Reprodução só fica disponível para espécies com `allowsIndividual = true` no catálogo.
-- Diagnóstico de prenhez é obrigatório antes de registrar o parto.
-- Custos gerais da atividade são rateados por animal nos indicadores, igualmente por cabeça (mesmo padrão de
-  `HealthService`), não por peso.
+### 1. Pecuária — Entrega 3: reprodução e indicadores — concluída (01/10/2026)
+Base: documento-base, seções 14 e 43. PRs #5 (pré-requisito: catálogo de espécies), #7 (reprodução e
+indicadores). Decisões confirmadas com o usuário e aplicadas: reprodução só para espécies com
+`allowsIndividual = true`; diagnóstico de prenhez obrigatório antes do parto; custos gerais da atividade
+rateados igualmente por cabeça (mesmo padrão de `HealthService`).
 
 - **Eventos reprodutivos** por fêmea: cio, cobertura (touro/reprodutor), inseminação (sêmen), diagnóstico de
   prenhez (positivo/negativo, data prevista do parto), parto e aborto.
@@ -114,7 +108,8 @@ Decisões já confirmadas com o usuário para esta entrega:
   - intervalo entre partos;
   - GMD médio por lote;
   - custo por animal e por kg: compra + sanidade rateada + parte dos lançamentos ligados à atividade/centro de custo.
-### 2. Agricultura (Fase 2, documento-base seções 15 e 49)
+
+### 2. Agricultura (Fase 2, documento-base seções 15 e 49) (próxima)
 Pacotes `crops` e `fields` existem vazios.
 - **Talhões:** nome, área (ha), localização e solo.
 - **Culturas e safras (ciclos):** cultura, variedade, talhão, plantio e colheita previstos.
