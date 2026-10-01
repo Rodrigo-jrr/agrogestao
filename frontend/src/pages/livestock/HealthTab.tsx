@@ -8,7 +8,7 @@ import { FormMessage } from '../../components/FormMessage'
 import { Pagination } from '../../components/Pagination'
 import { inputClass, linkDangerClass, linkNeutralClass, primaryButtonClass } from '../../components/ui'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
-import { healthKindLabels, healthTitle, relativeDay, speciesLabels } from '../../lib/livestock'
+import { healthKindLabels, healthTitle, relativeDay } from '../../lib/livestock'
 import { usePaged } from '../../lib/usePaged'
 import { AnimalPicker, cardClass, labelClass } from './shared'
 import { useSelection } from './useSelection'
@@ -280,7 +280,7 @@ function HealthForm({
               .filter((b) => !b.archived && b.headCount > 0)
               .map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} ({speciesLabels[b.species].toLowerCase()}, {formatNumber(b.headCount)} cab.)
+                  {b.name} ({b.speciesName.toLowerCase()}, {formatNumber(b.headCount)} cab.)
                 </option>
               ))}
           </select>

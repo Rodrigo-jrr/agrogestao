@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { livestockApi } from '../../api/endpoints'
+import { livestockApi, speciesApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
-import type { AnimalBatch, AnimalDetail, AnimalEvent, ExitType } from '../../api/types'
+import type { AnimalBatch, AnimalDetail, AnimalEvent, ExitType, SpeciesCatalogItem } from '../../api/types'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { FormMessage } from '../../components/FormMessage'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../../components/ui'
 import { useProperty } from '../../property/PropertyContext'
 import { formatCurrency, formatDate, formatNumber, todayIso } from '../../lib/format'
-import { eventLabels, exitLabels, formatAge, originLabels, sexLabels, speciesLabels, statusLabels } from '../../lib/livestock'
+import { eventLabels, exitLabels, formatAge, originLabels, sexLabels, statusLabels } from '../../lib/livestock'
 import { AnimalForm } from './AnimalForm'
 import { WithdrawalBadge, cardClass, labelClass } from './shared'
 import { WeightSection } from './WeightSection'
@@ -122,6 +122,7 @@ export function AnimalDetailPage() {
   const { currentProperty } = useProperty()
   const [detail, setDetail] = useState<AnimalDetail | null>(null)
   const [batches, setBatches] = useState<AnimalBatch[]>([])
+  const [species, setSpecies] = useState<SpeciesCatalogItem[]>([])
   const [loadError, setLoadError] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
@@ -144,6 +145,7 @@ export function AnimalDetailPage() {
   useEffect(() => {
     load()
     livestockApi.listBatches(true).then(setBatches).catch(() => setBatches([]))
+    speciesApi.list(true).then(setSpecies).catch(() => setSpecies([]))
   }, [load, currentProperty?.id])
 
   if (loadError) {
@@ -202,7 +204,7 @@ export function AnimalDetailPage() {
   }
 
   const facts: [string, string][] = [
-    ['Espécie', `${speciesLabels[a.species]}${a.breed ? ` · ${a.breed}` : ''}`],
+    ['Espécie', `${a.speciesName}${a.breed ? ` · ${a.breed}` : ''}`],
     ['Sexo', sexLabels[a.sex]],
     ['Nascimento', a.birthDate ? `${formatDate(a.birthDate)}${a.birthDateEstimated ? ' (aprox.)' : ''} · ${formatAge(a.birthDate)}` : '—'],
     ['Origem', `${originLabels[a.origin]} em ${formatDate(a.entryDate)}`],
@@ -257,6 +259,7 @@ export function AnimalDetailPage() {
             <AnimalForm
               animal={a}
               batches={batches}
+              species={species}
               onCancel={() => setEditing(false)}
               onSaved={() => {
                 setEditing(false)

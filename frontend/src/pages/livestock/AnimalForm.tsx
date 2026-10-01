@@ -1,11 +1,11 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { livestockApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
-import type { Animal, AnimalBatch, AnimalOrigin, Sex, Species } from '../../api/types'
+import type { Animal, AnimalBatch, AnimalOrigin, Sex, SpeciesCatalogItem } from '../../api/types'
 import { FormMessage } from '../../components/FormMessage'
 import { inputClass, outlineButtonClass, primaryButtonClass } from '../../components/ui'
 import { todayIso } from '../../lib/format'
-import { individualSpecies, sexLabels, speciesLabels } from '../../lib/livestock'
+import { sexLabels } from '../../lib/livestock'
 import { labelClass } from './shared'
 
 /**
@@ -15,11 +15,13 @@ import { labelClass } from './shared'
 export function AnimalForm({
   animal,
   batches,
+  species,
   onSaved,
   onCancel,
 }: {
   animal?: Animal
   batches: AnimalBatch[]
+  species: SpeciesCatalogItem[]
   onSaved: (animal: Animal) => void
   onCancel?: () => void
 }) {
@@ -27,7 +29,8 @@ export function AnimalForm({
   const editing = !!animal
   const [tag, setTag] = useState(animal?.tag ?? '')
   const [name, setName] = useState(animal?.name ?? '')
-  const [species, setSpecies] = useState<Species>(animal?.species ?? 'BOVINO')
+  const individualOptions = species.filter((s) => s.allowsIndividual && (!s.archived || s.id === animal?.speciesId))
+  const [speciesId, setSpeciesId] = useState(animal?.speciesId ? String(animal.speciesId) : String(individualOptions[0]?.id ?? ''))
   const [sex, setSex] = useState<Sex>(animal?.sex ?? 'FEMEA')
   const [breed, setBreed] = useState(animal?.breed ?? '')
   const [birthDate, setBirthDate] = useState(animal?.birthDate ?? '')
@@ -45,17 +48,18 @@ export function AnimalForm({
 
   // Possíveis mães: fêmeas da mesma espécie (ativas ou não — a mãe pode já ter saído do rebanho).
   useEffect(() => {
+    if (!speciesId) return
     let active = true
     livestockApi
-      .listAnimals({ species, size: 200 })
+      .listAnimals({ speciesId: Number(speciesId), size: 200 })
       .then((page) => active && setMothers(page.content.filter((a) => a.sex === 'FEMEA' && a.id !== animal?.id)))
       .catch(() => active && setMothers([]))
     return () => {
       active = false
     }
-  }, [species, animal?.id])
+  }, [speciesId, animal?.id])
 
-  const batchOptions = batches.filter((b) => !b.archived && b.tracking === 'INDIVIDUAL' && b.species === species)
+  const batchOptions = batches.filter((b) => !b.archived && b.tracking === 'INDIVIDUAL' && b.speciesId === Number(speciesId))
   const born = origin === 'NASCIMENTO'
 
   async function handleSubmit(event: FormEvent) {
@@ -65,7 +69,7 @@ export function AnimalForm({
     const common = {
       tag,
       name: name || null,
-      species,
+      speciesId: Number(speciesId),
       breed: breed || null,
       sex,
       birthDate: birthDate || null,
@@ -116,18 +120,18 @@ export function AnimalForm({
           </label>
           <select
             id={`${ids}-species`}
-            value={species}
+            value={speciesId}
             disabled={editing}
             onChange={(e) => {
-              setSpecies(e.target.value as Species)
+              setSpeciesId(e.target.value)
               setBatchId('')
               setMotherId('')
             }}
             className={`${inputClass} disabled:bg-terra/5`}
           >
-            {individualSpecies.map((s) => (
-              <option key={s} value={s}>
-                {speciesLabels[s]}
+            {individualOptions.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
               </option>
             ))}
           </select>

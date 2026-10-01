@@ -1,35 +1,40 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { activitiesApi, livestockApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
-import type { Activity, AnimalBatch, BatchTracking, ExitType, Species } from '../../api/types'
+import type { Activity, AnimalBatch, BatchTracking, ExitType, SpeciesCatalogItem } from '../../api/types'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { FormMessage } from '../../components/FormMessage'
 import { inputClass, linkDangerClass, linkNeutralClass, outlineButtonClass, primaryButtonClass } from '../../components/ui'
 import { formatNumber, todayIso } from '../../lib/format'
-import { allSpecies, exitLabels, speciesLabels } from '../../lib/livestock'
-import { WithdrawalBadge, cardClass, labelClass } from './shared'
+import { exitLabels } from '../../lib/livestock'
+import { SpeciesGuide, WithdrawalBadge, cardClass, labelClass } from './shared'
 
 function BatchForm({
   batch,
+  species,
   activities,
   onSaved,
   onCancel,
 }: {
   batch?: AnimalBatch
+  species: SpeciesCatalogItem[]
   activities: Activity[]
   onSaved: () => void
   onCancel?: () => void
 }) {
   const ids = useId()
   const [name, setName] = useState(batch?.name ?? '')
-  const [species, setSpecies] = useState<Species>(batch?.species ?? 'BOVINO')
+  const [speciesId, setSpeciesId] = useState(batch?.speciesId ? String(batch.speciesId) : String(species[0]?.id ?? ''))
   const [tracking, setTracking] = useState<BatchTracking>(batch?.tracking ?? 'INDIVIDUAL')
   const [activityId, setActivityId] = useState(batch?.activityId ? String(batch.activityId) : '')
   const [notes, setNotes] = useState(batch?.notes ?? '')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const countOnly = species === 'AVE' || species === 'PEIXE'
+  // Mostra espécies ativas, mais a atual do lote mesmo se foi arquivada depois.
+  const options = species.filter((s) => !s.archived || String(s.id) === speciesId)
+  const selectedSpecies = species.find((s) => String(s.id) === speciesId)
+  const countOnly = selectedSpecies ? !selectedSpecies.allowsIndividual : false
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
@@ -37,7 +42,7 @@ function BatchForm({
     setError(null)
     const data = {
       name,
-      species,
+      speciesId: Number(speciesId),
       tracking: countOnly ? 'AGGREGATE' : tracking,
       activityId: activityId ? Number(activityId) : null,
       notes: notes || null,
@@ -79,10 +84,11 @@ function BatchForm({
           <label htmlFor={`${ids}-species`} className={labelClass}>
             Espécie
           </label>
-          <select id={`${ids}-species`} value={species} onChange={(e) => setSpecies(e.target.value as Species)} className={inputClass}>
-            {allSpecies.map((s) => (
-              <option key={s} value={s}>
-                {speciesLabels[s]}
+          <select id={`${ids}-species`} value={speciesId} onChange={(e) => setSpeciesId(e.target.value)} className={inputClass}>
+            {options.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+                {s.archived ? ' (arquivada)' : ''}
               </option>
             ))}
           </select>
@@ -133,7 +139,7 @@ function BatchForm({
             )
           })}
         </div>
-        {countOnly && <p className="mt-1 text-xs text-terra/55">{speciesLabels[species]}s são controlados só pela quantidade.</p>}
+        {countOnly && <p className="mt-1 text-xs text-terra/55">{selectedSpecies?.name} é controlada só pela quantidade.</p>}
       </fieldset>
       <div>
         <label htmlFor={`${ids}-notes`} className={labelClass}>
@@ -242,11 +248,13 @@ function CountForm({ batch, onSaved }: { batch: AnimalBatch; onSaved: () => void
 
 export function BatchesTab({
   batches,
+  species,
   canWrite,
   canManage,
   onChanged,
 }: {
   batches: AnimalBatch[]
+  species: SpeciesCatalogItem[]
   canWrite: boolean
   canManage: boolean
   onChanged: () => void
@@ -288,7 +296,11 @@ export function BatchesTab({
       {canWrite && (
         <section className={`${cardClass} min-w-0 self-start`}>
           <h2 className="mb-3 text-sm font-semibold text-terra">Novo lote</h2>
-          <BatchForm activities={activities} onSaved={onChanged} />
+          {species.some((s) => !s.archived) ? (
+            <BatchForm species={species} activities={activities} onSaved={onChanged} />
+          ) : (
+            <SpeciesGuide>Cadastre uma espécie antes de criar lotes.</SpeciesGuide>
+          )}
         </section>
       )}
       <section className={`${cardClass} min-w-0 ${canWrite ? 'lg:col-span-2' : 'lg:col-span-3'}`}>
@@ -309,7 +321,7 @@ export function BatchesTab({
             {visible.map((b) => (
               <li key={b.id} className={`py-3 ${b.archived ? 'opacity-60' : ''}`}>
                 {editingId === b.id ? (
-                  <BatchForm batch={b} activities={activities} onCancel={() => setEditingId(null)} onSaved={() => {
+                  <BatchForm batch={b} species={species} activities={activities} onCancel={() => setEditingId(null)} onSaved={() => {
                     setEditingId(null)
                     onChanged()
                   }} />
@@ -323,7 +335,7 @@ export function BatchesTab({
                           <WithdrawalBadge until={b.withdrawalUntil} />
                         </p>
                         <p className="text-xs text-terra/55">
-                          {speciesLabels[b.species]} · {b.tracking === 'INDIVIDUAL' ? 'animal por animal' : 'só a quantidade'}
+                          {b.speciesName} · {b.tracking === 'INDIVIDUAL' ? 'animal por animal' : 'só a quantidade'}
                           {b.activityName && ` · ${b.activityName}`}
                         </p>
                       </div>

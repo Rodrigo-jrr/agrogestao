@@ -1,32 +1,4 @@
-import type { AnimalEvent, AnimalEventType, AnimalOrigin, AnimalStatus, ExitType, HealthKind, Sex, Species } from '../api/types'
-
-export const speciesLabels: Record<Species, string> = {
-  BOVINO: 'Bovino',
-  BUBALINO: 'Bubalino',
-  OVINO: 'Ovino',
-  CAPRINO: 'Caprino',
-  SUINO: 'Suíno',
-  EQUINO: 'Equino',
-  AVE: 'Ave',
-  PEIXE: 'Peixe',
-  OUTRO: 'Outro',
-}
-
-export const speciesPlural: Record<Species, string> = {
-  BOVINO: 'bovinos',
-  BUBALINO: 'bubalinos',
-  OVINO: 'ovinos',
-  CAPRINO: 'caprinos',
-  SUINO: 'suínos',
-  EQUINO: 'equinos',
-  AVE: 'aves',
-  PEIXE: 'peixes',
-  OUTRO: 'outros',
-}
-
-/** Aves e peixes só por lote (contagem); as demais também com brinco. */
-export const individualSpecies: Species[] = ['BOVINO', 'BUBALINO', 'OVINO', 'CAPRINO', 'SUINO', 'EQUINO', 'OUTRO']
-export const allSpecies: Species[] = [...individualSpecies.slice(0, 6), 'AVE', 'PEIXE', 'OUTRO']
+import type { AnimalEvent, AnimalEventType, AnimalOrigin, AnimalStatus, ExitType, HealthKind, Sex } from '../api/types'
 
 export const sexLabels: Record<Sex, string> = { MACHO: 'Macho', FEMEA: 'Fêmea' }
 

@@ -2,30 +2,32 @@ import { useId, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { livestockApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
-import type { AnimalBatch, AnimalStatus, Species } from '../../api/types'
+import type { AnimalBatch, AnimalStatus, SpeciesCatalogItem } from '../../api/types'
 import { FormMessage } from '../../components/FormMessage'
 import { Pagination } from '../../components/Pagination'
 import { inputClass, outlineButtonClass, primaryButtonClass } from '../../components/ui'
 import { formatNumber, todayIso } from '../../lib/format'
-import { formatAge, individualSpecies, sexLabels, speciesLabels, statusLabels } from '../../lib/livestock'
+import { formatAge, sexLabels, statusLabels } from '../../lib/livestock'
 import { useDebounced } from '../../lib/useDebounced'
 import { usePaged } from '../../lib/usePaged'
 import { AnimalForm } from './AnimalForm'
-import { WithdrawalBadge, cardClass, labelClass } from './shared'
+import { SpeciesGuide, WithdrawalBadge, cardClass, labelClass } from './shared'
 
 export function HerdTab({
   batches,
+  species,
   canWrite,
   onChanged,
 }: {
   batches: AnimalBatch[]
+  species: SpeciesCatalogItem[]
   canWrite: boolean
   onChanged: () => void
 }) {
   const ids = useId()
   const [status, setStatus] = useState<AnimalStatus | ''>('ATIVO')
   const [batchId, setBatchId] = useState('')
-  const [species, setSpecies] = useState<Species | ''>('')
+  const [speciesId, setSpeciesId] = useState('')
   const [search, setSearch] = useState('')
   const q = useDebounced(search)
   const [creating, setCreating] = useState(false)
@@ -40,12 +42,13 @@ export function HerdTab({
       livestockApi.listAnimals({
         status: status || undefined,
         batchId: batchId ? Number(batchId) : undefined,
-        species: species || undefined,
+        speciesId: speciesId ? Number(speciesId) : undefined,
         q: q || undefined,
         page,
       }),
-    [status, batchId, species, q],
+    [status, batchId, speciesId, q],
   )
+  const canCreateAnimal = species.some((s) => !s.archived && s.allowsIndividual)
 
   const individualBatches = batches.filter((b) => b.tracking === 'INDIVIDUAL')
   const selectedAnimals = animals.items.filter((a) => selected.has(a.id))
@@ -90,6 +93,7 @@ export function HerdTab({
               <h2 className="mb-3 text-sm font-semibold text-terra">Cadastrar animal</h2>
               <AnimalForm
                 batches={batches}
+                species={species}
                 onCancel={() => setCreating(false)}
                 onSaved={(animal) => {
                   setCreating(false)
@@ -99,6 +103,8 @@ export function HerdTab({
                 }}
               />
             </>
+          ) : !canCreateAnimal ? (
+            <SpeciesGuide>Cadastre uma espécie que permita brinco (individual) antes de cadastrar animais.</SpeciesGuide>
           ) : (
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-terra/70">
@@ -172,11 +178,11 @@ export function HerdTab({
             <label htmlFor={`${ids}-species`} className={labelClass}>
               Espécie
             </label>
-            <select id={`${ids}-species`} value={species} onChange={(e) => setSpecies(e.target.value as Species | '')} className={inputClass}>
+            <select id={`${ids}-species`} value={speciesId} onChange={(e) => setSpeciesId(e.target.value)} className={inputClass}>
               <option value="">Todas</option>
-              {individualSpecies.map((s) => (
-                <option key={s} value={s}>
-                  {speciesLabels[s]}
+              {species.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
                 </option>
               ))}
             </select>
@@ -201,7 +207,7 @@ export function HerdTab({
                     .filter((b) => !b.archived)
                     .map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.name} ({speciesLabels[b.species].toLowerCase()})
+                        {b.name} ({b.speciesName.toLowerCase()})
                       </option>
                     ))}
                 </select>
@@ -284,7 +290,7 @@ export function HerdTab({
                     {a.status === 'ATIVO' && <WithdrawalBadge until={a.withdrawalUntil} />}
                   </td>
                   <td className="py-2 pr-3">
-                    {speciesLabels[a.species]}
+                    {a.speciesName}
                     {a.breed && <span className="text-terra/55"> · {a.breed}</span>}
                   </td>
                   <td className="py-2 pr-3">{sexLabels[a.sex]}</td>

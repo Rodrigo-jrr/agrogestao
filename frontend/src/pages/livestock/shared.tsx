@@ -1,11 +1,24 @@
 import { useId, useState } from 'react'
+import { Link } from 'react-router-dom'
 import type { Animal, InstallmentInput, PaymentType } from '../../api/types'
 import { InstallmentsEditor } from '../../components/InstallmentsEditor'
 import { inputClass } from '../../components/ui'
-import { sexLabels, speciesLabels } from '../../lib/livestock'
+import { sexLabels } from '../../lib/livestock'
 
 export const cardClass = 'rounded-2xl border border-terra/10 bg-white p-4 shadow-sm'
 export const labelClass = 'mb-1 block text-xs font-medium text-terra/70'
+
+/** Bloqueia a criação de lote/animal/compra enquanto a propriedade não tem nenhuma espécie cadastrada. */
+export function SpeciesGuide({ children = 'Cadastre a primeira espécie da propriedade para continuar.' }: { children?: string }) {
+  return (
+    <div className="rounded-xl border border-dashed border-terra/20 bg-terreiro/40 p-4 text-sm text-terra/70">
+      <p>{children}</p>
+      <Link to="/pecuaria?aba=especies" className="mt-2 inline-block font-medium text-rust hover:underline">
+        Ir para Minhas espécies →
+      </Link>
+    </div>
+  )
+}
 
 /** À vista (lançamento no caixa) ou a prazo (uma conta por parcela), como em Compras e Vendas. */
 export function PaymentFields({
@@ -212,7 +225,7 @@ export function AnimalPicker({
                   <input type="checkbox" checked={chosen.has(a.id)} onChange={() => onToggle(a.id)} className="accent-rust" />
                   <span className="font-medium text-terra">{a.tag}</span>
                   <span className="min-w-0 truncate text-terra/55">
-                    {[a.name, speciesLabels[a.species], sexLabels[a.sex], a.batchName].filter(Boolean).join(' · ')}
+                    {[a.name, a.speciesName, sexLabels[a.sex], a.batchName].filter(Boolean).join(' · ')}
                   </span>
                   <WithdrawalBadge until={a.withdrawalUntil} />
                 </label>

@@ -9,13 +9,14 @@ function isoDay(offset = 0) {
 
 test('manejo: vacina do estoque no lote, agenda, carência, pesagem e desfazer', async ({ page, request }) => {
   const owner = await createOwner(request, 'Sanitarista')
+  const species = await api<{ id: number }>(request, owner, 'post', '/livestock/species', { name: 'Bovino', allowsIndividual: true })
   const batch = await api<{ id: number }>(request, owner, 'post', '/livestock/batches', {
     name: 'Recria',
-    species: 'BOVINO',
+    speciesId: species.id,
     tracking: 'INDIVIDUAL',
   })
   for (const tag of ['R1', 'R2']) {
-    await api(request, owner, 'post', '/livestock/animals', { tag, species: 'BOVINO', sex: 'MACHO', batchId: batch.id, weight: 200 })
+    await api(request, owner, 'post', '/livestock/animals', { tag, speciesId: species.id, sex: 'MACHO', batchId: batch.id, weight: 200 })
   }
   const vaccine = await api<{ id: number }>(request, owner, 'post', '/inventory/products', { name: 'Aftosa', unit: 'mL', minStock: 0 })
   await api(request, owner, 'post', '/inventory/movements', {

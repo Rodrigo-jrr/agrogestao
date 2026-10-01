@@ -6,7 +6,6 @@ import type { Animal, AnimalBatch } from '../../api/types'
 import { FormMessage } from '../../components/FormMessage'
 import { inputClass, primaryButtonClass } from '../../components/ui'
 import { formatNumber, todayIso } from '../../lib/format'
-import { speciesLabels } from '../../lib/livestock'
 import { cardClass, labelClass } from './shared'
 
 const NO_BATCH = 'sem-lote'
@@ -109,7 +108,7 @@ export function WeighingTab({ batches, onChanged }: { batches: AnimalBatch[]; on
               <option value="">Selecione</option>
               {usable.map((b) => (
                 <option key={b.id} value={b.id}>
-                  {b.name} ({speciesLabels[b.species].toLowerCase()}, {formatNumber(b.headCount)} cab.)
+                  {b.name} ({b.speciesName.toLowerCase()}, {formatNumber(b.headCount)} cab.)
                 </option>
               ))}
               <option value={NO_BATCH}>Animais sem lote</option>

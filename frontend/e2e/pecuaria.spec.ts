@@ -5,6 +5,7 @@ test('pecuária: lote, compra de animais com brinco, cria, venda e cancelamento'
   const owner = await createOwner(request, 'Pecuarista')
   await api(request, owner, 'post', '/purchases/suppliers', { name: 'Leilão do Vale' })
   await api(request, owner, 'post', '/sales/customers', { name: 'Frigorífico Norte' })
+  await api(request, owner, 'post', '/livestock/species', { name: 'Bovino', allowsIndividual: true })
 
   // Lote
   await signIn(page, owner, '/pecuaria?aba=lotes')
@@ -22,7 +23,7 @@ test('pecuária: lote, compra de animais com brinco, cria, venda e cancelamento'
   await expect(page.getByText('R$ 3.000,00 por cabeça')).toBeVisible()
   await page.getByRole('button', { name: 'Registrar compra' }).click()
   await expect(page.getByRole('main').getByRole('status')).toHaveText('Compra de 3 cabeças registrada.')
-  await expect(page.getByText('3 bovinos')).toBeVisible()
+  await expect(page.getByText('3 cabeças de Bovino')).toBeVisible()
 
   // Cria da 302, nascida hoje
   await page.getByRole('tab', { name: 'Rebanho' }).click()
@@ -50,10 +51,10 @@ test('pecuária: lote, compra de animais com brinco, cria, venda e cancelamento'
   await page.getByLabel('Valor total (R$)').fill('4500')
   await page.getByRole('button', { name: 'Registrar venda' }).click()
   await expect(page.getByRole('main').getByRole('status')).toHaveText('Venda de 1 cabeça registrada.')
-  await expect(page.getByText('3 bovinos')).toBeVisible()
+  await expect(page.getByText('3 cabeças de Bovino')).toBeVisible()
 
   await page.getByRole('button', { name: /^Cancelar venda de/ }).click()
   await page.getByRole('alertdialog').getByRole('button', { name: 'Cancelar venda' }).click()
-  await expect(page.getByText('4 bovinos')).toBeVisible()
+  await expect(page.getByText('4 cabeças de Bovino')).toBeVisible()
   await expect(page.getByRole('row').filter({ hasText: 'Frigorífico Norte' })).toContainText('cancelada')
 })
