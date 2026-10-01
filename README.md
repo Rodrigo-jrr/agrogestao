@@ -65,6 +65,26 @@ Todas as variáveis estão documentadas em [.env.example](.env.example).
 > Depois de `npm install`/`npm ci`, o npm troca o link por uma pasta comum: mova-a de volta
 > (`rm -rf node_modules.nosync && mv node_modules node_modules.nosync && ln -s node_modules.nosync node_modules`).
 
+## Fluxo de trabalho (Git)
+
+Repositório: [github.com/Rodrigo-jrr/agrogestao](https://github.com/Rodrigo-jrr/agrogestao) (privado).
+
+- Nada vai direto para a `main`: cada mudança vai numa branch, com PR, e só entra com os três jobs do CI
+  verdes (backend, frontend e ponta a ponta). O PR entra como **um único commit** (squash), e a branch é apagada.
+- A proteção de branch do GitHub exige plano pago em repositório privado; no lugar dela, o hook
+  [.githooks/pre-push](.githooks/pre-push) recusa envio direto para a `main`. Ative uma vez por clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+```bash
+git switch -c minha-mudanca
+git push -u origin minha-mudanca
+gh pr create --fill
+gh pr merge --squash
+```
+
 ## Testes
 
 | O quê | Comando | Precisa de |
