@@ -70,9 +70,10 @@ public class AccountReceivableService {
         if (receivable.isReceived()) {
             throw new BusinessException("Desfaça a baixa antes de editar esta conta.");
         }
-        if (receivable.getSaleId() != null && (receivable.getAmount().compareTo(request.getAmount()) != 0
+        String origin = linkedOperation(receivable);
+        if (origin != null && (receivable.getAmount().compareTo(request.getAmount()) != 0
                 || !java.util.Objects.equals(receivable.getCustomerId(), request.getCustomerId()))) {
-            throw new BusinessException("Esta conta é parcela da venda #" + receivable.getSaleId()
+            throw new BusinessException("Esta conta é parcela da " + origin
                     + ": só o vencimento e a descrição podem ser alterados.");
         }
         receivable.setDescription(request.getDescription());
@@ -87,9 +88,10 @@ public class AccountReceivableService {
     public void delete(Long id) {
         tenantContext.requireManageAccess();
         AccountReceivable receivable = findOwned(id);
-        if (receivable.getSaleId() != null) {
-            throw new BusinessException("Esta conta é parcela da venda #" + receivable.getSaleId()
-                    + ". Para removê-la, cancele a venda.");
+        String origin = linkedOperation(receivable);
+        if (origin != null) {
+            throw new BusinessException("Esta conta é parcela da " + origin + ". Para removê-la, cancele a "
+                    + origin.substring(0, origin.indexOf(" #")) + ".");
         }
         accountReceivableRepository.delete(receivable);
         auditService.record("AccountReceivable", receivable.getId(), AuditAction.DELETE, "%s (%s)".formatted(receivable.getDescription(), Money.brl(receivable.getAmount())));
@@ -164,6 +166,53 @@ public class AccountReceivableService {
         accountReceivableRepository.deleteAll(installments);
     }
 
+    /** Parcelas de uma venda de animais a prazo (pecuária). */
+    public void createLivestockInstallments(Long propertyId, Long customerId, Long tradeId,
+            List<InstallmentInput> installments) {
+        int count = installments.size();
+        for (int i = 0; i < count; i++) {
+            InstallmentInput installment = installments.get(i);
+            AccountReceivable receivable = new AccountReceivable();
+            receivable.setPropertyId(propertyId);
+            receivable.setCustomerId(customerId);
+            receivable.setLivestockTradeId(tradeId);
+            receivable.setInstallmentNumber(i + 1);
+            receivable.setInstallmentCount(count);
+            receivable.setDescription("Venda de animais #" + tradeId
+                    + (count > 1 ? " — parcela " + (i + 1) + "/" + count : ""));
+            receivable.setAmount(installment.amount());
+            receivable.setDueDate(installment.dueDate());
+            accountReceivableRepository.save(receivable);
+        }
+    }
+
+    public List<InstallmentView> livestockInstallmentsOf(Long tradeId) {
+        return accountReceivableRepository.findByLivestockTradeIdOrderByInstallmentNumberAsc(tradeId).stream()
+                .map(a -> new InstallmentView(a.getId(), a.getInstallmentNumber(), a.getInstallmentCount(),
+                        a.getDueDate(), a.getAmount(), a.isReceived()))
+                .toList();
+    }
+
+    /** Remove as parcelas ao cancelar a venda de animais; exige que nenhuma tenha sido baixada. */
+    public void removeLivestockInstallments(Long tradeId) {
+        List<AccountReceivable> installments = accountReceivableRepository.findByLivestockTradeIdOrderByInstallmentNumberAsc(tradeId);
+        if (installments.stream().anyMatch(AccountReceivable::isReceived)) {
+            throw new BusinessException("Esta venda tem parcelas já baixadas. Desfaça as baixas em Financeiro antes de cancelar.");
+        }
+        accountReceivableRepository.deleteAll(installments);
+    }
+
+    /** "venda #12" / "venda de animais #3" quando a conta é parcela de uma operação; senão null. */
+    private static String linkedOperation(AccountReceivable receivable) {
+        if (receivable.getSaleId() != null) {
+            return "venda #" + receivable.getSaleId();
+        }
+        if (receivable.getLivestockTradeId() != null) {
+            return "venda de animais #" + receivable.getLivestockTradeId();
+        }
+        return null;
+    }
+
     private void validateCustomer(Long propertyId, Long customerId) {
         if (customerId != null && !customerRepository.existsByIdAndPropertyId(customerId, propertyId)) {
             throw new BusinessException("Cliente inválido para esta propriedade");
@@ -182,7 +231,7 @@ public class AccountReceivableService {
 
     private AccountReceivableResponse toResponse(AccountReceivable receivable) {
         return new AccountReceivableResponse(receivable.getId(), receivable.getDescription(), receivable.getAmount(),
-                receivable.getDueDate(), receivable.getCustomerId(), receivable.isReceived(), receivable.getSaleId(),
+                receivable.getDueDate(), receivable.getCustomerId(), receivable.isReceived(), receivable.getSaleId(), receivable.getLivestockTradeId(),
                 receivable.getInstallmentNumber(), receivable.getInstallmentCount());
     }
 }

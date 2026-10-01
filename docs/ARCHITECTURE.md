@@ -47,6 +47,7 @@ inventory       - Product, InventoryItem, InventoryMovement
 purchases       - Supplier, Purchase, PurchaseItem
 sales           - Customer, Sale, SaleItem
 production      - ProductionRecord
+livestock       - AnimalBatch, Animal, AnimalEvent, LivestockTrade (pecuária)
 dashboard       - agregações somente leitura
 audit           - AuditLog (usado como exemplo em finance)
 ```
@@ -54,7 +55,7 @@ audit           - AuditLog (usado como exemplo em finance)
 Reservados para fases futuras (diretório criado, sem código — ver seções 49–51 do documento-base):
 
 ```
-livestock, crops, fields, machinery, maintenance,
+crops, fields, machinery, maintenance,
 tasks, documents, notifications, analytics, ai
 ```
 
@@ -84,6 +85,7 @@ tasks, documents, notifications, analytics, ai
 - Histórico de alterações (`AuditQueryService`, `/api/properties/current/audit`): só proprietários; filtros de período, pessoa (`/audit/authors`, inclui quem saiu da equipe) e área (`entity` repetido). Os detalhes gravados em `AuditLog` são textos para pessoas (ex.: "Despesa: Diesel (R$ 80,00)"), com valores via `Money.brl`.
 - LGPD: o cadastro (normal e por convite) exige aceitar os Termos de uso e a Política de privacidade (`/termos`, `/privacidade`); o frontend envia a versão lida e o backend recusa se não for `TermsService.CURRENT_VERSION`. Cada aceite fica em `terms_acceptances` (versão, data, IP). Quem ainda não aceitou a versão atual vê a tela de aceite (`TermsGate`) antes de usar o app.
 - Direitos do titular (`privacy`): `GET /api/me/export` baixa um JSON com conta, aceites, vínculos, as ações da pessoa no histórico e, onde ela é proprietária, todos os dados da propriedade (`DataExportService.PROPERTY_SECTIONS`; o `DataExportTest` falha se uma tabela com `property_id` ficar de fora). Datas e horas lidas por JDBC usam `getTimestamp` (o banco guarda em UTC). `DELETE /api/me` (com senha) apaga a conta: propriedades em que a pessoa está sozinha somem; nas com outras pessoas ela só sai da equipe e o nome/e-mail dela é retirado do histórico; se ela for a única proprietária de uma propriedade com equipe, a exclusão é bloqueada até passar a propriedade para alguém. `GET /api/me/deletion-preview` mostra isso antes.
+- Pecuária (`livestock`, Fase 2): lotes `INDIVIDUAL` (animais com brinco) ou `AGGREGATE` (só a contagem de cabeças — obrigatório para aves e peixes, `Species.allowsIndividual`). Brinco único entre os animais **ativos** da propriedade (pode ser reutilizado depois da saída). Mãe precisa ser fêmea da mesma espécie. Lote, situação e peso mudam por eventos (`animal_events`: ENTRADA, MUDANCA_LOTE, SAIDA), que formam a linha do tempo do animal ou do lote; datas de manejo não podem ser futuras. Compra/venda de animais (`LivestockTrade`, com brinco ou cabeças de um lote por contagem) segue as regras de Compras/Vendas: à vista gera lançamento, a prazo gera parcelas (`accounts_payable/receivable.livestock_trade_id`); o valor é rateado por animal nos eventos; cancelar desfaz rebanho e financeiro (compra só sem movimentações posteriores). Saídas sem venda (morte, descarte) e a desfazer (só gerente/proprietário) ficam em `AnimalService`. Na exclusão de propriedade, `animals.mother_id` é zerado antes do DELETE (chave para a própria tabela).
 - Testes de integração em `backend/src/test` (H2 em modo MySQL + migrations Flyway), rodados no CI.
 - Frontend: testes de componentes com Vitest + Testing Library (`src/**/*.test.tsx`, jsdom, API simulada com `vi.mock`) e de ponta a ponta com Playwright (`frontend/e2e`, backend e frontend próprios nas portas 8081/5174, e-mails lidos pela API do Mailpit). Um teste de componente confere que a versão dos termos é igual no frontend e no backend.
 

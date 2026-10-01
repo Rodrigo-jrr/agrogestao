@@ -27,4 +27,6 @@ public interface AccountReceivableRepository extends JpaRepository<AccountReceiv
     boolean existsByFinancialTransactionId(Long financialTransactionId);
 
     List<AccountReceivable> findBySaleIdOrderByInstallmentNumberAsc(Long saleId);
+
+    List<AccountReceivable> findByLivestockTradeIdOrderByInstallmentNumberAsc(Long livestockTradeId);
 }

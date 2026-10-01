@@ -14,6 +14,7 @@ const coreNav = [
   { to: '/producao', label: 'Produção' },
   { to: '/compras', label: 'Compras' },
   { to: '/vendas', label: 'Vendas' },
+  { to: '/pecuaria', label: 'Pecuária' },
   { to: '/atividades', label: 'Atividades' },
   { to: '/equipe', label: 'Equipe' },
   { to: '/propriedade', label: 'Propriedade' },
@@ -22,7 +23,7 @@ const coreNav = [
 /** Só proprietários consultam o histórico (o servidor também bloqueia). */
 const ownerNav = [{ to: '/historico', label: 'Histórico' }]
 
-const comingSoonNav = ['Pecuária', 'Agricultura']
+const comingSoonNav = ['Agricultura']
 
 export function Layout() {
   const { user, logout, isPlatformAdmin } = useAuth()

@@ -25,6 +25,8 @@ import { PropertySettingsPage } from './pages/PropertySettingsPage'
 import { AuditPage } from './pages/AuditPage'
 import { InvitationPage } from './pages/InvitationPage'
 import { ConfirmEmailChangePage } from './pages/ConfirmEmailChangePage'
+import { LivestockPage } from './pages/livestock/LivestockPage'
+import { AnimalDetailPage } from './pages/livestock/AnimalDetailPage'
 import { TermsPage } from './pages/TermsPage'
 import { PrivacyPage } from './pages/PrivacyPage'
 
@@ -64,6 +66,8 @@ export default function App() {
                   <Route path="/compras" element={<PurchasesPage />} />
                   <Route path="/vendas" element={<SalesPage />} />
                   <Route path="/atividades" element={<ActivitiesPage />} />
+                  <Route path="/pecuaria" element={<LivestockPage />} />
+                  <Route path="/pecuaria/animais/:id" element={<AnimalDetailPage />} />
                   <Route path="/equipe" element={<MembersPage />} />
                   <Route path="/propriedade" element={<PropertySettingsPage />} />
                   <Route path="/historico" element={<AuditPage />} />

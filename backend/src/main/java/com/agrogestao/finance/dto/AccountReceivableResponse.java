@@ -16,6 +16,7 @@ public class AccountReceivableResponse {
     private final Long customerId;
     private final boolean received;
     private final Long saleId;
+    private final Long livestockTradeId;
     private final Integer installmentNumber;
     private final Integer installmentCount;
 }

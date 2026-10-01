@@ -5,7 +5,20 @@ import type {
   AccountPayable,
   AccountReceivable,
   AdminOverview,
+  Animal,
+  AnimalBatch,
+  AnimalDetail,
+  AnimalInput,
+  AnimalStatus,
   AuditAuthor,
+  BatchInput,
+  ExitType,
+  HerdSummary,
+  LivestockTrade,
+  LivestockTradeDetail,
+  NewAnimalInput,
+  Species,
+  TradeKind,
   AuditEntry,
   AuthResponse,
   DeletionPreview,
@@ -281,4 +294,62 @@ export const productionApi = {
 export const dashboardApi = {
   summary: (from?: string, to?: string) =>
     apiClient.get<DashboardSummary>('/dashboard/summary', { params: { from, to } }).then((r) => r.data),
+}
+
+export const livestockApi = {
+  summary: () => apiClient.get<HerdSummary>('/livestock/summary').then((r) => r.data),
+
+  listBatches: (includeArchived = false) =>
+    apiClient.get<AnimalBatch[]>('/livestock/batches', { params: { includeArchived } }).then((r) => r.data),
+  createBatch: (data: BatchInput) => apiClient.post<AnimalBatch>('/livestock/batches', data).then((r) => r.data),
+  updateBatch: (id: number, data: BatchInput) =>
+    apiClient.put<AnimalBatch>(`/livestock/batches/${id}`, data).then((r) => r.data),
+  archiveBatch: (id: number) => apiClient.post<AnimalBatch>(`/livestock/batches/${id}/archive`).then((r) => r.data),
+  unarchiveBatch: (id: number) => apiClient.post<AnimalBatch>(`/livestock/batches/${id}/unarchive`).then((r) => r.data),
+  deleteBatch: (id: number) => apiClient.delete<void>(`/livestock/batches/${id}`).then((r) => r.data),
+  addHeads: (id: number, data: { headCount: number; date: string; description?: string }) =>
+    apiClient.post<AnimalBatch>(`/livestock/batches/${id}/entries`, data).then((r) => r.data),
+  removeHeads: (id: number, data: { headCount: number; date: string; exitType: ExitType; description?: string }) =>
+    apiClient.post<AnimalBatch>(`/livestock/batches/${id}/exits`, data).then((r) => r.data),
+
+  listAnimals: (params: { status?: AnimalStatus; batchId?: number; species?: Species; q?: string } & PageParams) =>
+    apiClient.get<PageResponse<Animal>>('/livestock/animals', { params }).then((r) => r.data),
+  animal: (id: number) => apiClient.get<AnimalDetail>(`/livestock/animals/${id}`).then((r) => r.data),
+  createAnimal: (data: AnimalInput) => apiClient.post<Animal>('/livestock/animals', data).then((r) => r.data),
+  updateAnimal: (id: number, data: AnimalInput) =>
+    apiClient.put<Animal>(`/livestock/animals/${id}`, data).then((r) => r.data),
+  deleteAnimal: (id: number) => apiClient.delete<void>(`/livestock/animals/${id}`).then((r) => r.data),
+  moveAnimals: (data: { animalIds: number[]; toBatchId: number | null; date: string }) =>
+    apiClient.post<Animal[]>('/livestock/animals/move', data).then((r) => r.data),
+  exitAnimal: (id: number, data: { type: ExitType; date: string; reason?: string }) =>
+    apiClient.post<Animal>(`/livestock/animals/${id}/exit`, data).then((r) => r.data),
+  reactivateAnimal: (id: number) => apiClient.post<Animal>(`/livestock/animals/${id}/reactivate`).then((r) => r.data),
+
+  listTrades: (params: { kind?: TradeKind } & PageParams) =>
+    apiClient.get<PageResponse<LivestockTrade>>('/livestock/trades', { params }).then((r) => r.data),
+  trade: (id: number) => apiClient.get<LivestockTradeDetail>(`/livestock/trades/${id}`).then((r) => r.data),
+  purchase: (data: {
+    supplierId: number
+    tradeDate: string
+    totalAmount: number
+    paymentType: PaymentType
+    installments?: InstallmentInput[]
+    batchId?: number | null
+    species?: Species
+    animals?: NewAnimalInput[]
+    headCount?: number
+    notes?: string
+  }) => apiClient.post<LivestockTrade>('/livestock/purchases', data).then((r) => r.data),
+  sale: (data: {
+    customerId: number
+    tradeDate: string
+    totalAmount: number
+    paymentType: PaymentType
+    installments?: InstallmentInput[]
+    animalIds?: number[]
+    batchId?: number | null
+    headCount?: number
+    notes?: string
+  }) => apiClient.post<LivestockTrade>('/livestock/sales', data).then((r) => r.data),
+  cancelTrade: (id: number) => apiClient.post<LivestockTrade>(`/livestock/trades/${id}/cancel`).then((r) => r.data),
 }

@@ -4,6 +4,7 @@ import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
 import com.agrogestao.auth.SecurityUtils;
 import com.agrogestao.common.Money;
+import com.agrogestao.livestock.LivestockTradeRepository;
 import com.agrogestao.common.PageResponse;
 import com.agrogestao.common.Period;
 import com.agrogestao.common.exception.BusinessException;
@@ -29,6 +30,7 @@ public class FinancialTransactionService {
     private final AccountReceivableRepository accountReceivableRepository;
     private final PurchaseRepository purchaseRepository;
     private final SaleRepository saleRepository;
+    private final LivestockTradeRepository livestockTradeRepository;
     private final TenantContext tenantContext;
     private final AuditService auditService;
 
@@ -39,6 +41,7 @@ public class FinancialTransactionService {
             AccountReceivableRepository accountReceivableRepository,
             PurchaseRepository purchaseRepository,
             SaleRepository saleRepository,
+            LivestockTradeRepository livestockTradeRepository,
             TenantContext tenantContext,
             AuditService auditService) {
         this.financialTransactionRepository = financialTransactionRepository;
@@ -47,6 +50,7 @@ public class FinancialTransactionService {
         this.accountReceivableRepository = accountReceivableRepository;
         this.purchaseRepository = purchaseRepository;
         this.saleRepository = saleRepository;
+        this.livestockTradeRepository = livestockTradeRepository;
         this.tenantContext = tenantContext;
         this.auditService = auditService;
     }
@@ -136,7 +140,8 @@ public class FinancialTransactionService {
                     "Este lançamento foi gerado pela baixa de uma conta. Desfaça a baixa na aba A pagar/A receber.");
         }
         if (purchaseRepository.existsByFinancialTransactionId(transactionId)
-                || saleRepository.existsByFinancialTransactionId(transactionId)) {
+                || saleRepository.existsByFinancialTransactionId(transactionId)
+                || livestockTradeRepository.existsByFinancialTransactionId(transactionId)) {
             throw new BusinessException(
                     "Este lançamento foi gerado por uma compra ou venda. Para desfazê-lo, cancele a operação de origem.");
         }

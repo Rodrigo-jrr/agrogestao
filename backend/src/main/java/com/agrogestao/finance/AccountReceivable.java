@@ -39,6 +39,10 @@ public class AccountReceivable extends BaseEntity {
     @Column(name = "sale_id")
     private Long saleId;
 
+    /** Parcela de venda de animais a prazo (pecuária). */
+    @Column(name = "livestock_trade_id")
+    private Long livestockTradeId;
+
     @Column(name = "installment_number")
     private Integer installmentNumber;
 

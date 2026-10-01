@@ -17,7 +17,7 @@ test('no celular o menu abre como gaveta e fecha ao navegar, sem rolagem lateral
 
   await expect(page).toHaveURL(/\/estoque$/)
   await expect(page.getByRole('complementary', { name: 'Menu principal' })).toBeHidden()
-  for (const path of ['/estoque', '/financeiro', '/equipe', '/perfil']) {
+  for (const path of ['/estoque', '/financeiro', '/equipe', '/perfil', '/pecuaria', '/pecuaria?aba=compras-e-vendas']) {
     await page.goto(path)
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
     expect(overflow, `rolagem lateral em ${path}`).toBeLessThanOrEqual(0)

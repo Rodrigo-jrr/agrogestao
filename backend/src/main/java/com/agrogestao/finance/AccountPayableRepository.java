@@ -27,4 +27,6 @@ public interface AccountPayableRepository extends JpaRepository<AccountPayable, 
     boolean existsByFinancialTransactionId(Long financialTransactionId);
 
     List<AccountPayable> findByPurchaseIdOrderByInstallmentNumberAsc(Long purchaseId);
+
+    List<AccountPayable> findByLivestockTradeIdOrderByInstallmentNumberAsc(Long livestockTradeId);
 }
