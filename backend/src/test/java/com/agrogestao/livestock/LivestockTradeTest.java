@@ -17,17 +17,20 @@ class LivestockTradeTest extends ApiTestSupport {
     private Session owner;
     private long supplierId;
     private long customerId;
+    private long bovino;
 
     @BeforeEach
     void setUp() throws Exception {
         owner = registerOwnerWithProperty("Criador");
         supplierId = post("/api/purchases/suppliers", owner, Map.of("name", "Leilão Central")).get("id").asLong();
         customerId = post("/api/sales/customers", owner, Map.of("name", "Frigorífico Sul")).get("id").asLong();
+        bovino = post("/api/livestock/species", owner, Map.of("name", "Bovino", "allowsIndividual", true))
+                .get("id").asLong();
     }
 
     private JsonNode buyCash(List<Map<String, Object>> animals, double total) throws Exception {
         return post("/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", total, "species", "BOVINO", "animals", animals));
+                "totalAmount", total, "speciesId", bovino, "animals", animals));
     }
 
     private double cashTotal(String type) throws Exception {
@@ -121,7 +124,9 @@ class LivestockTradeTest extends ApiTestSupport {
 
     @Test
     void aggregateBatchTradesMoveTheHeadCount() throws Exception {
-        long batch = post("/api/livestock/batches", owner, Map.of("name", "Tanque 2", "species", "PEIXE",
+        long peixe = post("/api/livestock/species", owner, Map.of("name", "Peixe", "allowsIndividual", false))
+                .get("id").asLong();
+        long batch = post("/api/livestock/batches", owner, Map.of("name", "Tanque 2", "speciesId", peixe,
                 "tracking", "AGGREGATE")).get("id").asLong();
         post("/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
                 "totalAmount", 900, "batchId", batch, "headCount", 3000));
@@ -139,15 +144,15 @@ class LivestockTradeTest extends ApiTestSupport {
     void rejectsInconsistentRequests() throws Exception {
         // Nem animais nem cabeças; os dois ao mesmo tempo; brinco repetido; parcelas que não fecham.
         call(HttpMethod.POST, "/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", 100, "species", "BOVINO"), 422);
+                "totalAmount", 100, "speciesId", bovino), 422);
         call(HttpMethod.POST, "/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", 100, "species", "BOVINO", "headCount", 2,
+                "totalAmount", 100, "speciesId", bovino, "headCount", 2,
                 "animals", List.of(Map.of("tag", "X", "sex", "MACHO"))), 422);
         call(HttpMethod.POST, "/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", 100, "species", "BOVINO",
+                "totalAmount", 100, "speciesId", bovino,
                 "animals", List.of(Map.of("tag", "X", "sex", "MACHO"), Map.of("tag", "x", "sex", "FEMEA"))), 422);
         call(HttpMethod.POST, "/api/livestock/purchases", owner, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", 100, "species", "BOVINO", "paymentType", "INSTALLMENTS",
+                "totalAmount", 100, "speciesId", bovino, "paymentType", "INSTALLMENTS",
                 "installments", List.of(Map.of("dueDate", TODAY, "amount", 90)),
                 "animals", List.of(Map.of("tag", "Y", "sex", "MACHO"))), 422);
         assertThat(page("/api/livestock/animals", owner)).isEmpty();
@@ -156,8 +161,10 @@ class LivestockTradeTest extends ApiTestSupport {
     @Test
     void onlyManagersCancelTrades() throws Exception {
         Session worker = addMember(owner, registerUser("Peão"), "WORKER");
+        long ovino = post("/api/livestock/species", owner, Map.of("name", "Ovino", "allowsIndividual", true))
+                .get("id").asLong();
         JsonNode trade = post("/api/livestock/purchases", worker, Map.of("supplierId", supplierId, "tradeDate", TODAY,
-                "totalAmount", 700, "species", "OVINO", "animals", List.of(Map.of("tag", "O1", "sex", "FEMEA"))));
+                "totalAmount", 700, "speciesId", ovino, "animals", List.of(Map.of("tag", "O1", "sex", "FEMEA"))));
         call(HttpMethod.POST, "/api/livestock/trades/" + trade.get("id").asLong() + "/cancel", worker, null, 403);
     }
 }

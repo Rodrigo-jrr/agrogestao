@@ -2,7 +2,6 @@ package com.agrogestao.livestock.dto;
 
 import com.agrogestao.finance.PaymentType;
 import com.agrogestao.finance.dto.InstallmentInput;
-import com.agrogestao.livestock.Species;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.Max;
@@ -26,7 +25,7 @@ public record LivestockPurchaseRequest(
         PaymentType paymentType,
         @Valid @Size(max = 48) List<InstallmentInput> installments,
         Long batchId,
-        Species species,
+        Long speciesId,
         @Valid @Size(max = 500) List<NewAnimalInput> animals,
         @Positive @Max(1_000_000) Integer headCount,
         @Size(max = 500) String notes) {

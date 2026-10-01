@@ -69,16 +69,20 @@ public class AnimalBatchService {
         if (batchRepository.existsByPropertyIdAndNameIgnoreCase(propertyId, name)) {
             throw new BusinessException("Já existe um lote chamado " + name + ".");
         }
-        validate(propertyId, request);
+        SpeciesCatalog species = support.requireActiveSpecies(propertyId, request.speciesId());
+        validateActivity(propertyId, request.activityId());
+        if (request.tracking() == BatchTracking.INDIVIDUAL) {
+            LivestockSupport.requireIndividualSpecies(species);
+        }
         AnimalBatch batch = new AnimalBatch();
         batch.setPropertyId(propertyId);
         batch.setName(name);
-        batch.setSpeciesId(support.ensureSpeciesId(propertyId, request.species()));
+        batch.setSpeciesId(species.getId());
         batch.setTracking(request.tracking());
         batch.setActivityId(request.activityId());
         batch.setNotes(blankToNull(request.notes()));
         batchRepository.save(batch);
-        auditService.record("AnimalBatch", batch.getId(), AuditAction.CREATE, describe(batch, request.species()));
+        auditService.record("AnimalBatch", batch.getId(), AuditAction.CREATE, describe(batch, species));
         return toResponses(propertyId, List.of(batch)).get(0);
     }
 
@@ -91,20 +95,23 @@ public class AnimalBatchService {
         if (batchRepository.existsByPropertyIdAndNameIgnoreCaseAndIdNot(propertyId, name, id)) {
             throw new BusinessException("Já existe um lote chamado " + name + ".");
         }
-        validate(propertyId, request);
-        boolean structureChanged = batch.getSpeciesId() != support.findSpeciesId(propertyId, request.species())
-                || batch.getTracking() != request.tracking();
+        SpeciesCatalog species = support.requireActiveSpecies(propertyId, request.speciesId());
+        validateActivity(propertyId, request.activityId());
+        if (request.tracking() == BatchTracking.INDIVIDUAL) {
+            LivestockSupport.requireIndividualSpecies(species);
+        }
+        boolean structureChanged = !batch.getSpeciesId().equals(species.getId()) || batch.getTracking() != request.tracking();
         if (structureChanged && hasHistory(batch)) {
             throw new BusinessException("A espécie e o tipo de controle não mudam depois que o lote tem animais "
                     + "ou movimentações. Crie um lote novo.");
         }
         batch.setName(name);
-        batch.setSpeciesId(support.ensureSpeciesId(propertyId, request.species()));
+        batch.setSpeciesId(species.getId());
         batch.setTracking(request.tracking());
         batch.setActivityId(request.activityId());
         batch.setNotes(blankToNull(request.notes()));
         batchRepository.save(batch);
-        auditService.record("AnimalBatch", batch.getId(), AuditAction.UPDATE, describe(batch, request.species()));
+        auditService.record("AnimalBatch", batch.getId(), AuditAction.UPDATE, describe(batch, species));
         return toResponses(propertyId, List.of(batch)).get(0);
     }
 
@@ -189,19 +196,19 @@ public class AnimalBatchService {
         batchRepository.findByPropertyIdOrderByNameAsc(propertyId).stream()
                 .filter(batch -> batch.isAggregate() && !batch.isArchived() && batch.getHeadCount() > 0)
                 .forEach(batch -> headsBySpeciesId.merge(batch.getSpeciesId(), (long) batch.getHeadCount(), Long::sum));
-        Map<Long, Species> species = support.speciesOf(headsBySpeciesId.keySet());
+        Map<Long, SpeciesCatalog> species = support.speciesOf(headsBySpeciesId.keySet());
         List<HerdSummary.SpeciesCount> bySpecies = headsBySpeciesId.entrySet().stream()
-                .map(entry -> new HerdSummary.SpeciesCount(species.get(entry.getKey()), entry.getValue()))
+                .map(entry -> {
+                    SpeciesCatalog s = species.get(entry.getKey());
+                    return new HerdSummary.SpeciesCount(s.getId(), s.getName(), entry.getValue());
+                })
                 .sorted(Comparator.comparingLong(HerdSummary.SpeciesCount::heads).reversed())
                 .toList();
         return new HerdSummary(bySpecies.stream().mapToLong(HerdSummary.SpeciesCount::heads).sum(), bySpecies);
     }
 
-    private void validate(Long propertyId, BatchRequest request) {
-        if (request.tracking() == BatchTracking.INDIVIDUAL) {
-            LivestockSupport.requireIndividualSpecies(request.species());
-        }
-        if (request.activityId() != null && !activityRepository.existsByIdAndPropertyId(request.activityId(), propertyId)) {
+    private void validateActivity(Long propertyId, Long activityId) {
+        if (activityId != null && !activityRepository.existsByIdAndPropertyId(activityId, propertyId)) {
             throw new BusinessException("Atividade inválida para esta propriedade");
         }
     }
@@ -221,15 +228,17 @@ public class AnimalBatchService {
         Map<Long, java.time.LocalDate> withdrawals = new java.util.HashMap<>();
         eventRepository.batchWithdrawals(propertyId, java.time.LocalDate.now())
                 .forEach(row -> withdrawals.put((Long) row[0], (java.time.LocalDate) row[1]));
-        Map<Long, Species> species = support.speciesOf(batches.stream().map(AnimalBatch::getSpeciesId).toList());
-        return batches.stream().map(b -> new BatchResponse(b.getId(), b.getName(), species.get(b.getSpeciesId()),
-                b.getTracking(), heads.get(b.getId()), b.getActivityId(),
-                b.getActivityId() != null ? activities.get(b.getActivityId()) : null,
-                b.getNotes(), b.isArchived(), withdrawals.get(b.getId()))).toList();
+        Map<Long, SpeciesCatalog> species = support.speciesOf(batches.stream().map(AnimalBatch::getSpeciesId).toList());
+        return batches.stream().map(b -> {
+            SpeciesCatalog s = species.get(b.getSpeciesId());
+            return new BatchResponse(b.getId(), b.getName(), s.getId(), s.getName(), b.getTracking(),
+                    heads.get(b.getId()), b.getActivityId(), b.getActivityId() != null ? activities.get(b.getActivityId()) : null,
+                    b.getNotes(), b.isArchived(), withdrawals.get(b.getId()));
+        }).toList();
     }
 
-    private static String describe(AnimalBatch batch, Species species) {
-        return "%s (%s, %s)".formatted(batch.getName(), species.label().toLowerCase(),
+    private static String describe(AnimalBatch batch, SpeciesCatalog species) {
+        return "%s (%s, %s)".formatted(batch.getName(), species.getName().toLowerCase(),
                 batch.isAggregate() ? "por contagem" : "animais com brinco");
     }
 

@@ -9,11 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-/**
- * Espécie cadastrada livremente por uma propriedade (nome e se admite brinco/cadastro individual).
- * Mapeia a tabela {@code species}; não se chama {@code Species} para não colidir com o enum fixo do
- * mesmo nome, que os services ainda usam temporariamente (ver {@link SpeciesConverter}).
- */
+/** Espécie cadastrada livremente por uma propriedade (nome e se admite brinco/cadastro individual). */
 @Getter
 @Setter
 @NoArgsConstructor

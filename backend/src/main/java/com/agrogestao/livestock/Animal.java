@@ -29,10 +29,7 @@ public class Animal extends BaseEntity {
     @Column(length = 100)
     private String name;
 
-    /**
-     * FK para o catálogo species da propriedade. Os services ainda falam o enum Species: use
-     * {@link LivestockSupport#ensureSpeciesId} / {@link LivestockSupport#speciesOf} para ir e voltar.
-     */
+    /** FK para o catálogo de espécies da propriedade (ver {@link SpeciesCatalog}). */
     @Column(name = "species_id", nullable = false)
     private Long speciesId;
 

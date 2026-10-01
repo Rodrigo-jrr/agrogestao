@@ -2,7 +2,6 @@ package com.agrogestao.livestock.dto;
 
 import com.agrogestao.livestock.AnimalOrigin;
 import com.agrogestao.livestock.Sex;
-import com.agrogestao.livestock.Species;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Digits;
 import jakarta.validation.constraints.NotBlank;
@@ -18,7 +17,7 @@ import java.time.LocalDate;
 public record AnimalRequest(
         @NotBlank @Size(max = 30) String tag,
         @Size(max = 100) String name,
-        @NotNull Species species,
+        @NotNull Long speciesId,
         @Size(max = 60) String breed,
         @NotNull Sex sex,
         LocalDate birthDate,

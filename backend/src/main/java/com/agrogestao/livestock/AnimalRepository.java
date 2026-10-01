@@ -15,6 +15,8 @@ public interface AnimalRepository extends JpaRepository<Animal, Long> {
 
     boolean existsByBatchId(Long batchId);
 
+    boolean existsBySpeciesId(Long speciesId);
+
     boolean existsByMotherId(Long motherId);
 
     List<Animal> findByMotherIdOrderByBirthDateAsc(Long motherId);
