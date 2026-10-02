@@ -19,16 +19,16 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/ARCHITECTURE.md`, com as regras de negócio e técnicas e o que já existe;
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
-- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #14
-  ("Agricultura, entrega 2: culturas e safras").
+- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #16
+  ("Agricultura, entrega 3: operações agrícolas").
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml test`, com 162 testes no H2;
-  - frontend: `npm --prefix frontend test` (61 testes) e `npm --prefix frontend run lint`;
+  - backend: `mvn -f backend/pom.xml test`, com 169 testes no H2;
+  - frontend: `npm --prefix frontend test` (68 testes) e `npm --prefix frontend run lint`;
   - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (14 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V16**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V17**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -39,6 +39,12 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
     `rm -rf node_modules.nosync && mv node_modules node_modules.nosync && ln -s node_modules.nosync node_modules`;
   - o iCloud às vezes evicta `target.nosync` ao trocar de branch com vários processos rodando; se `mvn` falhar
     com "Cannot create resource output directory", recrie a pasta.
+  - **`git pull`/`checkout` com `fatal: mmap failed`**: antes de culpar o iCloud, rode
+    `ps aux | grep "git maintenance\|git repack"`. Repetir `git pull` várias vezes dispara `git maintenance run
+    --auto` em background a cada tentativa, e esses processos se acumulam e brigam pelo mesmo diretório de pack
+    — foi a causa real na Entrega 2/3 (não iCloud). Rode `git config maintenance.auto false` neste repositório
+    (já está desativado) e, se encontrar processos presos, mate-os (`pkill -f "git maintenance run --auto"`
+    etc.) antes de repetir o `pull`.
 - Servidores de desenvolvimento:
   - backend: `mvn -q spring-boot:run` em `backend/`, porta 8080;
   - frontend: `npm run dev` em `frontend/`, porta 5173, com proxy de `/api`.
@@ -140,9 +146,13 @@ até a entrega de Máquinas e Manutenção existir.
   cultura + variedade texto livre + datas previstas de plantio/colheita). CRUD em `/api/crops` e
   `/api/crop-cycles`, tela `/agricultura` reorganizada em abas (Talhões/Culturas/Safras). Sem exclusão física em
   nenhuma das duas, só arquivar. Migração V15. Dívida técnica aberta: ver item 5.
-- **Entrega 3 — Operações agrícolas (próxima):** preparo, plantio, adubação, pulverização. Insumos saem do estoque
-  (como a sanidade), com custo, responsável e máquina usada (texto livre).
-- **Entrega 4 — Colheita + indicadores:** quantidade, unidade e destino (estoque, venda); custo/ha,
+- **Entrega 3 — Operações agrícolas — concluída (02/10/2026, PR #16):** preparo, plantio, adubação e
+  pulverização (`crop_operations`, enum fixo `CropOperationKind`, não é catálogo do cliente), ligadas a uma
+  safra. Insumo opcional em 3 modos: do estoque (debita via `InventoryMovementService`, custo médio ponderado),
+  digitado manualmente, ou sem insumo. CRUD em `/api/crop-operations`, aba "Operações" em `/agricultura`.
+  Diferente de talhão/cultura/safra, **tem exclusão física real** (sem `archived_at`, como `health_applications`)
+  — excluir desfaz o movimento de estoque. Migração V16.
+- **Entrega 4 — Colheita + indicadores (próxima):** quantidade, unidade e destino (estoque, venda); custo/ha,
   produção/ha, receita/ha e margem/ha por safra e talhão.
 
 ### 3. Máquinas e manutenção (pacotes `machinery`, `maintenance`)
