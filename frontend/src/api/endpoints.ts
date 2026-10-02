@@ -16,6 +16,8 @@ import type {
   CropCycle,
   CropCycleInput,
   CropInput,
+  CropOperation,
+  CropOperationInput,
   ExitType,
   Field,
   FieldInput,
@@ -191,6 +193,13 @@ export const cropCyclesApi = {
   create: (data: CropCycleInput) => apiClient.post<CropCycle>('/crop-cycles', data).then((r) => r.data),
   archive: (id: number) => apiClient.post<CropCycle>(`/crop-cycles/${id}/archive`).then((r) => r.data),
   unarchive: (id: number) => apiClient.post<CropCycle>(`/crop-cycles/${id}/unarchive`).then((r) => r.data),
+}
+
+export const cropOperationsApi = {
+  list: (params: PageParams & { cropCycleId?: number; fieldId?: number; from?: string; to?: string } = {}) =>
+    apiClient.get<PageResponse<CropOperation>>('/crop-operations', { params }).then((r) => r.data),
+  create: (data: CropOperationInput) => apiClient.post<CropOperation>('/crop-operations', data).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/crop-operations/${id}`).then((r) => r.data),
 }
 
 type PartyInput = { name: string; document?: string; phone?: string; email?: string }
