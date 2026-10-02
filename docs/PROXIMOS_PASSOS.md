@@ -19,17 +19,16 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/ARCHITECTURE.md`, com as regras de negócio e técnicas e o que já existe;
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
-- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #12
-  ("fix: navegação de Termos/Privacidade"); a última entrega de funcionalidade foi "Agricultura, entrega 1:
-  talhões" (PR #10).
+- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #14
+  ("Agricultura, entrega 2: culturas e safras").
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml test`, com 151 testes no H2;
-  - frontend: `npm --prefix frontend test` (49 testes) e `npm --prefix frontend run lint`;
+  - backend: `mvn -f backend/pom.xml test`, com 162 testes no H2;
+  - frontend: `npm --prefix frontend test` (61 testes) e `npm --prefix frontend run lint`;
   - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (14 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V15**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V16**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -136,9 +135,12 @@ até a entrega de Máquinas e Manutenção existir.
 - **Entrega 1 — Talhões — concluída (01/10/2026, PR #10):** nome, área (ha), localização e solo. CRUD em
   `/api/fields` (`fields` package), tela em `/agricultura`. Sem exclusão física, só arquivar (nada ainda
   referencia talhão).
-- **Entrega 2 — Culturas e safras (ciclos) (próxima):** cultura, variedade, talhão, plantio e colheita
-  previstos.
-- **Entrega 3 — Operações agrícolas:** preparo, plantio, adubação, pulverização. Insumos saem do estoque
+- **Entrega 2 — Culturas e safras (ciclos) — concluída (02/10/2026, PR #14):** catálogo de culturas por
+  propriedade (mesmo padrão do catálogo de espécies, pacote `agriculture`) e safras (`crop_cycles`: talhão +
+  cultura + variedade texto livre + datas previstas de plantio/colheita). CRUD em `/api/crops` e
+  `/api/crop-cycles`, tela `/agricultura` reorganizada em abas (Talhões/Culturas/Safras). Sem exclusão física em
+  nenhuma das duas, só arquivar. Migração V15. Dívida técnica aberta: ver item 5.
+- **Entrega 3 — Operações agrícolas (próxima):** preparo, plantio, adubação, pulverização. Insumos saem do estoque
   (como a sanidade), com custo, responsável e máquina usada (texto livre).
 - **Entrega 4 — Colheita + indicadores:** quantidade, unidade e destino (estoque, venda); custo/ha,
   produção/ha, receita/ha e margem/ha por safra e talhão.
@@ -172,6 +174,9 @@ até a entrega de Máquinas e Manutenção existir.
   como não bloqueante.
 - **`DashboardPage.showHerd`** não olha `upcomingCalvings`/`pendingDiagnoses` ao decidir se mostra o card de
   pecuária — na prática deixou de ser alcançável depois do bugfix acima, mas o código ainda tem o gap.
+- **`CropCycleTest.rejectsArchivedFieldOrCrop`** só tem asserção para talhão arquivado. O caminho de cultura
+  arquivada (`crop.isArchived()`, `CropCycleService.java:125`) existe no código e está correto por inspeção
+  (simétrico ao do talhão), mas sem teste próprio. Achado pelo QA em 02/10/2026, registrado como não bloqueante.
 
 ### 6. Antes de publicar (não fazer sem o usuário pedir)
 Lista completa em `docs/AUDITORIA.md`, seção "Para a fase de publicação".
