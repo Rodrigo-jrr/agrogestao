@@ -1,6 +1,7 @@
 package com.agrogestao.agriculture;
 
 import java.time.LocalDate;
+import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -18,4 +19,7 @@ public interface CropOperationRepository extends JpaRepository<CropOperation, Lo
     Page<CropOperation> search(@Param("propertyId") Long propertyId, @Param("cropCycleId") Long cropCycleId,
             @Param("fieldId") Long fieldId, @Param("from") LocalDate from, @Param("to") LocalDate to,
             Pageable pageable);
+
+    /** Todas as operações das safras informadas — para calcular indicadores em memória. */
+    List<CropOperation> findByPropertyIdAndCropCycleIdIn(Long propertyId, List<Long> cropCycleIds);
 }

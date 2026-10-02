@@ -107,6 +107,11 @@ class PropertyManagementTest extends ApiTestSupport {
         Long productId = post("/api/inventory/products", session, Map.of("name", "Ração", "unit", "kg", "minStock", 0)).get("id").asLong();
         Long supplierId = post("/api/purchases/suppliers", session, Map.of("name", "Agropecuária")).get("id").asLong();
         Long customerId = post("/api/sales/customers", session, Map.of("name", "Laticínio")).get("id").asLong();
+        // Colheita vendida a prazo: exercita accounts_receivable.crop_harvest_id.
+        post("/api/crop-harvests", session, Map.of("cropCycleId", cropCycleId, "harvestDate", today,
+                "quantity", 100, "quantityUnit", "sc", "destination", "VENDA", "customerId", customerId,
+                "totalAmount", 500, "paymentType", "INSTALLMENTS",
+                "installments", List.of(Map.of("dueDate", nextMonth, "amount", 500))));
         post("/api/purchases", session, Map.of("supplierId", supplierId, "purchaseDate", today,
                 "paymentType", "INSTALLMENTS",
                 "installments", List.of(Map.of("dueDate", nextMonth, "amount", 100)),
