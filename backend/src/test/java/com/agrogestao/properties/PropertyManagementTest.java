@@ -93,6 +93,10 @@ class PropertyManagementTest extends ApiTestSupport {
         String nextMonth = java.time.LocalDate.now().plusMonths(1).toString();
         Long activityId = post("/api/activities", session, Map.of("name", "Milho", "type", "AGRICULTURA")).get("id").asLong();
         post("/api/finance/cost-centers", session, Map.of("name", "Lavoura", "activityId", activityId));
+        // Agricultura: talhão, cultura e a safra que liga os dois.
+        Long fieldId = post("/api/fields", session, Map.of("name", "Talhão 1", "areaHa", 10)).get("id").asLong();
+        Long cropId = post("/api/crops", session, Map.of("name", "Milho")).get("id").asLong();
+        post("/api/crop-cycles", session, Map.of("fieldId", fieldId, "cropId", cropId, "plannedPlantingDate", today));
         post("/api/production", session, Map.of("productName", "Milho", "quantity", 10, "unit", "sc",
                 "productionDate", today, "activityId", activityId));
         post("/api/finance/transactions", session, Map.of("type", "EXPENSE", "description", "Diesel",

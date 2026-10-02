@@ -44,6 +44,8 @@ public class DataExportService {
     private static Map<String, String> sections() {
         Map<String, String> s = new LinkedHashMap<>();
         s.put("talhoes", "SELECT * FROM fields WHERE property_id = ? ORDER BY id");
+        s.put("culturas", "SELECT * FROM crops WHERE property_id = ? ORDER BY id");
+        s.put("safras", "SELECT * FROM crop_cycles WHERE property_id = ? ORDER BY planned_planting_date, id");
         s.put("atividades", "SELECT * FROM activities WHERE property_id = ? ORDER BY id");
         s.put("centrosDeCusto", "SELECT * FROM cost_centers WHERE property_id = ? ORDER BY id");
         s.put("lancamentosFinanceiros", "SELECT * FROM financial_transactions WHERE property_id = ? ORDER BY transaction_date, id");
