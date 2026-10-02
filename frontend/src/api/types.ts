@@ -419,6 +419,42 @@ export interface CropCycleInput {
   plannedHarvestDate?: string | null
 }
 
+export type CropOperationKind = 'PREPARO' | 'PLANTIO' | 'ADUBACAO' | 'PULVERIZACAO'
+
+/** Operação numa safra (preparo, plantio, adubação, pulverização). Insumo do estoque opcional. */
+export interface CropOperation {
+  id: number
+  cropCycleId: number
+  fieldId: number
+  fieldName: string
+  cropId: number
+  cropName: string
+  kind: CropOperationKind
+  operationDate: string
+  productId: number | null
+  productName: string | null
+  quantity: number | null
+  quantityUnit: string | null
+  totalCost: number | null
+  responsible: string | null
+  machine: string | null
+  notes: string | null
+}
+
+export interface CropOperationInput {
+  cropCycleId: number
+  kind: CropOperationKind
+  operationDate: string
+  productId?: number | null
+  productName?: string | null
+  quantity?: number | null
+  quantityUnit?: string | null
+  cost?: number | null
+  responsible?: string | null
+  machine?: string | null
+  notes?: string | null
+}
+
 // Pecuária
 
 /** Espécie cadastrada livremente pela propriedade. Depois de usada, allowsIndividual não muda. */

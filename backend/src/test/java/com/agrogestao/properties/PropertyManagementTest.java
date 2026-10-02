@@ -96,7 +96,10 @@ class PropertyManagementTest extends ApiTestSupport {
         // Agricultura: talhão, cultura e a safra que liga os dois.
         Long fieldId = post("/api/fields", session, Map.of("name", "Talhão 1", "areaHa", 10)).get("id").asLong();
         Long cropId = post("/api/crops", session, Map.of("name", "Milho")).get("id").asLong();
-        post("/api/crop-cycles", session, Map.of("fieldId", fieldId, "cropId", cropId, "plannedPlantingDate", today));
+        Long cropCycleId = post("/api/crop-cycles", session,
+                Map.of("fieldId", fieldId, "cropId", cropId, "plannedPlantingDate", today)).get("id").asLong();
+        post("/api/crop-operations", session, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", today, "cost", 80));
         post("/api/production", session, Map.of("productName", "Milho", "quantity", 10, "unit", "sc",
                 "productionDate", today, "activityId", activityId));
         post("/api/finance/transactions", session, Map.of("type", "EXPENSE", "description", "Diesel",
