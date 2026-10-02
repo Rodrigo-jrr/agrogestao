@@ -387,6 +387,38 @@ export interface FieldInput {
   soilType?: string | null
 }
 
+/** Cultura cadastrada livremente pela propriedade (catálogo, sem enum fixo do sistema). */
+export interface Crop {
+  id: number
+  name: string
+  archived: boolean
+}
+
+export interface CropInput {
+  name: string
+}
+
+/** Safra/ciclo de cultivo: liga talhão + cultura, com variedade livre e datas previstas. */
+export interface CropCycle {
+  id: number
+  fieldId: number
+  fieldName: string
+  cropId: number
+  cropName: string
+  variety: string | null
+  plannedPlantingDate: string
+  plannedHarvestDate: string | null
+  archived: boolean
+}
+
+export interface CropCycleInput {
+  fieldId: number
+  cropId: number
+  variety?: string | null
+  plannedPlantingDate: string
+  plannedHarvestDate?: string | null
+}
+
 // Pecuária
 
 /** Espécie cadastrada livremente pela propriedade. Depois de usada, allowsIndividual não muda. */
