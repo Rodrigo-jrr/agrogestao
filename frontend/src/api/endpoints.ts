@@ -12,6 +12,10 @@ import type {
   AnimalStatus,
   AuditAuthor,
   BatchInput,
+  Crop,
+  CropCycle,
+  CropCycleInput,
+  CropInput,
   ExitType,
   Field,
   FieldInput,
@@ -171,6 +175,22 @@ export const fieldsApi = {
   update: (id: number, data: FieldInput) => apiClient.put<Field>(`/fields/${id}`, data).then((r) => r.data),
   archive: (id: number) => apiClient.post<Field>(`/fields/${id}/archive`).then((r) => r.data),
   unarchive: (id: number) => apiClient.post<Field>(`/fields/${id}/unarchive`).then((r) => r.data),
+}
+
+export const cropsApi = {
+  list: (includeArchived = false) => apiClient.get<Crop[]>('/crops', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: CropInput) => apiClient.post<Crop>('/crops', data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<Crop>(`/crops/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<Crop>(`/crops/${id}/unarchive`).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/crops/${id}`).then((r) => r.data),
+}
+
+export const cropCyclesApi = {
+  list: (includeArchived = false) =>
+    apiClient.get<CropCycle[]>('/crop-cycles', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: CropCycleInput) => apiClient.post<CropCycle>('/crop-cycles', data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<CropCycle>(`/crop-cycles/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<CropCycle>(`/crop-cycles/${id}/unarchive`).then((r) => r.data),
 }
 
 type PartyInput = { name: string; document?: string; phone?: string; email?: string }
