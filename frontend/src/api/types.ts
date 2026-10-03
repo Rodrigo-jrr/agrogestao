@@ -776,3 +776,42 @@ export interface LivestockIndicators {
   costPerAnimal: number | null
   costPerKg: number | null
 }
+
+// Máquinas e manutenção
+
+/** Tipo de máquina cadastrado livremente pela propriedade (catálogo, sem enum fixo do sistema). */
+export interface MachineType {
+  id: number
+  name: string
+  archived: boolean
+}
+
+export interface MachineTypeInput {
+  name: string
+}
+
+export type MeasurementType = 'HOROMETRO' | 'ODOMETRO'
+
+/** Máquina ou implemento. currentReading só é usada como leitura inicial no cadastro; depois, só via updateReading. */
+export interface Machine {
+  id: number
+  name: string
+  machineTypeId: number
+  machineTypeName: string | null
+  identification: string | null
+  measurementType: MeasurementType
+  currentReading: number
+  archived: boolean
+}
+
+export interface MachineInput {
+  name: string
+  machineTypeId: number
+  identification?: string | null
+  measurementType: MeasurementType
+  currentReading?: number | null
+}
+
+export interface MachineReadingInput {
+  reading: number
+}

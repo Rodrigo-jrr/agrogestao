@@ -68,6 +68,11 @@ import type {
   TransactionTotals,
   TransactionType,
   MovementType,
+  Machine,
+  MachineInput,
+  MachineReadingInput,
+  MachineType,
+  MachineTypeInput,
 } from './types'
 
 /** Paginação: page começa em 0. */
@@ -454,4 +459,25 @@ export const reproductionApi = {
 export const indicatorsApi = {
   get: (params: { batchId?: number; from?: string; to?: string }) =>
     apiClient.get<LivestockIndicators>('/livestock/indicators', { params }).then((r) => r.data),
+}
+
+export const machineTypesApi = {
+  list: (includeArchived = false) =>
+    apiClient.get<MachineType[]>('/machine-types', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: MachineTypeInput) => apiClient.post<MachineType>('/machine-types', data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<MachineType>(`/machine-types/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<MachineType>(`/machine-types/${id}/unarchive`).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/machine-types/${id}`).then((r) => r.data),
+}
+
+export const machinesApi = {
+  list: (includeArchived = false) =>
+    apiClient.get<Machine[]>('/machines', { params: { includeArchived } }).then((r) => r.data),
+  create: (data: MachineInput) => apiClient.post<Machine>('/machines', data).then((r) => r.data),
+  update: (id: number, data: MachineInput) => apiClient.put<Machine>(`/machines/${id}`, data).then((r) => r.data),
+  updateReading: (id: number, data: MachineReadingInput) =>
+    apiClient.post<Machine>(`/machines/${id}/reading`, data).then((r) => r.data),
+  archive: (id: number) => apiClient.post<Machine>(`/machines/${id}/archive`).then((r) => r.data),
+  unarchive: (id: number) => apiClient.post<Machine>(`/machines/${id}/unarchive`).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/machines/${id}`).then((r) => r.data),
 }
