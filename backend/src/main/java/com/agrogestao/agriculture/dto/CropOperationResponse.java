@@ -20,5 +20,7 @@ public record CropOperationResponse(
         BigDecimal totalCost,
         String responsible,
         String machine,
+        Long machineId,
+        String machineName,
         String notes) {
 }

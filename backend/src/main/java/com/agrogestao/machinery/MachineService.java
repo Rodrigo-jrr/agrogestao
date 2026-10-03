@@ -1,5 +1,6 @@
 package com.agrogestao.machinery;
 
+import com.agrogestao.agriculture.CropOperationRepository;
 import com.agrogestao.audit.AuditAction;
 import com.agrogestao.audit.AuditService;
 import com.agrogestao.common.exception.BusinessException;
@@ -8,6 +9,7 @@ import com.agrogestao.machinery.dto.MachineReadingRequest;
 import com.agrogestao.machinery.dto.MachineRequest;
 import com.agrogestao.machinery.dto.MachineResponse;
 import com.agrogestao.properties.TenantContext;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -22,13 +24,15 @@ public class MachineService {
 
     private final MachineRepository machineRepository;
     private final MachineTypeRepository machineTypeRepository;
+    private final CropOperationRepository cropOperationRepository;
     private final TenantContext tenantContext;
     private final AuditService auditService;
 
     public MachineService(MachineRepository machineRepository, MachineTypeRepository machineTypeRepository,
-            TenantContext tenantContext, AuditService auditService) {
+            CropOperationRepository cropOperationRepository, TenantContext tenantContext, AuditService auditService) {
         this.machineRepository = machineRepository;
         this.machineTypeRepository = machineTypeRepository;
+        this.cropOperationRepository = cropOperationRepository;
         this.tenantContext = tenantContext;
         this.auditService = auditService;
     }
@@ -59,7 +63,7 @@ public class MachineService {
         machine.setMachineTypeId(type.getId());
         machine.setIdentification(blankToNull(request.identification()));
         machine.setMeasurementType(request.measurementType());
-        machine.setCurrentReading(request.currentReading() != null ? request.currentReading() : java.math.BigDecimal.ZERO);
+        machine.setCurrentReading(request.currentReading() != null ? request.currentReading() : BigDecimal.ZERO);
         machineRepository.save(machine);
         auditService.record("Machine", machine.getId(), AuditAction.CREATE, describe(machine, type));
         return toResponse(machine, type);
@@ -90,16 +94,26 @@ public class MachineService {
         tenantContext.requireWriteAccess();
         Long propertyId = tenantContext.requirePropertyId();
         Machine machine = findOwned(propertyId, id);
-        if (request.reading().compareTo(machine.getCurrentReading()) < 0) {
+        updateReadingFromUsage(machine, request.reading());
+        return toResponse(machine, typeOf(machine));
+    }
+
+    /**
+     * Atualiza a leitura a partir do uso registrado numa operação agrícola (Entrega 2 de Máquinas): mesma
+     * regra de {@link #updateReading} (não pode diminuir), sem repetir a checagem de papel — quem chama já
+     * validou o acesso de escrita da operação que está sendo criada.
+     */
+    @Transactional
+    public void updateReadingFromUsage(Machine machine, BigDecimal reading) {
+        if (reading.compareTo(machine.getCurrentReading()) < 0) {
             throw new BusinessException("A leitura não pode ser menor que a atual ("
                     + machine.getCurrentReading().stripTrailingZeros().toPlainString() + ").");
         }
         auditService.record("Machine", machine.getId(), AuditAction.UPDATE, "leitura de " + machine.getName() + ": "
                 + machine.getCurrentReading().stripTrailingZeros().toPlainString() + " → "
-                + request.reading().stripTrailingZeros().toPlainString());
-        machine.setCurrentReading(request.reading());
+                + reading.stripTrailingZeros().toPlainString());
+        machine.setCurrentReading(reading);
         machineRepository.save(machine);
-        return toResponse(machine, typeOf(machine));
     }
 
     @Transactional
@@ -123,12 +137,16 @@ public class MachineService {
         return toResponse(machine, typeOf(machine));
     }
 
-    /** Exclusão física: nada ainda referencia máquina (passa a arquivar só quando operações agrícolas usarem). */
+    /** Exclusão física, mas só se a máquina não tiver operações registradas (Entrega 2) — senão, arquive. */
     @Transactional
     public void delete(Long id) {
         tenantContext.requireManageAccess();
         Long propertyId = tenantContext.requirePropertyId();
         Machine machine = findOwned(propertyId, id);
+        if (cropOperationRepository.existsByMachineId(id)) {
+            throw new BusinessException("A máquina " + machine.getName()
+                    + " já tem operações registradas e não pode ser excluída. Arquive-a para escondê-la das listas.");
+        }
         machineRepository.delete(machine);
         auditService.record("Machine", id, AuditAction.DELETE, machine.getName());
     }
