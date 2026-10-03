@@ -19,16 +19,17 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/ARCHITECTURE.md`, com as regras de negócio e técnicas e o que já existe;
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
-- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #16
-  ("Agricultura, entrega 3: operações agrícolas").
+- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #19
+  ("Bugfix: fixa o timezone da JVM em America/Sao_Paulo"); a última entrega de funcionalidade foi "Agricultura,
+  entrega 4: colheita e indicadores" (PR #18), que fecha a Agricultura (entregas 1-4).
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml test`, com 169 testes no H2;
-  - frontend: `npm --prefix frontend test` (68 testes) e `npm --prefix frontend run lint`;
+  - backend: `mvn -f backend/pom.xml test`, com 183 testes no H2;
+  - frontend: `npm --prefix frontend test` (81 testes) e `npm --prefix frontend run lint`;
   - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (14 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V17**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V18**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -39,6 +40,12 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
     `rm -rf node_modules.nosync && mv node_modules node_modules.nosync && ln -s node_modules.nosync node_modules`;
   - o iCloud às vezes evicta `target.nosync` ao trocar de branch com vários processos rodando; se `mvn` falhar
     com "Cannot create resource output directory", recrie a pasta.
+  - **O backend fixa o timezone da JVM em `America/Sao_Paulo`** (`AgroGestaoApplication` + `-Duser.timezone` no
+    `pom.xml`, PR #19) — sem isso, um host com relógio em UTC calcula "hoje" um dia adiantado em relação ao
+    usuário/frontend entre 21h e 23h59 (horário de Brasília), rejeitando qualquer registro datado "hoje" com erro
+    de "data anterior à entrada/criação". Achado pelo QA numa falha de CI que caiu exatamente nessa janela ao
+    validar a Entrega 4 da Agricultura. Se você fixar timezone num Dockerfile/script de deploy que ainda não
+    existe, replique o `-Duser.timezone=America/Sao_Paulo` lá também (defesa em profundidade).
   - **`git pull`/`checkout` com `fatal: mmap failed`**: antes de culpar o iCloud, rode
     `ps aux | grep "git maintenance\|git repack"`. Repetir `git pull` várias vezes dispara `git maintenance run
     --auto` em background a cada tentativa, e esses processos se acumulam e brigam pelo mesmo diretório de pack
@@ -133,10 +140,10 @@ obrigatório antes do parto; custos gerais da atividade rateados igualmente por 
   cadastrando a(s) cria(s), histórico e situação reprodutiva na ficha do animal, alertas e indicadores — tudo
   no ar. Detalhe de uma lacuna ainda aberta na seção "Dívidas técnicas" (item 5).
 
-### 2. Agricultura (Fase 2, documento-base seções 15 e 49)
-Escopo e divisão em 4 entregas confirmados com o usuário em 01/10/2026. Cultura será um **catálogo livre por
+### 2. Agricultura (Fase 2, documento-base seções 15 e 49) — concluída (03/10/2026)
+Escopo e divisão em 4 entregas confirmados com o usuário em 01/10/2026. Cultura é um **catálogo livre por
 propriedade** (mesmo padrão do catálogo de espécies), e máquina usada nas operações fica como **texto livre**
-até a entrega de Máquinas e Manutenção existir.
+até a entrega de Máquinas e Manutenção existir. As 4 entregas estão no ar.
 
 - **Entrega 1 — Talhões — concluída (01/10/2026, PR #10):** nome, área (ha), localização e solo. CRUD em
   `/api/fields` (`fields` package), tela em `/agricultura`. Sem exclusão física, só arquivar (nada ainda
@@ -152,8 +159,15 @@ até a entrega de Máquinas e Manutenção existir.
   digitado manualmente, ou sem insumo. CRUD em `/api/crop-operations`, aba "Operações" em `/agricultura`.
   Diferente de talhão/cultura/safra, **tem exclusão física real** (sem `archived_at`, como `health_applications`)
   — excluir desfaz o movimento de estoque. Migração V16.
-- **Entrega 4 — Colheita + indicadores (próxima):** quantidade, unidade e destino (estoque, venda); custo/ha,
-  produção/ha, receita/ha e margem/ha por safra e talhão.
+- **Entrega 4 — Colheita + indicadores — concluída (03/10/2026, PR #18):** quantidade e destino (estoque ou
+  venda) por safra, com várias colheitas por safra somando nos indicadores. Destino "estoque" exige produto já
+  cadastrado (sem criação automática) e credita via `InventoryMovementService` (unidade herdada do produto).
+  Destino "venda" **não** passa pelo módulo Vendas — segue o precedente da pecuária (`LivestockTradeService`):
+  registra cliente, valor e forma de pagamento (à vista ou a prazo) direto, gerando lançamento financeiro ou
+  parcelas em `accounts_receivable` (coluna `crop_harvest_id`). Exclusão física real (sem `archived_at`), desfaz
+  estoque/financeiro. `GET /api/crop-indicators`: custo/ha, receita/ha (só do vendido), margem/ha e produção/ha
+  **agrupada por unidade** (uma safra pode colher em mais de uma unidade). Migração V17. Decisões de produto
+  confirmadas com o usuário em 02/10/2026 antes de iniciar.
 
 ### 3. Máquinas e manutenção (pacotes `machinery`, `maintenance`)
 - Cadastro de máquinas e implementos, com horímetro ou hodômetro.
