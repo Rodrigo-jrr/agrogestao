@@ -169,12 +169,24 @@ até a entrega de Máquinas e Manutenção existir. As 4 entregas estão no ar.
   **agrupada por unidade** (uma safra pode colher em mais de uma unidade). Migração V17. Decisões de produto
   confirmadas com o usuário em 02/10/2026 antes de iniciar.
 
-### 3. Máquinas e manutenção (pacotes `machinery`, `maintenance`)
-- Cadastro de máquinas e implementos, com horímetro ou hodômetro.
-- Uso por operação (liga à agricultura — nesse ponto, migrar o campo de texto livre "máquina usada" das
-  operações agrícolas para um vínculo de verdade).
-- Manutenção preventiva por horas ou datas, com alertas, e corretiva com custo e peças do estoque.
-- Custo por hora de máquina.
+### 3. Máquinas e manutenção (pacotes `machinery`, `maintenance`) — próxima frente
+Escolhida pelo usuário em 03/10/2026 como prioridade depois da Agricultura. Escopo e divisão em 4 entregas
+confirmados com o usuário na mesma data. Tipo de máquina/implemento (trator, pulverizador, colheitadeira,
+implemento...) é **catálogo livre por propriedade**, mesmo padrão de espécies/culturas — sem enum fixo do
+sistema.
+
+- **Entrega 1 — Cadastro de máquinas e implementos (próxima):** nome, tipo (catálogo), identificação, tipo de
+  medição (horímetro ou hodômetro) e leitura atual, arquivar/desarquivar (sem exclusão física se já usada).
+- **Entrega 2 — Uso por operação:** liga à Agricultura — substitui o campo de texto livre "máquina usada" das
+  operações agrícolas por um vínculo real a uma máquina cadastrada, e atualiza a leitura do horímetro/hodômetro
+  ao registrar uso. **Operações já existentes mantêm o texto antigo como histórico** (decisão do usuário) — só
+  operações novas exigem escolher uma máquina cadastrada, sem tentar casar/adivinhar automaticamente o texto
+  antigo.
+- **Entrega 3 — Manutenção:** preventiva por horas/km ou data, com alertas, e corretiva com custo e peças do
+  estoque (pacote `maintenance`).
+- **Entrega 4 — Custo por hora de máquina:** fórmula e fontes de custo a confirmar com o usuário antes de
+  iniciar esta entrega especificamente (ex.: só manutenção registrada, ou também combustível/depreciação, que
+  ainda não existem no sistema).
 
 ### 4. Tarefas (pacote `tasks`)
 - Tarefas por propriedade: título, responsável (membro da equipe), prazo, status e ligação opcional a um animal,
