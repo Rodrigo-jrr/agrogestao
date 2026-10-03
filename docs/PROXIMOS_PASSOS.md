@@ -19,17 +19,18 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/ARCHITECTURE.md`, com as regras de negócio e técnicas e o que já existe;
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
-- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #19
-  ("Bugfix: fixa o timezone da JVM em America/Sao_Paulo"); a última entrega de funcionalidade foi "Agricultura,
-  entrega 4: colheita e indicadores" (PR #18), que fecha a Agricultura (entregas 1-4).
+- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #22
+  ("Máquinas e Manutenção, entrega 1: cadastro de máquinas e implementos"). A Agricultura (entregas 1-4) está
+  completa; Máquinas e Manutenção está na Entrega 1 de 4.
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml test`, com 183 testes no H2;
-  - frontend: `npm --prefix frontend test` (81 testes) e `npm --prefix frontend run lint`;
+  - backend: `mvn -f backend/pom.xml clean test`, com 195 testes no H2 (use `clean`: trocar de branch sem ele
+    pode deixar migração antiga em `target/classes` e gerar falso negativo — já aconteceu);
+  - frontend: `npm --prefix frontend test` (96 testes) e `npm --prefix frontend run lint`;
   - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (14 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V18**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V19**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -175,8 +176,12 @@ confirmados com o usuário na mesma data. Tipo de máquina/implemento (trator, p
 implemento...) é **catálogo livre por propriedade**, mesmo padrão de espécies/culturas — sem enum fixo do
 sistema.
 
-- **Entrega 1 — Cadastro de máquinas e implementos (próxima):** nome, tipo (catálogo), identificação, tipo de
-  medição (horímetro ou hodômetro) e leitura atual, arquivar/desarquivar (sem exclusão física se já usada).
+- **Entrega 1 — Cadastro de máquinas e implementos — concluída (03/10/2026, PR #22):** catálogo de tipos
+  (`machine_types`, livre por propriedade) e máquinas (`machines`: nome, tipo, identificação opcional, tipo de
+  medição horímetro/hodômetro, leitura atual). Leitura atualizada por endpoint próprio
+  (`POST /api/machines/{id}/reading`), separado da edição de cadastro, e não pode diminuir (monotônica).
+  Exclusão física permitida nesta entrega (nada referencia máquina ainda) — isso muda na Entrega 2. Página nova
+  `/maquinas`, independente da Agricultura, com entrada própria no menu. Migração V18.
 - **Entrega 2 — Uso por operação:** liga à Agricultura — substitui o campo de texto livre "máquina usada" das
   operações agrícolas por um vínculo real a uma máquina cadastrada, e atualiza a leitura do horímetro/hodômetro
   ao registrar uso. **Operações já existentes mantêm o texto antigo como histórico** (decisão do usuário) — só
@@ -210,6 +215,8 @@ sistema.
   como não bloqueante.
 - **`DashboardPage.showHerd`** não olha `upcomingCalvings`/`pendingDiagnoses` ao decidir se mostra o card de
   pecuária — na prática deixou de ser alcançável depois do bugfix acima, mas o código ainda tem o gap.
+- **Botão "Remover atividade" na tela `/onboarding`** ultrapassa a largura em 400px (viewport mobile) — achado
+  incidental do QA validando Máquinas Entrega 1 em 03/10/2026, não relacionado àquela entrega.
 - **`CropCycleTest.rejectsArchivedFieldOrCrop`** só tem asserção para talhão arquivado. O caminho de cultura
   arquivada (`crop.isArchived()`, `CropCycleService.java:125`) existe no código e está correto por inspeção
   (simétrico ao do talhão), mas sem teste próprio. Achado pelo QA em 02/10/2026, registrado como não bloqueante.
