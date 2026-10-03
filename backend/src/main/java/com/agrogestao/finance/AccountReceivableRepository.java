@@ -29,4 +29,6 @@ public interface AccountReceivableRepository extends JpaRepository<AccountReceiv
     List<AccountReceivable> findBySaleIdOrderByInstallmentNumberAsc(Long saleId);
 
     List<AccountReceivable> findByLivestockTradeIdOrderByInstallmentNumberAsc(Long livestockTradeId);
+
+    List<AccountReceivable> findByCropHarvestIdOrderByInstallmentNumberAsc(Long cropHarvestId);
 }

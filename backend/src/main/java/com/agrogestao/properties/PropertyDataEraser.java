@@ -21,7 +21,11 @@ public class PropertyDataEraser {
             "UPDATE reproductive_events SET diagnosis_event_id = NULL WHERE property_id = ?",
             "DELETE FROM reproductive_events WHERE property_id = ?",
             "DELETE FROM accounts_payable WHERE property_id = ?",
+            // accounts_receivable referencia crop_harvests (parcela a prazo): apaga antes dela.
             "DELETE FROM accounts_receivable WHERE property_id = ?",
+            // crop_harvests referencia financial_transactions/inventory_movements/products/customers, apagados
+            // mais abaixo: apaga antes de todos eles (e antes de crop_cycles).
+            "DELETE FROM crop_harvests WHERE property_id = ?",
             "DELETE FROM purchases WHERE property_id = ?",
             "DELETE FROM sales WHERE property_id = ?",
             "DELETE FROM livestock_trades WHERE property_id = ?",

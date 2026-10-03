@@ -43,6 +43,10 @@ public class AccountReceivable extends BaseEntity {
     @Column(name = "livestock_trade_id")
     private Long livestockTradeId;
 
+    /** Parcela de colheita vendida a prazo (agricultura). */
+    @Column(name = "crop_harvest_id")
+    private Long cropHarvestId;
+
     @Column(name = "installment_number")
     private Integer installmentNumber;
 

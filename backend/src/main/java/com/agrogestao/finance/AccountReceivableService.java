@@ -202,13 +202,52 @@ public class AccountReceivableService {
         accountReceivableRepository.deleteAll(installments);
     }
 
-    /** "venda #12" / "venda de animais #3" quando a conta é parcela de uma operação; senão null. */
+    /** Parcelas de uma colheita vendida a prazo (agricultura) — mesmo padrão da venda de animais. */
+    public void createCropHarvestInstallments(Long propertyId, Long customerId, Long harvestId,
+            List<InstallmentInput> installments) {
+        int count = installments.size();
+        for (int i = 0; i < count; i++) {
+            InstallmentInput installment = installments.get(i);
+            AccountReceivable receivable = new AccountReceivable();
+            receivable.setPropertyId(propertyId);
+            receivable.setCustomerId(customerId);
+            receivable.setCropHarvestId(harvestId);
+            receivable.setInstallmentNumber(i + 1);
+            receivable.setInstallmentCount(count);
+            receivable.setDescription("Venda de colheita #" + harvestId
+                    + (count > 1 ? " — parcela " + (i + 1) + "/" + count : ""));
+            receivable.setAmount(installment.amount());
+            receivable.setDueDate(installment.dueDate());
+            accountReceivableRepository.save(receivable);
+        }
+    }
+
+    public List<InstallmentView> cropHarvestInstallmentsOf(Long harvestId) {
+        return accountReceivableRepository.findByCropHarvestIdOrderByInstallmentNumberAsc(harvestId).stream()
+                .map(a -> new InstallmentView(a.getId(), a.getInstallmentNumber(), a.getInstallmentCount(),
+                        a.getDueDate(), a.getAmount(), a.isReceived()))
+                .toList();
+    }
+
+    /** Remove as parcelas ao excluir a colheita vendida; exige que nenhuma tenha sido baixada. */
+    public void removeCropHarvestInstallments(Long harvestId) {
+        List<AccountReceivable> installments = accountReceivableRepository.findByCropHarvestIdOrderByInstallmentNumberAsc(harvestId);
+        if (installments.stream().anyMatch(AccountReceivable::isReceived)) {
+            throw new BusinessException("Esta venda tem parcelas já baixadas. Desfaça as baixas em Financeiro antes de excluir.");
+        }
+        accountReceivableRepository.deleteAll(installments);
+    }
+
+    /** "venda #12" / "venda de animais #3" / "venda de colheita #4" quando a conta é parcela; senão null. */
     private static String linkedOperation(AccountReceivable receivable) {
         if (receivable.getSaleId() != null) {
             return "venda #" + receivable.getSaleId();
         }
         if (receivable.getLivestockTradeId() != null) {
             return "venda de animais #" + receivable.getLivestockTradeId();
+        }
+        if (receivable.getCropHarvestId() != null) {
+            return "venda de colheita #" + receivable.getCropHarvestId();
         }
         return null;
     }
@@ -232,6 +271,6 @@ public class AccountReceivableService {
     private AccountReceivableResponse toResponse(AccountReceivable receivable) {
         return new AccountReceivableResponse(receivable.getId(), receivable.getDescription(), receivable.getAmount(),
                 receivable.getDueDate(), receivable.getCustomerId(), receivable.isReceived(), receivable.getSaleId(), receivable.getLivestockTradeId(),
-                receivable.getInstallmentNumber(), receivable.getInstallmentCount());
+                receivable.getCropHarvestId(), receivable.getInstallmentNumber(), receivable.getInstallmentCount());
     }
 }
