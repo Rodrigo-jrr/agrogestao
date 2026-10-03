@@ -57,6 +57,9 @@ public class CropOperation extends BaseEntity {
     @Column(length = 150)
     private String machine;
 
+    @Column(name = "machine_id")
+    private Long machineId;
+
     @Column(length = 500)
     private String notes;
 

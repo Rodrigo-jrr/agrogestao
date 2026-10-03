@@ -1,8 +1,8 @@
 import { useEffect, useId, useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
-import { cropOperationsApi, inventoryApi } from '../../api/endpoints'
+import { cropOperationsApi, inventoryApi, machinesApi } from '../../api/endpoints'
 import { apiErrorMessage } from '../../api/client'
-import type { CropCycle, CropOperation, CropOperationKind, Field, Product } from '../../api/types'
+import type { CropCycle, CropOperation, CropOperationKind, Field, Machine, Product } from '../../api/types'
 import { useConfirm } from '../../components/ConfirmDialog'
 import { FormMessage } from '../../components/FormMessage'
 import { Pagination } from '../../components/Pagination'
@@ -12,6 +12,7 @@ import { usePaged } from '../../lib/usePaged'
 import { cardClass, cropOperationKindLabels } from './shared'
 
 type Source = 'stock' | 'manual' | 'none'
+type MachineMode = 'texto' | 'cadastrada'
 
 const kinds = Object.keys(cropOperationKindLabels) as CropOperationKind[]
 
@@ -33,17 +34,23 @@ function OperationForm({ cycles, onSaved }: { cycles: CropCycle[]; onSaved: () =
   const [quantityUnit, setQuantityUnit] = useState('')
   const [cost, setCost] = useState('')
   const [responsible, setResponsible] = useState('')
+  const [machineMode, setMachineMode] = useState<MachineMode>('texto')
   const [machine, setMachine] = useState('')
+  const [machines, setMachines] = useState<Machine[]>([])
+  const [machineId, setMachineId] = useState('')
+  const [machineReading, setMachineReading] = useState('')
   const [notes, setNotes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     inventoryApi.listProducts().then(setProducts).catch(() => setProducts([]))
+    machinesApi.list().then(setMachines).catch(() => setMachines([]))
   }, [])
 
   const product = products.find((p) => String(p.id) === productId)
   const stockQuantity = Number(quantity) > 0 ? Number(quantity) : 0
+  const selectedMachine = machines.find((m) => String(m.id) === machineId)
 
   function resetFields() {
     setQuantity('')
@@ -52,12 +59,17 @@ function OperationForm({ cycles, onSaved }: { cycles: CropCycle[]; onSaved: () =
     setCost('')
     setResponsible('')
     setMachine('')
+    setMachineReading('')
     setNotes('')
   }
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault()
     setError(null)
+    if (machineMode === 'cadastrada' && selectedMachine && machineReading && Number(machineReading) < selectedMachine.currentReading) {
+      setError(`A leitura não pode ser menor que a atual (${formatNumber(selectedMachine.currentReading)}).`)
+      return
+    }
     setSaving(true)
     try {
       await cropOperationsApi.create({
@@ -75,7 +87,11 @@ function OperationForm({ cycles, onSaved }: { cycles: CropCycle[]; onSaved: () =
               }
             : {}),
         responsible: responsible || null,
-        machine: machine || null,
+        ...(machineMode === 'cadastrada'
+          ? machineId
+            ? { machineId: Number(machineId), machineReading: machineReading ? Number(machineReading) : null }
+            : {}
+          : { machine: machine || null }),
         notes: notes || null,
       })
       resetFields()
@@ -247,20 +263,74 @@ function OperationForm({ cycles, onSaved }: { cycles: CropCycle[]; onSaved: () =
         </div>
       )}
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <label htmlFor={`${ids}-resp`} className={fieldLabelClass}>
-            Responsável <span className="font-normal text-terra/45">(opcional)</span>
-          </label>
-          <input id={`${ids}-resp`} maxLength={100} placeholder="Quem executou" value={responsible} onChange={(e) => setResponsible(e.target.value)} className={inputClass} />
+      <div>
+        <label htmlFor={`${ids}-resp`} className={fieldLabelClass}>
+          Responsável <span className="font-normal text-terra/45">(opcional)</span>
+        </label>
+        <input id={`${ids}-resp`} maxLength={100} placeholder="Quem executou" value={responsible} onChange={(e) => setResponsible(e.target.value)} className={inputClass} />
+      </div>
+      <fieldset>
+        <legend className={fieldLabelClass}>
+          Máquina <span className="font-normal text-terra/45">(opcional)</span>
+        </legend>
+        <div className="grid grid-cols-2 gap-1">
+          {(
+            [
+              ['texto', 'Texto livre'],
+              ['cadastrada', 'Máquina cadastrada'],
+            ] as [MachineMode, string][]
+          ).map(([value, text]) => (
+            <label key={value} className={radio(machineMode === value)}>
+              <input type="radio" name={`${ids}-machine-mode`} checked={machineMode === value} onChange={() => setMachineMode(value)} className="sr-only" />
+              {text}
+            </label>
+          ))}
         </div>
+      </fieldset>
+      {machineMode === 'texto' ? (
         <div>
           <label htmlFor={`${ids}-machine`} className={fieldLabelClass}>
-            Máquina <span className="font-normal text-terra/45">(opcional)</span>
+            Qual máquina <span className="font-normal text-terra/45">(opcional)</span>
           </label>
           <input id={`${ids}-machine`} maxLength={150} placeholder="Ex.: Trator John Deere" value={machine} onChange={(e) => setMachine(e.target.value)} className={inputClass} />
         </div>
-      </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div>
+            <label htmlFor={`${ids}-machine-select`} className={fieldLabelClass}>
+              Máquina
+            </label>
+            <select id={`${ids}-machine-select`} value={machineId} onChange={(e) => setMachineId(e.target.value)} className={inputClass}>
+              <option value="">Selecione</option>
+              {machines
+                .filter((m) => !m.archived)
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`${ids}-machine-reading`} className={fieldLabelClass}>
+              Leitura atual <span className="font-normal text-terra/45">(opcional)</span>
+            </label>
+            <input
+              id={`${ids}-machine-reading`}
+              type="number"
+              step="0.01"
+              inputMode="decimal"
+              disabled={!machineId}
+              value={machineReading}
+              onChange={(e) => setMachineReading(e.target.value)}
+              className={`${inputClass} disabled:bg-terra/5`}
+            />
+            {selectedMachine && (
+              <p className="mt-1 text-xs text-terra/55">Leitura hoje: {formatNumber(selectedMachine.currentReading)}.</p>
+            )}
+          </div>
+        </div>
+      )}
       <div>
         <label htmlFor={`${ids}-notes`} className={fieldLabelClass}>
           Observações <span className="font-normal text-terra/45">(opcional)</span>
@@ -385,7 +455,7 @@ export function CropOperationsTab({
               <p className="text-xs text-terra/60">
                 {op.productName && `${op.productName}${op.quantity != null ? ` · ${formatNumber(op.quantity)} ${op.quantityUnit ?? ''}` : ''}`}
                 {op.totalCost != null && ` · ${formatCurrency(op.totalCost)}`}
-                {op.machine && ` · ${op.machine}`}
+                {(op.machineName ?? op.machine) && ` · ${op.machineName ?? op.machine}`}
                 {op.responsible && ` · ${op.responsible}`}
               </p>
               {op.notes && <p className="text-xs text-terra/55">{op.notes}</p>}

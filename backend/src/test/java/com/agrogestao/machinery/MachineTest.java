@@ -94,6 +94,25 @@ class MachineTest extends ApiTestSupport {
     }
 
     @Test
+    void cannotDeleteAMachineAlreadyUsedByAnOperation() throws Exception {
+        Session owner = registerOwnerWithProperty("EmUso");
+        long tratorType = type(owner, "Trator");
+        JsonNode machine = post("/api/machines", owner, Map.of("name", "Trator 1", "machineTypeId", tratorType,
+                "measurementType", "HOROMETRO"));
+        long fieldId = post("/api/fields", owner, Map.of("name", "Talhão 1", "areaHa", 10)).get("id").asLong();
+        long cropId = post("/api/crops", owner, Map.of("name", "Soja")).get("id").asLong();
+        long cropCycleId = post("/api/crop-cycles", owner, Map.of("fieldId", fieldId, "cropId", cropId,
+                "plannedPlantingDate", java.time.LocalDate.now().toString())).get("id").asLong();
+        post("/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", java.time.LocalDate.now().toString(), "machineId", machine.get("id").asLong()));
+
+        call(HttpMethod.DELETE, "/api/machines/" + machine.get("id").asLong(), owner, null, 422);
+        // Mas pode ser arquivada mesmo em uso.
+        JsonNode archived = post("/api/machines/" + machine.get("id").asLong() + "/archive", owner, null);
+        assertThat(archived.get("archived").asBoolean()).isTrue();
+    }
+
+    @Test
     void machinesAreIsolatedByProperty() throws Exception {
         Session owner = registerOwnerWithProperty("Um");
         Session other = registerOwnerWithProperty("Outro");

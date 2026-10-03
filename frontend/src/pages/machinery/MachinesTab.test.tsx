@@ -134,6 +134,17 @@ describe('MachinesTab', () => {
     expect(api.remove).toHaveBeenCalledWith(1)
   })
 
+  it('mostra o erro do servidor quando a exclusão é bloqueada por uso', async () => {
+    api.remove.mockRejectedValue({
+      isAxiosError: true,
+      response: { data: { message: 'A máquina Trator 1 já tem operações registradas e não pode ser excluída.' } },
+    })
+    setup()
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Excluir máquina' }))
+    expect(await screen.findByText('A máquina Trator 1 já tem operações registradas e não pode ser excluída.')).toBeInTheDocument()
+  })
+
   it('pede para cadastrar um tipo quando não há nenhum ativo', () => {
     setup([], [])
     expect(screen.getByText('Cadastre um tipo de máquina antes de registrar a primeira máquina.')).toBeInTheDocument()

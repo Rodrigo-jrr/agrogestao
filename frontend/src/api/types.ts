@@ -438,6 +438,8 @@ export interface CropOperation {
   totalCost: number | null
   responsible: string | null
   machine: string | null
+  machineId: number | null
+  machineName: string | null
   notes: string | null
 }
 
@@ -452,6 +454,8 @@ export interface CropOperationInput {
   cost?: number | null
   responsible?: string | null
   machine?: string | null
+  machineId?: number | null
+  machineReading?: number | null
   notes?: string | null
 }
 

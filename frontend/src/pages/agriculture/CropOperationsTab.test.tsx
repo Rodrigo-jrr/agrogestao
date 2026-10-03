@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import type { CropCycle, CropOperation, Field, Product } from '../../api/types'
+import type { CropCycle, CropOperation, Field, Machine, Product } from '../../api/types'
 import { ConfirmProvider } from '../../components/ConfirmDialog'
 import { CropOperationsTab } from './CropOperationsTab'
 
@@ -45,7 +45,19 @@ const operacao: CropOperation = {
   totalCost: 20,
   responsible: 'João',
   machine: 'Trator',
+  machineId: null,
+  machineName: null,
   notes: null,
+}
+const trator: Machine = {
+  id: 1,
+  name: 'Trator 1',
+  machineTypeId: 1,
+  machineTypeName: 'Trator',
+  identification: null,
+  measurementType: 'HOROMETRO',
+  currentReading: 500,
+  archived: false,
 }
 
 const api = vi.hoisted(() => ({
@@ -53,10 +65,12 @@ const api = vi.hoisted(() => ({
   create: vi.fn(),
   remove: vi.fn(),
   listProducts: vi.fn(),
+  listMachines: vi.fn(),
 }))
 vi.mock('../../api/endpoints', () => ({
   cropOperationsApi: { list: api.list, create: api.create, remove: api.remove },
   inventoryApi: { listProducts: api.listProducts },
+  machinesApi: { list: api.listMachines },
 }))
 
 function emptyPage() {
@@ -85,6 +99,7 @@ describe('CropOperationsTab', () => {
     api.create.mockReset()
     api.remove.mockReset()
     api.listProducts.mockReset().mockResolvedValue([])
+    api.listMachines.mockReset().mockResolvedValue([])
   })
 
   it('lista as operações já cadastradas', async () => {
@@ -166,6 +181,58 @@ describe('CropOperationsTab', () => {
       machine: null,
       notes: null,
     })
+  })
+
+  it('cadastra operação com máquina cadastrada e leitura', async () => {
+    api.listMachines.mockResolvedValue([trator])
+    api.create.mockResolvedValue({ ...operacao, id: 5 })
+    setup()
+    const dateInput = (await screen.findByLabelText('Data')) as HTMLInputElement
+    const today = dateInput.value
+
+    await userEvent.selectOptions(screen.getByLabelText('Safra'), '1')
+    await userEvent.click(screen.getByText('Máquina cadastrada'))
+    await screen.findByText('Trator 1')
+    await userEvent.selectOptions(screen.getByLabelText('Máquina'), '1')
+    await userEvent.type(screen.getByLabelText(/Leitura atual/), '520')
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar operação' }))
+
+    expect(api.create).toHaveBeenCalledWith({
+      cropCycleId: 1,
+      kind: 'PREPARO',
+      operationDate: today,
+      responsible: null,
+      machineId: 1,
+      machineReading: 520,
+      notes: null,
+    })
+  })
+
+  it('bloqueia quando a leitura da máquina cadastrada é menor que a atual', async () => {
+    api.listMachines.mockResolvedValue([trator])
+    setup()
+    await userEvent.selectOptions(screen.getByLabelText('Safra'), '1')
+    await userEvent.click(screen.getByText('Máquina cadastrada'))
+    await screen.findByText('Trator 1')
+    await userEvent.selectOptions(screen.getByLabelText('Máquina'), '1')
+    await userEvent.type(screen.getByLabelText(/Leitura atual/), '100')
+    await userEvent.click(screen.getByRole('button', { name: 'Registrar operação' }))
+
+    expect(api.create).not.toHaveBeenCalled()
+    expect(screen.getByText('A leitura não pode ser menor que a atual (500).')).toBeInTheDocument()
+  })
+
+  it('mostra o nome da máquina cadastrada na lista, preferindo-o ao texto livre', async () => {
+    api.list.mockResolvedValue({
+      content: [{ ...operacao, machine: 'texto antigo', machineId: 1, machineName: 'Trator 1' }],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+    })
+    setup()
+    expect(await screen.findByText(/Trator 1/)).toBeInTheDocument()
+    expect(screen.queryByText(/texto antigo/)).not.toBeInTheDocument()
   })
 
   it('pede para cadastrar uma safra ativa quando não há nenhuma', () => {

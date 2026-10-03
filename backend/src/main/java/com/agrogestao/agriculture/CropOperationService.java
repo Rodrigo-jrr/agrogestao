@@ -15,6 +15,9 @@ import com.agrogestao.inventory.InventoryMovementRepository;
 import com.agrogestao.inventory.InventoryMovementService;
 import com.agrogestao.inventory.MovementType;
 import com.agrogestao.inventory.Product;
+import com.agrogestao.machinery.Machine;
+import com.agrogestao.machinery.MachineRepository;
+import com.agrogestao.machinery.MachineService;
 import com.agrogestao.properties.TenantContext;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -38,12 +41,15 @@ public class CropOperationService {
     private final CropRepository cropRepository;
     private final InventoryMovementService inventoryMovementService;
     private final InventoryMovementRepository inventoryMovementRepository;
+    private final MachineRepository machineRepository;
+    private final MachineService machineService;
     private final TenantContext tenantContext;
     private final AuditService auditService;
 
     public CropOperationService(CropOperationRepository operationRepository, CropCycleRepository cropCycleRepository,
             FieldRepository fieldRepository, CropRepository cropRepository,
             InventoryMovementService inventoryMovementService, InventoryMovementRepository inventoryMovementRepository,
+            MachineRepository machineRepository, MachineService machineService,
             TenantContext tenantContext, AuditService auditService) {
         this.operationRepository = operationRepository;
         this.cropCycleRepository = cropCycleRepository;
@@ -51,6 +57,8 @@ public class CropOperationService {
         this.cropRepository = cropRepository;
         this.inventoryMovementService = inventoryMovementService;
         this.inventoryMovementRepository = inventoryMovementRepository;
+        this.machineRepository = machineRepository;
+        this.machineService = machineService;
         this.tenantContext = tenantContext;
         this.auditService = auditService;
     }
@@ -82,6 +90,14 @@ public class CropOperationService {
         operation.setResponsible(blankToNull(request.responsible()));
         operation.setMachine(blankToNull(request.machine()));
         operation.setNotes(blankToNull(request.notes()));
+
+        if (request.machineId() != null) {
+            Machine machine = requireActiveMachine(propertyId, request.machineId());
+            operation.setMachineId(machine.getId());
+            if (request.machineReading() != null) {
+                machineService.updateReadingFromUsage(machine, request.machineReading());
+            }
+        }
 
         if (request.productId() != null) {
             Product product = inventoryMovementService.requireActiveProduct(propertyId, request.productId());
@@ -148,6 +164,22 @@ public class CropOperationService {
         return cropRepository.findById(cycle.getCropId()).orElseThrow();
     }
 
+    /** Máquina ativa da propriedade — para registrar o uso numa operação nova. */
+    private Machine requireActiveMachine(Long propertyId, Long machineId) {
+        Machine machine = machineRepository.findById(machineId)
+                .filter(m -> m.getPropertyId().equals(propertyId))
+                .orElseThrow(() -> new BusinessException("Máquina inválida para esta propriedade"));
+        if (machine.isArchived()) {
+            throw new BusinessException("A máquina " + machine.getName() + " está arquivada.");
+        }
+        return machine;
+    }
+
+    /** Máquina pelo id, mesmo arquivada — para exibir operações já lançadas. */
+    private String machineNameOf(Long machineId) {
+        return machineId == null ? null : machineRepository.findById(machineId).map(Machine::getName).orElse(null);
+    }
+
     private String describeCycle(CropCycle cycle) {
         return cropOf(cycle).getName() + " em " + fieldOf(cycle).getName();
     }
@@ -167,7 +199,8 @@ public class CropOperationService {
         return new CropOperationResponse(operation.getId(), operation.getCropCycleId(), field.getId(), field.getName(),
                 crop.getId(), crop.getName(), operation.getKind(), operation.getOperationDate(), operation.getProductId(),
                 operation.getProductName(), operation.getQuantity(), operation.getQuantityUnit(), operation.getTotalCost(),
-                operation.getResponsible(), operation.getMachine(), operation.getNotes());
+                operation.getResponsible(), operation.getMachine(), operation.getMachineId(),
+                machineNameOf(operation.getMachineId()), operation.getNotes());
     }
 
     private static String blankToNull(String value) {

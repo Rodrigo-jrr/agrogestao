@@ -119,6 +119,48 @@ class CropOperationTest extends ApiTestSupport {
     }
 
     @Test
+    void registersRealMachineAndUpdatesItsReading() throws Exception {
+        long machineType = post("/api/machine-types", owner, Map.of("name", "Trator")).get("id").asLong();
+        long machine = post("/api/machines", owner, Map.of("name", "Trator 1", "machineTypeId", machineType,
+                "measurementType", "HOROMETRO", "currentReading", 100)).get("id").asLong();
+
+        JsonNode operation = post("/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", TODAY.toString(), "machineId", machine, "machineReading", 150));
+        assertThat(operation.get("machineId").asLong()).isEqualTo(machine);
+        assertThat(operation.get("machineName").asString()).isEqualTo("Trator 1");
+        assertThat(get("/api/machines", owner).get(0).get("currentReading").asDouble()).isEqualTo(150.0);
+
+        // Leitura não pode diminuir, mesmo passando pela operação.
+        call(HttpMethod.POST, "/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", TODAY.toString(), "machineId", machine, "machineReading", 140), 422);
+    }
+
+    @Test
+    void rejectsArchivedOrInvalidMachine() throws Exception {
+        long machineType = post("/api/machine-types", owner, Map.of("name", "Trator")).get("id").asLong();
+        long machine = post("/api/machines", owner, Map.of("name", "Trator 1", "machineTypeId", machineType,
+                "measurementType", "HOROMETRO")).get("id").asLong();
+
+        call(HttpMethod.POST, "/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", TODAY.toString(), "machineId", 999999), 422);
+
+        post("/api/machines/" + machine + "/archive", owner, null);
+        call(HttpMethod.POST, "/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", TODAY.toString(), "machineId", machine), 422);
+    }
+
+    @Test
+    void machineOfAnotherPropertyIsRejected() throws Exception {
+        Session other = registerOwnerWithProperty("Outro");
+        long otherType = post("/api/machine-types", other, Map.of("name", "Trator")).get("id").asLong();
+        long otherMachine = post("/api/machines", other, Map.of("name", "Trator do Outro", "machineTypeId", otherType,
+                "measurementType", "HOROMETRO")).get("id").asLong();
+
+        call(HttpMethod.POST, "/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
+                "operationDate", TODAY.toString(), "machineId", otherMachine), 422);
+    }
+
+    @Test
     void operationsAreIsolatedByProperty() throws Exception {
         Session other = registerOwnerWithProperty("Outro");
         JsonNode operation = post("/api/crop-operations", owner, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",

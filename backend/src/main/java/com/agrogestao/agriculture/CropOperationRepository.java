@@ -22,4 +22,7 @@ public interface CropOperationRepository extends JpaRepository<CropOperation, Lo
 
     /** Todas as operações das safras informadas — para calcular indicadores em memória. */
     List<CropOperation> findByPropertyIdAndCropCycleIdIn(Long propertyId, List<Long> cropCycleIds);
+
+    /** Para bloquear a exclusão de uma máquina já usada em operações (MachineService.delete). */
+    boolean existsByMachineId(Long machineId);
 }
