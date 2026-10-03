@@ -6,17 +6,21 @@ import type { Crop, CropCycle, Field } from '../../api/types'
 import { FormMessage } from '../../components/FormMessage'
 import { useProperty } from '../../property/PropertyContext'
 import { CropCyclesTab } from './CropCyclesTab'
+import { CropHarvestsTab } from './CropHarvestsTab'
+import { CropIndicatorsTab } from './CropIndicatorsTab'
 import { CropOperationsTab } from './CropOperationsTab'
 import { CropsTab } from './CropsTab'
 import { FieldsTab } from './FieldsTab'
 
-type Tab = 'talhoes' | 'culturas' | 'safras' | 'operacoes'
+type Tab = 'talhoes' | 'culturas' | 'safras' | 'operacoes' | 'colheitas' | 'indicadores'
 
 const tabs: [Tab, string][] = [
   ['talhoes', 'Talhões'],
   ['culturas', 'Culturas'],
   ['safras', 'Safras'],
   ['operacoes', 'Operações'],
+  ['colheitas', 'Colheitas'],
+  ['indicadores', 'Indicadores'],
 ]
 
 export function AgriculturaPage() {
@@ -77,6 +81,10 @@ export function AgriculturaPage() {
       {tab === 'operacoes' && (
         <CropOperationsTab cycles={cycles} fields={fields} canWrite={canWrite} canManage={canManage} onChanged={load} />
       )}
+      {tab === 'colheitas' && (
+        <CropHarvestsTab cycles={cycles} fields={fields} canWrite={canWrite} canManage={canManage} onChanged={load} />
+      )}
+      {tab === 'indicadores' && <CropIndicatorsTab cycles={cycles} fields={fields} />}
     </div>
   )
 }

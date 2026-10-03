@@ -455,6 +455,62 @@ export interface CropOperationInput {
   notes?: string | null
 }
 
+export type CropHarvestDestination = 'ESTOQUE' | 'VENDA'
+
+/** Colheita de uma safra: vai para o estoque (produto já cadastrado) ou vira receita direto, sem passar por Vendas. */
+export interface CropHarvest {
+  id: number
+  cropCycleId: number
+  fieldId: number
+  fieldName: string
+  cropId: number
+  cropName: string
+  harvestDate: string
+  quantity: number
+  quantityUnit: string
+  destination: CropHarvestDestination
+  productId: number | null
+  productName: string | null
+  unitCost: number | null
+  customerId: number | null
+  customerName: string | null
+  totalAmount: number | null
+  paymentType: PaymentType | null
+}
+
+export interface CropHarvestInput {
+  cropCycleId: number
+  harvestDate: string
+  quantity: number
+  quantityUnit: string
+  destination: CropHarvestDestination
+  productId?: number | null
+  unitCost?: number | null
+  customerId?: number | null
+  totalAmount?: number | null
+  paymentType?: PaymentType
+  installments?: InstallmentInput[]
+}
+
+/** Custo/receita/margem por ha e produção/ha de uma safra, de um talhão, ou de toda a propriedade num período. */
+export interface CropIndicators {
+  cropCycleId: number | null
+  cropCycleLabel: string | null
+  fieldId: number | null
+  fieldName: string | null
+  from: string | null
+  to: string | null
+  cycleCount: number
+  totalAreaHa: number
+  totalCost: number
+  costPerHa: number | null
+  harvestedQuantityByUnit: Record<string, number>
+  productionPerHaByUnit: Record<string, number>
+  revenue: number
+  revenuePerHa: number | null
+  marginPerHa: number | null
+}
+
 // Pecuária
 
 /** Espécie cadastrada livremente pela propriedade. Depois de usada, allowsIndividual não muda. */

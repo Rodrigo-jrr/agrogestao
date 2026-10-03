@@ -16,6 +16,9 @@ import type {
   CropCycle,
   CropCycleInput,
   CropInput,
+  CropHarvest,
+  CropHarvestInput,
+  CropIndicators,
   CropOperation,
   CropOperationInput,
   ExitType,
@@ -200,6 +203,18 @@ export const cropOperationsApi = {
     apiClient.get<PageResponse<CropOperation>>('/crop-operations', { params }).then((r) => r.data),
   create: (data: CropOperationInput) => apiClient.post<CropOperation>('/crop-operations', data).then((r) => r.data),
   remove: (id: number) => apiClient.delete<void>(`/crop-operations/${id}`).then((r) => r.data),
+}
+
+export const cropHarvestsApi = {
+  list: (params: PageParams & { cropCycleId?: number; fieldId?: number; from?: string; to?: string } = {}) =>
+    apiClient.get<PageResponse<CropHarvest>>('/crop-harvests', { params }).then((r) => r.data),
+  create: (data: CropHarvestInput) => apiClient.post<CropHarvest>('/crop-harvests', data).then((r) => r.data),
+  remove: (id: number) => apiClient.delete<void>(`/crop-harvests/${id}`).then((r) => r.data),
+}
+
+export const cropIndicatorsApi = {
+  get: (params: { cropCycleId?: number; fieldId?: number; from?: string; to?: string } = {}) =>
+    apiClient.get<CropIndicators>('/crop-indicators', { params }).then((r) => r.data),
 }
 
 type PartyInput = { name: string; document?: string; phone?: string; email?: string }
