@@ -19,18 +19,18 @@ Fale com o usuário **em português**. Antes de qualquer código, **verifique o 
   - `docs/ARCHITECTURE.md`, com as regras de negócio e técnicas e o que já existe;
   - `docs/AUDITORIA.md`, com o checklist concluído e os itens da fase de publicação;
   - `docs/AgroGestao_documento_base.md`, a visão do produto: seções 12–14 (pecuária), 15 (agricultura) e 49 (segunda fase).
-- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #22
-  ("Máquinas e Manutenção, entrega 1: cadastro de máquinas e implementos"). A Agricultura (entregas 1-4) está
-  completa; Máquinas e Manutenção está na Entrega 1 de 4.
+- Rode `git log --oneline -15` e `git status` para confirmar o ponto atual. O último PR mesclado foi o #24
+  ("Máquinas e Manutenção, entrega 2: uso por operação"). A Agricultura (entregas 1-4) está completa; Máquinas
+  e Manutenção está na Entrega 2 de 4.
 - Rode os testes antes de mexer, para ter a linha de base:
-  - backend: `mvn -f backend/pom.xml clean test`, com 195 testes no H2 (use `clean`: trocar de branch sem ele
+  - backend: `mvn -f backend/pom.xml clean test`, com 199 testes no H2 (use `clean`: trocar de branch sem ele
     pode deixar migração antiga em `target/classes` e gerar falso negativo — já aconteceu);
-  - frontend: `npm --prefix frontend test` (96 testes) e `npm --prefix frontend run lint`;
+  - frontend: `npm --prefix frontend test` (100 testes) e `npm --prefix frontend run lint`;
   - ponta a ponta: `docker compose up -d` na raiz e depois `npm --prefix frontend run test:e2e` (14 testes).
 
 ### 2. Stack
 - **Backend:** Spring Boot 4.1 e Java 21 (Jackson 3 = `tools.jackson`), com MySQL 8 do docker na porta 3307.
-  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V19**.
+  As migrações Flyway estão em `backend/src/main/resources/db/migration`, e **a próxima é a V20**.
 - **Frontend:** React 19, TypeScript, Vite e Tailwind v4.
 - **E-mails locais:** Mailpit (SMTP na porta 1025, interface em http://localhost:8025).
 
@@ -182,11 +182,12 @@ sistema.
   (`POST /api/machines/{id}/reading`), separado da edição de cadastro, e não pode diminuir (monotônica).
   Exclusão física permitida nesta entrega (nada referencia máquina ainda) — isso muda na Entrega 2. Página nova
   `/maquinas`, independente da Agricultura, com entrada própria no menu. Migração V18.
-- **Entrega 2 — Uso por operação:** liga à Agricultura — substitui o campo de texto livre "máquina usada" das
-  operações agrícolas por um vínculo real a uma máquina cadastrada, e atualiza a leitura do horímetro/hodômetro
-  ao registrar uso. **Operações já existentes mantêm o texto antigo como histórico** (decisão do usuário) — só
-  operações novas exigem escolher uma máquina cadastrada, sem tentar casar/adivinhar automaticamente o texto
-  antigo.
+- **Entrega 2 — Uso por operação — concluída (03/10/2026, PR #24):** `crop_operations.machine_id` (FK
+  `machines`, RESTRICT) ao lado do campo de texto livre `machine` existente — nenhum dos dois é obrigatório,
+  operações antigas mantêm o texto como histórico, sem tentar casar automaticamente. Informar `machineId` com
+  `machineReading` opcional atualiza `machines.current_reading` (mesma regra de não diminuir). Fix importante
+  encontrado pelo Banco de Dados nesta entrega: `MachineService.delete` passou a bloquear (422) a exclusão de
+  máquina com operações registradas — antes apagava sem checar e estouraria erro de FK. Migração V19.
 - **Entrega 3 — Manutenção:** preventiva por horas/km ou data, com alertas, e corretiva com custo e peças do
   estoque (pacote `maintenance`).
 - **Entrega 4 — Custo por hora de máquina:** fórmula e fontes de custo a confirmar com o usuário antes de
