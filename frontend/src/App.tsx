@@ -15,6 +15,7 @@ import { PurchasesPage } from './pages/PurchasesPage'
 import { SalesPage } from './pages/SalesPage'
 import { ActivitiesPage } from './pages/ActivitiesPage'
 import { AgriculturaPage } from './pages/agriculture/AgriculturaPage'
+import { MachineryPage } from './pages/machinery/MachineryPage'
 import { MembersPage } from './pages/MembersPage'
 import { AdminPage } from './pages/AdminPage'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -68,6 +69,7 @@ export default function App() {
                   <Route path="/vendas" element={<SalesPage />} />
                   <Route path="/atividades" element={<ActivitiesPage />} />
                   <Route path="/agricultura" element={<AgriculturaPage />} />
+                  <Route path="/maquinas" element={<MachineryPage />} />
                   <Route path="/pecuaria" element={<LivestockPage />} />
                   <Route path="/pecuaria/animais/:id" element={<AnimalDetailPage />} />
                   <Route path="/equipe" element={<MembersPage />} />

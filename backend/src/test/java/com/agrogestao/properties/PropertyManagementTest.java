@@ -100,6 +100,10 @@ class PropertyManagementTest extends ApiTestSupport {
                 Map.of("fieldId", fieldId, "cropId", cropId, "plannedPlantingDate", today)).get("id").asLong();
         post("/api/crop-operations", session, Map.of("cropCycleId", cropCycleId, "kind", "PREPARO",
                 "operationDate", today, "cost", 80));
+        // Máquinas: tipo e uma máquina cadastrada.
+        Long machineTypeId = post("/api/machine-types", session, Map.of("name", "Trator")).get("id").asLong();
+        post("/api/machines", session, Map.of("name", "Trator 1", "machineTypeId", machineTypeId,
+                "measurementType", "HOROMETRO", "currentReading", 120));
         post("/api/production", session, Map.of("productName", "Milho", "quantity", 10, "unit", "sc",
                 "productionDate", today, "activityId", activityId));
         post("/api/finance/transactions", session, Map.of("type", "EXPENSE", "description", "Diesel",

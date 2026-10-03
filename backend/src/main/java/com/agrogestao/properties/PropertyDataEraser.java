@@ -47,6 +47,9 @@ public class PropertyDataEraser {
             "DELETE FROM crop_cycles WHERE property_id = ?",
             "DELETE FROM crops WHERE property_id = ?",
             "DELETE FROM fields WHERE property_id = ?",
+            // machines referencia machine_types: apaga antes dele.
+            "DELETE FROM machines WHERE property_id = ?",
+            "DELETE FROM machine_types WHERE property_id = ?",
             "DELETE FROM suppliers WHERE property_id = ?",
             "DELETE FROM customers WHERE property_id = ?",
             "DELETE FROM property_invitations WHERE property_id = ?",

@@ -16,6 +16,7 @@ const coreNav = [
   { to: '/vendas', label: 'Vendas' },
   { to: '/agricultura', label: 'Agricultura' },
   { to: '/pecuaria', label: 'Pecuária' },
+  { to: '/maquinas', label: 'Máquinas' },
   { to: '/atividades', label: 'Atividades' },
   { to: '/equipe', label: 'Equipe' },
   { to: '/propriedade', label: 'Propriedade' },
